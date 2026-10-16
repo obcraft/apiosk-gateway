@@ -135,6 +135,7 @@ impl Engine {
         // A manual recomposition reuses the news snapshot too. Reading a saved
         // task never refreshes feeds or changes its original supporting context.
         let previous_news = previous_analysis.as_ref().and_then(|analysis| analysis.get("supporting_news")).cloned();
+        let previous_company_context = task.analysis.as_ref().and_then(|analysis| analysis.get("company_context")).cloned();
         if matches!(action, Action::RetryAnalysis { .. }) {
             telemetry::set_segment(telemetry::Segment::RetryAnalysis);
         }
@@ -303,6 +304,15 @@ impl Engine {
                 }
                 if !preserved_previous_analysis {
                     super::supporting_news::enrich(&mut task, &intent, previous_news.as_ref());
+                    // Public context stays separate from primary evidence and is
+                    // saved once. Recomposition never re-fetches a saved snapshot.
+                    let context = if let Some(saved) = previous_company_context { Some(saved) }
+                        else if let Some(intake) = &task.capability_intake {
+                            Some(json!(crate::company_context::collect(&intake.parsed_request).await))
+                        } else { None };
+                    if let (Some(answer), Some(context)) = (task.analysis.as_mut(), context) {
+                        answer["company_context"] = context;
+                    }
                 }
                 task.actions.clear();
                 if task

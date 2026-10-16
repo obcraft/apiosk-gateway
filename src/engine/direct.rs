@@ -15,8 +15,22 @@ impl Engine {
         capability: Option<&str>,
         input: &BTreeMap<String, Value>,
     ) -> anyhow::Result<Response> {
+        self.prepare_endpoint_answer(p, request_id, endpoint_id, capability, input, None).await
+    }
+
+    /// An Ask purchase keeps its original question for the existing saved-data
+    /// analysis after execution. It cannot change the selected endpoint or quote.
+    pub async fn prepare_endpoint_answer(
+        &self, p: &Principal, request_id: Uuid, endpoint_id: Uuid,
+        capability: Option<&str>, input: &BTreeMap<String, Value>, question: Option<&str>,
+    ) -> anyhow::Result<Response> {
+        anyhow::ensure!(question.is_none_or(|q| !q.trim().is_empty() && q.len() <= 8_000), "invalid question");
+        let hash = match question {
+            Some(question) => digest(&("ask-v2-prepare-answer", p.connection, endpoint_id, capability, input, question)),
+            None => digest(&("ask-v2-prepare", p.connection, endpoint_id, capability, input)),
+        };
         if let Some(response) = self.request_claim(
-            p, request_id, &digest(&("ask-v2-prepare", p.connection, endpoint_id, capability, input)), "endpoint-prepare",
+            p, request_id, &hash, "endpoint-prepare",
         ).await? {
             return Ok(response);
         }
@@ -26,13 +40,14 @@ impl Engine {
                 Ok(service) => service,
                 Err((code, message)) => return Ok(Response::error(request_id, Status::NeedsInput, code, message)),
             };
-            let intent = match endpoint_intent(&catalog, service, input) {
+            let mut intent = match endpoint_intent(&catalog, service, input) {
                 Ok(intent) => intent,
                 Err(message) => return Ok(Response::error(request_id, Status::NeedsInput, "invalid_endpoint_input", &message)),
             };
+            if let Some(question) = question { add_answer_question(&mut intent, question); }
             let request = DiscoverRequest {
                 request_id,
-                question: format!("Run {} on {}", service.contract.capability_slug, service.api_slug),
+                question: question.map(str::to_owned).unwrap_or_else(|| format!("Run {} on {}", service.contract.capability_slug, service.api_slug)),
                 state: None,
                 context_delta: ContextDelta::default(),
             };
@@ -166,6 +181,10 @@ impl Engine {
     }
 }
 
+fn add_answer_question(intent: &mut Intent, question: &str) {
+    intent.answer_operations = vec![format!("Answer using only the saved results of this selected source. Explain which parts are supported, and mark the other requested checks as not performed. Never substitute a different currency, subject or period. User question: {question}")];
+}
+
 fn endpoint_intent(catalog: &Catalog, service: &crate::catalog::Service, input: &BTreeMap<String, Value>) -> Result<Intent, String> {
     let lookup = Engine::endpoint_lookup(catalog, service);
     for (field, value) in input {
@@ -201,6 +220,28 @@ mod tests {
 
     fn catalog() -> Catalog {
         Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/integration-catalog.json")).unwrap())
+    }
+
+    #[test]
+    fn answer_question_preserves_the_exact_selected_plan_and_inputs() {
+        let catalog = catalog();
+        let service = catalog.services.iter().find(|s| s.contract.capability_slug == "company.accounts").unwrap();
+        let input = BTreeMap::from([("company.id".into(), json!("123"))]);
+        let mut intent = endpoint_intent(&catalog, service, &input).unwrap();
+        let original = serde_json::to_value(&intent).unwrap();
+        add_answer_question(&mut intent, "Show accounts and validate this IBAN");
+        let updated = serde_json::to_value(&intent).unwrap();
+        assert_eq!(updated["goals"], original["goals"]);
+        assert_eq!(updated["subjects"], original["subjects"]);
+        assert_eq!(intent.answer_operations.len(), 1);
+        assert!(intent.answer_operations[0].contains("not performed"));
+        assert!(intent.answer_operations[0].contains("Show accounts and validate this IBAN"));
+        let mut task = Task::default();
+        input::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let Resolution::Plan(plan) = resolver::resolve(&catalog, &task, &intent) else { panic!("expected the original quote") };
+        assert_eq!(plan.steps.len(), 1);
+        assert_eq!(plan.steps[0].service.endpoint_id, service.endpoint_id);
+        assert_eq!(plan.cap_atomic, service.total());
     }
 
     #[test]

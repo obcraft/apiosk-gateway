@@ -402,7 +402,10 @@ impl Engine {
         match dispatch {
             Dispatch::Done { body, .. } => {
                 match prepared.validate(&body, &sources, &task.failed_steps) {
-                    Ok(answer) => {
+                    Ok(mut answer) => {
+                        if let Some(context) = task.analysis.as_ref().and_then(|previous| previous.get("company_context")) {
+                            answer["company_context"] = context.clone();
+                        }
                         task.analysis = Some(answer);
                         task.compute.as_mut().unwrap().status = "completed".into();
                     }

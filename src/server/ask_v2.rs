@@ -20,6 +20,7 @@ use uuid::Uuid;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct PrepareRequest {
+    question: Option<String>,
     request_id: Uuid,
     endpoint_id: Uuid,
     capability: Option<String>,
@@ -114,6 +115,7 @@ pub(super) async fn research(
 impl PrepareRequest {
     fn valid(&self) -> bool {
         !self.request_id.is_nil() && !self.endpoint_id.is_nil()
+            && self.question.as_deref().is_none_or(|q| !q.trim().is_empty() && q.len() <= 8_000)
             && self.capability.as_deref().is_none_or(valid_operation)
             && self.input.len() <= 64
             && self.input.keys().all(|field| !field.is_empty() && field.len() <= 200)
@@ -169,6 +171,7 @@ pub(crate) fn endpoint_descriptor(catalog: &crate::catalog::Catalog, service: &c
     }).collect();
     let lookup = crate::engine::Engine::endpoint_lookup(catalog, service);
     json!({
+        "answer_supported":true,
         "api_id":service.endpoint_id,"endpoint_id":service.endpoint_id,"capability":service.contract.capability_slug,"name":service.name,"description":service.description,
         "source":{"slug":service.api_slug,"name":source.map(|s| s.name.as_str()).unwrap_or(&service.api_slug),
             "logo_url":source.and_then(|s| s.logo_url.as_deref().or(s.provider_logo_url.as_deref())),"url":service.source_url,"usage_notice":service.usage_notice_view()},
@@ -200,7 +203,7 @@ pub(super) async fn prepare(
     // (never this request) can approve the purchase.
     match crate::telemetry::spawn(async move {
         let _permit = permit;
-        let response = engine.prepare_endpoint(&person, request.request_id, request.endpoint_id, request.capability.as_deref(), &request.input).await?;
+        let response = engine.prepare_endpoint_answer(&person, request.request_id, request.endpoint_id, request.capability.as_deref(), &request.input, request.question.as_deref()).await?;
         Ok::<_, anyhow::Error>(engine.continue_automatically(&person, &bearer, response).await)
     }).await {
         Ok(Ok(response)) => Json(response).into_response(),
@@ -360,7 +363,8 @@ pub(super) async fn parse(
         Ok(token) => token,
         Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY,"planning_too_large","This plan contains too much detail. Narrow the question and try again."),
     };
-    let output = json!({"parsed_request":parsed,"model":interpretation.output.model,
+    let company_context = crate::company_context::collect(&parsed).await;
+    let output = json!({"parsed_request":parsed,"model":interpretation.output.model,"company_context":company_context,
         "planning_token":token,"attempts":interpretation.attempts,"model_calls":crate::telemetry::model_http_requests(),
         "timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_ms":interpretation.output.timing.parse_ms}});
     tracing::info!(request_id=%request.request_id, model=%output["model"], attempts=interpretation.attempts, parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
@@ -995,6 +999,13 @@ mod tests {
     fn prepare_accepts_only_a_bounded_exact_endpoint_and_inputs() {
         let mut request: PrepareRequest = serde_json::from_value(json!({"request_id":Uuid::new_v4(),"endpoint_id":Uuid::new_v4(),"input":{"company.id":"123"}})).unwrap();
         assert!(request.valid());
+        request.question = Some("Show the saved source facts".into());
+        assert!(request.valid());
+        request.question = Some(" ".into());
+        assert!(!request.valid());
+        request.question = Some("x".repeat(8_001));
+        assert!(!request.valid());
+        request.question = None;
         request.input.insert("x".repeat(201), json!("value"));
         assert!(!request.valid());
         request.input.clear();

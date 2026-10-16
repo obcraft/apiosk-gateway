@@ -159,6 +159,13 @@ impl Service {
             .await;
         preview
     }
+    /// Bounded public HTML for company context, with the same DNS pinning,
+    /// redirect checks and no credentials as previews. Never executes scripts.
+    pub(crate) async fn public_html(&self, raw: &str) -> Result<(Url, Vec<u8>)> {
+        let url = public_url(raw)?;
+        let _permit = self.requests.clone().try_acquire_owned()?;
+        tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Page)).await?
+    }
     async fn remember(&self, key: String, preview: Preview, ttl: Duration) {
         self.cache
             .insert(
@@ -264,7 +271,7 @@ fn append_body(bytes: &mut Vec<u8>, chunk: &[u8], kind: Kind) -> Result<bool> {
     bytes.extend_from_slice(&chunk[..chunk.len().min(HTML_BYTES.saturating_sub(bytes.len()))]);
     if let Some(end) = bytes[scan_from..]
         .windows(7)
-        .position(|part| part.eq_ignore_ascii_case(b"</head>"))
+        .position(|part| matches!(kind, Kind::Html) && part.eq_ignore_ascii_case(b"</head>"))
     {
         bytes.truncate(scan_from + end + 7);
         return Ok(true);
@@ -275,18 +282,19 @@ fn append_body(bytes: &mut Vec<u8>, chunk: &[u8], kind: Kind) -> Result<bool> {
 #[derive(Clone, Copy)]
 enum Kind {
     Html,
+    Page,
     Image,
 }
 impl Kind {
     fn limit(self) -> usize {
         match self {
-            Self::Html => HTML_BYTES,
+            Self::Html | Self::Page => HTML_BYTES,
             Self::Image => IMAGE_BYTES,
         }
     }
     fn accept(self) -> &'static str {
         match self {
-            Self::Html => "text/html,application/xhtml+xml",
+            Self::Html | Self::Page => "text/html,application/xhtml+xml",
             Self::Image => "image/jpeg,image/png",
         }
     }
@@ -613,6 +621,15 @@ mod tests {
         let (fallback, _) = metadata(b"<title>Plain title</title>", &base);
         assert_eq!(fallback.title.as_deref(), Some("Plain title"));
     }
+    #[test]
+    fn company_context_reads_past_the_head_but_never_past_the_html_limit() {
+        let mut bytes = Vec::new();
+        assert!(!append_body(&mut bytes, b"<head></head><body>Company profile</body>", Kind::Page).unwrap());
+        assert!(String::from_utf8_lossy(&bytes).contains("Company profile"));
+        assert!(append_body(&mut bytes, &vec![b'a'; HTML_BYTES + 1], Kind::Page).unwrap());
+        assert_eq!(bytes.len(), HTML_BYTES);
+    }
+
     #[test]
     fn large_html_keeps_metadata_and_stops_at_a_split_head_boundary() {
         let base = Url::parse("https://apiosk.com/page").unwrap();
