@@ -16,6 +16,19 @@ configured only server-side in Gateway and Edge. An absent, empty, malformed, or
 nonmatching list denies access, including queue refill, execution and delivery.
 Other users receive recurring_forbidden from recurring management routes.
 
+## Local manual testing
+
+`node gateway/scripts/dev-local.mjs --execute --recurring --no-open` requires
+`RECURRING_WORKER_SECRET` in `gateway/.env` (or the inherited environment), matching
+Supabase's `recurring-execute` secret exactly. The launcher must not generate a
+replacement: a local random value is rejected by hosted execution with 401.
+Missing credentials stop startup before any occurrence is claimed.
+
+A manual-trigger 202 response only accepts an occurrence. The UI follows the
+saved run and delivery states until completion; source or authorization failures
+replace the progress message. An accepted occurrence cannot be triggered again
+from a stale queued response. Manual tests consume the approved scheduled run.
+
 ## Reviewed behavior
 
 After a completed purchased task, **Make recurring** recovers the original sources

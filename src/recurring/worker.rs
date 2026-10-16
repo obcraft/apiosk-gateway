@@ -37,6 +37,19 @@ fn token(secret: &str, call: Uuid) -> String {
     )
 }
 
+fn failed_call(call: Uuid, state: &str, body: &Value, refused_without_charge: bool) -> Value {
+    let error = if state == "unresolved" {
+        json!({"code":"recurring_outcome_unresolved", "message":"Payment or result needs reconciliation. This call was not retried."})
+    } else if refused_without_charge && body["error"] == "unauthorized" {
+        json!({"code":"recurring_execution_unauthorized", "message":"The recurring execution service rejected authorization. Check that Gateway and Supabase use the same RECURRING_WORKER_SECRET. No source purchase was made."})
+    } else if refused_without_charge {
+        crate::billing::public_error(body)
+    } else {
+        json!({"code":"recurring_source_failed", "message":"The source did not complete. Check the saved charge status."})
+    };
+    json!({"call_id":call,"state":state,"code":error["code"],"message":error["message"]})
+}
+
 async fn finish(
     e: &Engine,
     run: Uuid,
@@ -371,6 +384,7 @@ async fn execute(
         // A restarted worker only reads the charge journal. It never resends a
         // dispatch whose outcome might already have cost money.
         let charge:Option<(String,i64,Uuid)>=sqlx::query_as("select status,charged_micro_usd,id from balance_charges where user_id=$1 and idempotency_key=$2").bind(p.owner).bind(id.to_string()).fetch_optional(&e.store.pool).await?;
+        let refused_without_charge = charge.is_none() && crate::billing::refused_before_reservation(&body);
         let final_state = match charge {
             Some((ref status, amount, charge)) if status == "charged" => {
                 let saved:Option<Value>=sqlx::query_scalar("select output from call_runs where charge_id=$1 and user_id=$2 and status='succeeded' and output_truncated is not true order by started_at desc limit 1").bind(charge).bind(p.owner).fetch_optional(&e.store.pool).await?;
@@ -402,7 +416,7 @@ async fn execute(
         failed |= final_state != "succeeded";
         unresolved |= final_state == "unresolved";
         if final_state != "succeeded" {
-            body = json!({"call_id":id,"state":final_state,"message":if final_state=="unresolved"{"Payment or result needs reconciliation. This call was not retried."}else{"The source did not complete. Check the saved charge status."}});
+            body = failed_call(id, final_state, &body, refused_without_charge);
         }
         sqlx::query("update billing.recurring_calls set state=$2,response=$3 where id=$1")
             .bind(id)
@@ -422,6 +436,9 @@ async fn execute(
             break;
         }
     }
+    let execution_error = if failed || unresolved {
+        results.last().and_then(|result| result["message"].as_str()).map(str::to_owned)
+    } else { None };
     let mut result = processing::result(&question, scheduled, results, &workflow.fingerprint);
     if failed || unresolved {
         result["analysis"] = Value::Null;
@@ -438,7 +455,7 @@ async fn execute(
             "succeeded"
         },
         result,
-        None,
+        execution_error.as_deref(),
     )
     .await
 }
@@ -604,4 +621,24 @@ async fn refill(e: &Engine) -> anyhow::Result<()> {
         tx.commit().await?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod manual_failure_tests {
+    use super::*;
+
+    #[test]
+    fn refusal_before_purchase_preserves_safe_authorization_diagnostics() {
+        let error = failed_call(Uuid::nil(), "failed", &json!({"ok":false,"error":"unauthorized","stage":"validating","secret":"never expose"}), true);
+        assert_eq!(error["code"], "recurring_execution_unauthorized");
+        assert!(error["message"].as_str().unwrap().contains("No source purchase"));
+        assert!(!error.to_string().contains("never expose"));
+    }
+
+    #[test]
+    fn unknown_payment_outcomes_never_claim_that_nothing_was_purchased() {
+        let error = failed_call(Uuid::nil(), "unresolved", &json!({"error":"unauthorized"}), false);
+        assert_eq!(error["code"], "recurring_outcome_unresolved");
+        assert!(error["message"].as_str().unwrap().contains("not retried"));
+    }
 }

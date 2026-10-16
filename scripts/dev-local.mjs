@@ -57,6 +57,16 @@ export function localConfiguration(workspace = root, inherited = process.env) {
   return { gateway, app, mcp, supabase, agentApi };
 }
 
+/** Hosted execution must use the same credential as recurring-execute. */
+export function enableLocalRecurring(gateway) {
+  if (!gateway.RECURRING_ALLOWED_OWNER_IDS?.trim()) throw new Error('Set RECURRING_ALLOWED_OWNER_IDS for local recurring access.');
+  if (!gateway.RECURRING_WORKER_SECRET || gateway.RECURRING_WORKER_SECRET.length < 32) {
+    throw new Error('Set RECURRING_WORKER_SECRET in gateway/.env to the SAME secret configured for Supabase recurring-execute. A generated local secret cannot authenticate hosted execution.');
+  }
+  gateway.RECURRING_ORDERS_ENABLED = '1';
+  gateway.RECURRING_MANUAL_TRIGGER_ENABLED = '1';
+}
+
 async function checkPort(port, host) {
   await new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -236,7 +246,7 @@ async function main() {
   if (config.gateway.EMBEDDED_EXECUTOR_ORIGIN) throw new Error('EMBEDDED_EXECUTOR_ORIGIN is set. This launcher uses hosted execution; unset that local override or start its executor separately.');
   if (args.has('--execute') && args.has('--smoke')) throw new Error('--smoke cannot be combined with --execute.');
   if (args.has('--recurring') && !args.has('--execute')) throw new Error('--recurring requires --execute.');
-  if (args.has('--recurring') && !config.gateway.RECURRING_ALLOWED_OWNER_IDS?.trim()) throw new Error('Set RECURRING_ALLOWED_OWNER_IDS for local recurring access.');
+  if (args.has('--recurring')) enableLocalRecurring(config.gateway);
   if (args.has('--execute')) config.gateway.V2_EXECUTION_ENABLED = '1';
   const service = (name, dir, port, health, command, argv, env, matches) => ({
     name, cwd: path.join(root, dir), port, health, command, args: argv, env,
@@ -256,11 +266,6 @@ async function main() {
   }
   mkdirSync(runtime, { recursive: true, mode: 0o700 });
   config.mcp.APIOSK_MCP_OAUTH_SECRET ||= localSecret();
-  if (args.has('--recurring')) {
-    config.gateway.RECURRING_ORDERS_ENABLED = '1';
-    config.gateway.RECURRING_MANUAL_TRIGGER_ENABLED = '1';
-    config.gateway.RECURRING_WORKER_SECRET ||= localSecret('recurring-worker-secret');
-  }
   const controller = new AbortController();
   const removeShutdownHandlers = installShutdownHandlers(controller);
   console.log(`Supabase API: ${config.supabase}\nExecution: ${args.has('--execute') ? 'enabled for approved requests' : 'off (use --execute to enable approved requests)'}\nLogs: ${runtime}\n`);

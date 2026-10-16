@@ -7,7 +7,7 @@ import test from 'node:test';
 import { EventEmitter, once } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { spawn } from 'node:child_process';
-import { checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
+import { enableLocalRecurring, checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
 
 async function freePort() {
   const socket = net.createServer();
@@ -196,4 +196,17 @@ test('stop signal closes all services without killing an existing port owner', a
     await new Promise(resolve => owner.close(resolve));
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('recurring hosted execution rejects missing or invented local credentials before startup', () => {
+  for (const secret of [undefined, '', 'too-short']) {
+    const gateway = { RECURRING_ALLOWED_OWNER_IDS: 'owner', RECURRING_WORKER_SECRET: secret };
+    assert.throws(() => enableLocalRecurring(gateway), /SAME secret configured for Supabase/);
+    assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, undefined);
+  }
+  const gateway = { RECURRING_ALLOWED_OWNER_IDS: 'owner', RECURRING_WORKER_SECRET: 'shared-with-hosted-executor-1234567890' };
+  enableLocalRecurring(gateway);
+  assert.equal(gateway.RECURRING_WORKER_SECRET, 'shared-with-hosted-executor-1234567890');
+  assert.equal(gateway.RECURRING_ORDERS_ENABLED, '1');
+  assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '1');
 });
