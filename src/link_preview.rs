@@ -172,6 +172,12 @@ impl Service {
         let _permit = self.requests.clone().try_acquire_owned()?;
         tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Feed)).await?
     }
+    /// Public JSON uses the same destination and size checks as page reads.
+    pub(crate) async fn public_json(&self, raw: &str) -> Result<(Url, Vec<u8>)> {
+        let url = public_url(raw)?;
+        let _permit = self.requests.clone().try_acquire_owned()?;
+        tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Json)).await?
+    }
     async fn remember(&self, key: String, preview: Preview, ttl: Duration) {
         self.cache
             .insert(
@@ -290,12 +296,13 @@ enum Kind {
     Html,
     Page,
     Feed,
+    Json,
     Image,
 }
 impl Kind {
     fn limit(self) -> usize {
         match self {
-            Self::Html | Self::Page | Self::Feed => HTML_BYTES,
+            Self::Html | Self::Page | Self::Feed | Self::Json => HTML_BYTES,
             Self::Image => IMAGE_BYTES,
         }
     }
@@ -303,6 +310,7 @@ impl Kind {
         match self {
             Self::Html | Self::Page => "text/html,application/xhtml+xml",
             Self::Feed => "application/rss+xml,application/xml,text/xml",
+            Self::Json => "application/json",
             Self::Image => "image/jpeg,image/png",
         }
     }

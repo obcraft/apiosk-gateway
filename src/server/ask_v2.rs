@@ -363,7 +363,7 @@ pub(super) async fn parse(
         Ok(token) => token,
         Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY,"planning_too_large","This plan contains too much detail. Narrow the question and try again."),
     };
-    let company_context = crate::company_context::collect(&parsed).await;
+    let company_context = crate::subject_context::collect(&parsed).await;
     let output = json!({"parsed_request":parsed,"model":interpretation.output.model,"company_context":company_context,
         "planning_token":token,"attempts":interpretation.attempts,"model_calls":crate::telemetry::model_http_requests(),
         "timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_ms":interpretation.output.timing.parse_ms}});

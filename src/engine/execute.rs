@@ -308,7 +308,7 @@ impl Engine {
                     // saved once. Recomposition never re-fetches a saved snapshot.
                     let context = if let Some(saved) = previous_company_context { Some(saved) }
                         else if let Some(intake) = &task.capability_intake {
-                            Some(json!(crate::company_context::collect(&intake.parsed_request).await))
+                            Some(json!(crate::subject_context::collect(&intake.parsed_request).await))
                         } else { None };
                     if let (Some(answer), Some(context)) = (task.analysis.as_mut(), context) {
                         answer["company_context"] = context;

@@ -55,7 +55,7 @@ pub mod eu_capabilities;
 pub mod source_preview;
 mod search_snapshot;
 mod supporting_news;
-mod company_context;
+mod subject_context;
 pub use supporting_news::start_background_refresh as start_supporting_news;
 pub mod state;
 pub mod store;

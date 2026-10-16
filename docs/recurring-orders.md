@@ -10,7 +10,8 @@ Slack/Gmail send is part of deployment validation.
 
 Production uses RECURRING_ORDERS_ENABLED="1". The App obtains
 its capability from authenticated GET /v2/recurring-orders/access; there is no
-browser or development-mode allowlist. The server returns only {enabled:boolean}.
+browser or development-mode allowlist. The server returns `{enabled:boolean, management_enabled:boolean}`. The first
+flag permits scheduling; the second permits access to existing-order management.
 RECURRING_ALLOWED_OWNER_IDS contains immutable authenticated owner UUIDs and is
 configured only server-side in Gateway and Edge. An absent, empty, malformed, or
 nonmatching list denies access, including queue refill, execution and delivery.
@@ -18,11 +19,15 @@ Other users receive recurring_forbidden from recurring management routes.
 
 ## Local manual testing
 
-`node gateway/scripts/dev-local.mjs --execute --recurring --no-open` requires
+`node gateway/scripts/dev-local.mjs --execute --recurring --no-open` enables workers when configured. Execution requires
 `RECURRING_WORKER_SECRET` in `gateway/.env` (or the inherited environment), matching
 Supabase's `recurring-execute` secret exactly. The launcher must not generate a
 replacement: a local random value is rejected by hosted execution with 401.
-Missing credentials stop startup before any occurrence is claimed.
+Missing credentials skip recurring workers without blocking startup. The local
+launcher sets `RECURRING_LOCAL_MANAGEMENT_ENABLED=1`; on a loopback bind,
+allowlisted owners can still open Recurring orders and view or stop existing
+orders. Scheduling and execution keep the worker-secret requirement. Production
+management access retains the existing execution gate.
 
 A manual-trigger 202 response only accepts an occurrence. The UI follows the
 saved run and delivery states until completion; source or authorization failures

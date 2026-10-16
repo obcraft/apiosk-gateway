@@ -276,6 +276,22 @@ pub fn enabled_for(owner: Uuid) -> bool {
     enabled() && owner_allowed(owner)
 }
 
+fn management_access(allowed: bool, execution: bool, local_flag: Option<&str>, bind: Option<&str>) -> bool {
+    allowed && (execution || (local_flag == Some("1") && bind
+        .and_then(|value| value.parse::<std::net::SocketAddr>().ok())
+        .is_some_and(|address| address.ip().is_loopback())))
+}
+
+/// Local owners can view and stop existing orders even without a worker secret.
+/// Spending and worker execution retain their separate enabled() checks.
+pub fn management_enabled_for(owner: Uuid) -> bool {
+    management_access(
+        owner_allowed(owner), enabled(),
+        std::env::var("RECURRING_LOCAL_MANAGEMENT_ENABLED").ok().as_deref(),
+        std::env::var("BIND_ADDRESS").ok().as_deref(),
+    )
+}
+
 fn require_owner(owner: Uuid) -> anyhow::Result<()> {
     anyhow::ensure!(
         owner_allowed(owner),
@@ -709,6 +725,18 @@ async fn utc_dates(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn local_management_keeps_owner_and_loopback_gates_without_worker_execution() {
+        assert!(management_access(true, false, Some("1"), Some("127.0.0.1:8082")));
+        assert!(management_access(true, false, Some("1"), Some("[::1]:8082")));
+        for bind in [None, Some("0.0.0.0:8082"), Some("[::]:8082"), Some("invalid")] {
+            assert!(!management_access(true, false, Some("1"), bind));
+        }
+        assert!(!management_access(false, false, Some("1"), Some("127.0.0.1:8082")));
+        assert!(!management_access(false, true, Some("1"), Some("127.0.0.1:8082")));
+        assert!(!management_access(true, false, None, Some("127.0.0.1:8082")));
+        assert!(management_access(true, true, None, Some("0.0.0.0:8082")));
+    }
     #[test]
     fn private_rollout_allowlist_fails_closed() {
         let owner = Uuid::new_v4();

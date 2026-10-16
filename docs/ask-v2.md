@@ -48,6 +48,40 @@ requires `ask:create`; selected execution requires `sources:execute`.
 
 ## Complete requests in the App
 
+### Quick subject introduction
+
+The App parse response also includes best-effort public web context in the
+backwards-compatible `company_context` field. It covers up to four named
+companies, organizations, people, places, objects or products. The optional
+`subject_type` preserves the parsed type. The implementation is
+`src/subject_context.rs`; the App uses `subject-context.ts` and
+`SubjectWebContext`. Only the saved wire keys `company_context` and `company`
+keep their old names so existing clients and chats continue to work. Coolblue
+appears in test fixtures, not in the subject-selection or search logic.
+Google HTML and Bing RSS searches run
+concurrently with a two-second network budget. When both produce no relevant
+pages, DuckDuckGo HTML and Wikipedia search/extracts race with a further
+two-second budget. JS redirect pages, challenges and unrelated results are
+never presented as evidence. A candidate homepage gets up to
+1.5 seconds, using the existing bounded, DNS-pinned public-page reader. A
+supplied homepage is fetched alongside search. Search snippets survive a failed
+homepage read. This network budget is additional to question parsing.
+
+The App shows a short extract from one attributed page above discovery, hides
+the empty source table during parsing, and keeps a longer homepage excerpt
+expandable. Missing web evidence produces an explicit unavailable message;
+source discovery can still continue. Successful context is cached for 15 minutes; failures remain retryable. Context is saved
+with the chat, so reopening it does not fetch it again. This adds no model call,
+quote, paid source request or charge. Web context does not verify legal identity
+or establish the result of requested registry or sanctions checks.
+
+`node scripts/release-subject-context.mjs` requires clean, published main; runs
+live free lookups for a company, person, object and supplied homepage; deploys
+from this Gateway directory; and verifies the deployed SHA, executor, Fly
+checks, authentication, MCP card and approval CORS. It stops on a failed gate.
+
+### Planning and execution
+
 The App waits for source discovery before allowing a new source selection and
 automatically prepares the complete data question through `/v2/ask-v2/research`.
 A prepared task opens even when the directory also returned alternatives.

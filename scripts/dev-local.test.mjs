@@ -149,6 +149,7 @@ test('local overrides reconnect App and MCP without giving them Gateway secrets'
     assert.equal(c.mcp.APIOSK_GATEWAY_URL, 'https://project.example/functions/v1/agent-gateway');
     assert.equal(c.gateway.V2_EXECUTION_ENABLED, '0');
     assert.equal(c.gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '0');
+    assert.equal(c.gateway.RECURRING_LOCAL_MANAGEMENT_ENABLED, '1');
     assert.equal(c.gateway.WORKSPACE_CONTEXT_ENABLED, 'true');
     assert.equal(c.gateway.OPENROUTER_API_KEY, 'server-only-model-key');
     for (const env of [c.app, c.mcp]) {
@@ -198,14 +199,23 @@ test('stop signal closes all services without killing an existing port owner', a
   }
 });
 
-test('recurring hosted execution rejects missing or invented local credentials before startup', () => {
-  for (const secret of [undefined, '', 'too-short']) {
-    const gateway = { RECURRING_ALLOWED_OWNER_IDS: 'owner', RECURRING_WORKER_SECRET: secret };
-    assert.throws(() => enableLocalRecurring(gateway), /SAME secret configured for Supabase/);
-    assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, undefined);
+test('recurring configuration never blocks local startup and stays disabled when incomplete', () => {
+  for (const secret of [undefined, '', 'too-short', ' '.repeat(32)]) {
+    const gateway = { RECURRING_ALLOWED_OWNER_IDS: 'owner', RECURRING_WORKER_SECRET: secret,
+      RECURRING_ORDERS_ENABLED: '1', RECURRING_MANUAL_TRIGGER_ENABLED: '1' };
+    assert.equal(enableLocalRecurring(gateway), false);
+    assert.equal(gateway.RECURRING_ORDERS_ENABLED, '0');
+    assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '0');
+    assert.equal(gateway.RECURRING_WORKER_SECRET, secret, 'never invent a replacement credential');
+  }
+  for (const owners of [undefined, '', '   ']) {
+    const gateway = { RECURRING_ALLOWED_OWNER_IDS: owners, RECURRING_WORKER_SECRET: 'shared-with-hosted-executor-1234567890' };
+    assert.equal(enableLocalRecurring(gateway), false);
+    assert.equal(gateway.RECURRING_ORDERS_ENABLED, '0');
+    assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '0');
   }
   const gateway = { RECURRING_ALLOWED_OWNER_IDS: 'owner', RECURRING_WORKER_SECRET: 'shared-with-hosted-executor-1234567890' };
-  enableLocalRecurring(gateway);
+  assert.equal(enableLocalRecurring(gateway), true);
   assert.equal(gateway.RECURRING_WORKER_SECRET, 'shared-with-hosted-executor-1234567890');
   assert.equal(gateway.RECURRING_ORDERS_ENABLED, '1');
   assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '1');

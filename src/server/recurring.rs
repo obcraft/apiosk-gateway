@@ -36,14 +36,17 @@ async fn direct_person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Pr
     Ok(c.principal)
 }
 
-/// Only this capability bit is public to an authenticated app session. The
+/// Only these capability bits are public to an authenticated app session. The
 /// server-side rollout list never leaves the gateway.
 pub(super) async fn access(State(s): State<ServerState>, h: HeaderMap) -> Response {
     let p = match direct_person(&s, &h).await {
         Ok(p) => p,
         Err(r) => return r,
     };
-    Json(json!({"enabled": recurring::enabled_for(p.owner)})).into_response()
+    Json(json!({
+        "enabled": recurring::enabled_for(p.owner),
+        "management_enabled": recurring::management_enabled_for(p.owner),
+    })).into_response()
 }
 
 /// Stopping an owner's own mandate must still work after workspace membership

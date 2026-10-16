@@ -38,7 +38,7 @@ export function localConfiguration(workspace = root, inherited = process.env) {
     DATABASE_POOL_SIZE: gateway.DATABASE_POOL_SIZE || '2',
     RUST_LOG: gateway.RUST_LOG || 'apiosk_gateway_v2=info',
     V2_EXECUTION_ENABLED: '0', KVK_WORKERS_ENABLED: '0', RECURRING_ORDERS_ENABLED: '0',
-    RECURRING_MANUAL_TRIGGER_ENABLED: '0',
+    RECURRING_MANUAL_TRIGGER_ENABLED: '0', RECURRING_LOCAL_MANAGEMENT_ENABLED: '1',
     WORKSPACE_CONTEXT_ENABLED: 'true',
     ASK_V2_TRANSLATION: '0',
   });
@@ -57,14 +57,16 @@ export function localConfiguration(workspace = root, inherited = process.env) {
   return { gateway, app, mcp, supabase, agentApi };
 }
 
-/** Hosted execution must use the same credential as recurring-execute. */
+/** Recurring is optional locally; incomplete configuration must not block startup. */
 export function enableLocalRecurring(gateway) {
-  if (!gateway.RECURRING_ALLOWED_OWNER_IDS?.trim()) throw new Error('Set RECURRING_ALLOWED_OWNER_IDS for local recurring access.');
-  if (!gateway.RECURRING_WORKER_SECRET || gateway.RECURRING_WORKER_SECRET.length < 32) {
-    throw new Error('Set RECURRING_WORKER_SECRET in gateway/.env to the SAME secret configured for Supabase recurring-execute. A generated local secret cannot authenticate hosted execution.');
+  if (!gateway.RECURRING_ALLOWED_OWNER_IDS?.trim() || !gateway.RECURRING_WORKER_SECRET || gateway.RECURRING_WORKER_SECRET.trim().length < 32) {
+    gateway.RECURRING_ORDERS_ENABLED = '0';
+    gateway.RECURRING_MANUAL_TRIGGER_ENABLED = '0';
+    return false;
   }
   gateway.RECURRING_ORDERS_ENABLED = '1';
   gateway.RECURRING_MANUAL_TRIGGER_ENABLED = '1';
+  return true;
 }
 
 async function checkPort(port, host) {
@@ -246,7 +248,9 @@ async function main() {
   if (config.gateway.EMBEDDED_EXECUTOR_ORIGIN) throw new Error('EMBEDDED_EXECUTOR_ORIGIN is set. This launcher uses hosted execution; unset that local override or start its executor separately.');
   if (args.has('--execute') && args.has('--smoke')) throw new Error('--smoke cannot be combined with --execute.');
   if (args.has('--recurring') && !args.has('--execute')) throw new Error('--recurring requires --execute.');
-  if (args.has('--recurring')) enableLocalRecurring(config.gateway);
+  if (args.has('--recurring') && !enableLocalRecurring(config.gateway)) {
+    console.log('Recurring workers skipped: configuration incomplete. Continuing local startup.');
+  }
   if (args.has('--execute')) config.gateway.V2_EXECUTION_ENABLED = '1';
   const service = (name, dir, port, health, command, argv, env, matches) => ({
     name, cwd: path.join(root, dir), port, health, command, args: argv, env,
