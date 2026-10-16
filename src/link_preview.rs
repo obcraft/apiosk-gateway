@@ -166,6 +166,12 @@ impl Service {
         let _permit = self.requests.clone().try_acquire_owned()?;
         tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Page)).await?
     }
+    /// Public search feeds use the same bounded, DNS-pinned fetch as HTML.
+    pub(crate) async fn public_feed(&self, raw: &str) -> Result<(Url, Vec<u8>)> {
+        let url = public_url(raw)?;
+        let _permit = self.requests.clone().try_acquire_owned()?;
+        tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Feed)).await?
+    }
     async fn remember(&self, key: String, preview: Preview, ttl: Duration) {
         self.cache
             .insert(
@@ -283,18 +289,20 @@ fn append_body(bytes: &mut Vec<u8>, chunk: &[u8], kind: Kind) -> Result<bool> {
 enum Kind {
     Html,
     Page,
+    Feed,
     Image,
 }
 impl Kind {
     fn limit(self) -> usize {
         match self {
-            Self::Html | Self::Page => HTML_BYTES,
+            Self::Html | Self::Page | Self::Feed => HTML_BYTES,
             Self::Image => IMAGE_BYTES,
         }
     }
     fn accept(self) -> &'static str {
         match self {
             Self::Html | Self::Page => "text/html,application/xhtml+xml",
+            Self::Feed => "application/rss+xml,application/xml,text/xml",
             Self::Image => "image/jpeg,image/png",
         }
     }
