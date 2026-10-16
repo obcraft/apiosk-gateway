@@ -79,7 +79,7 @@ async fn fetch(subject: &Subject) -> Value {
         .filter(|(key, _)| matches!(key.as_str(), "website" | "company.website" | "website_url" | "domain" | "company.domain" | "company.url"))
         .find_map(|(_, value)| homepage_url(value))
         .or_else(|| homepage_url(&subject.label));
-    let (search, supplied_page) = tokio::join!(free_search(&subject.label, &query), async {
+    let (search, supplied_page) = tokio::join!(free_search(&subject.label, &query, is_topic(&subject.kind)), async {
         match supplied.as_ref() {
             Some(url) => read_homepage(url, &subject.label).await,
             None => None,
@@ -112,7 +112,7 @@ async fn read_homepage(homepage: &Url, label: &str) -> Option<Value> {
     homepage_page(&url, &html, label)
 }
 
-async fn free_search(label: &str, query: &str) -> (Vec<Value>, &'static str, String) {
+async fn free_search(label: &str, query: &str, topic: bool) -> (Vec<Value>, &'static str, String) {
     let service = crate::link_preview::Service::shared();
     let google = search_url(query);
     let google_read = async {
@@ -120,7 +120,7 @@ async fn free_search(label: &str, query: &str) -> (Vec<Value>, &'static str, Str
           Ok(Ok((url, html))) => {
             // A consent page, CAPTCHA or login is not a search result. Do not bypass it.
             if url.host_str() == Some("www.google.com") && url.path() == "/search" {
-                let pages = search_results(&html, label);
+                let pages = search_results(&html, label, topic);
                 if !pages.is_empty() { return Some((pages, "google", google.to_string())); }
             }
             tracing::info!(provider = "google", reason = "no_usable_results", "subject web search returned no usable pages");
@@ -140,7 +140,7 @@ async fn free_search(label: &str, query: &str) -> (Vec<Value>, &'static str, Str
         match tokio::time::timeout(SEARCH_BUDGET, service.public_feed(feed.as_str())).await {
           Ok(Ok((url, xml))) => {
             if url.host_str() == Some("www.bing.com") && url.path() == "/search" {
-                let pages = feed_results(&xml, label);
+                let pages = feed_results(&xml, label, topic);
                 if !pages.is_empty() { return Some((pages, "bing", bing.to_string())); }
             }
             tracing::info!(provider = "bing", reason = "no_usable_results", "subject web search returned no usable pages");
@@ -158,8 +158,8 @@ async fn free_search(label: &str, query: &str) -> (Vec<Value>, &'static str, Str
     if let Some(found) = found { return found; }
     // Google can return a JS-only redirect and Bing RSS can return unrelated
     // results with HTTP 200. Try independent, non-JS public sources before giving up.
-    let ddg = html_search(label);
-    let encyclopedia = encyclopedia_search(label);
+    let ddg = html_search(label, topic);
+    let encyclopedia = encyclopedia_search(label, topic);
     tokio::pin!(ddg, encyclopedia);
     let fallback = tokio::select! {
         result = &mut ddg => match result { Some(found) => Some(found), None => encyclopedia.await },
@@ -168,20 +168,24 @@ async fn free_search(label: &str, query: &str) -> (Vec<Value>, &'static str, Str
     fallback.unwrap_or_else(|| (vec![], "google", google.to_string()))
 }
 
-async fn html_search(label: &str) -> Option<(Vec<Value>, &'static str, String)> {
+async fn html_search(label: &str, topic: bool) -> Option<(Vec<Value>, &'static str, String)> {
     let mut url = Url::parse("https://html.duckduckgo.com/html/").unwrap();
     url.query_pairs_mut().append_pair("q", label);
-    let (final_url, bytes) = tokio::time::timeout(SEARCH_BUDGET,
-        crate::link_preview::Service::shared().public_html(url.as_str())).await.ok()?.ok()?;
+    let (final_url, bytes) = match tokio::time::timeout(SEARCH_BUDGET,
+        crate::link_preview::Service::shared().public_html(url.as_str())).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(error)) => { tracing::info!(provider = "duckduckgo", reason = "fetch_failed", error = %error, "subject web search failed"); return None; }
+        Err(_) => { tracing::info!(provider = "duckduckgo", reason = "timeout", "subject web search exceeded its budget"); return None; }
+    };
     if final_url.host_str() != Some("html.duckduckgo.com") || final_url.path() != "/html/" { return None; }
-    let pages = html_search_results(&bytes, label);
-    if pages.is_empty() { return None; }
+    let pages = html_search_results(&bytes, label, topic);
+    if pages.is_empty() { tracing::info!(provider = "duckduckgo", reason = "no_usable_results", "subject web search returned no usable pages"); return None; }
     let mut link = Url::parse("https://duckduckgo.com/").unwrap();
     link.query_pairs_mut().append_pair("q", label);
     Some((pages, "duckduckgo", link.to_string()))
 }
 
-fn html_search_results(bytes: &[u8], label: &str) -> Vec<Value> {
+fn html_search_results(bytes: &[u8], label: &str, topic: bool) -> Vec<Value> {
     let html = Html::parse_document(&String::from_utf8_lossy(bytes));
     let rows = Selector::parse(".result").unwrap();
     let anchors = Selector::parse("a.result__a").unwrap();
@@ -199,29 +203,33 @@ fn html_search_results(bytes: &[u8], label: &str) -> Vec<Value> {
         }
         let host = url.host_str()?;
         if !matches!(url.scheme(), "https" | "http") || !url.username().is_empty() || url.password().is_some()
-            || !matches_subject(label, &title, host, &description) || !seen.insert(url.to_string()) { return None; }
+            || !matches_result(label, &title, host, &description, topic) || !seen.insert(url.to_string()) { return None; }
         Some(json!({"kind":"search_result","url":url.as_str(),"title":title,"description":description,"publisher":host,
             "retrieved_at":chrono::Utc::now().to_rfc3339()}))
     }).take(5).collect()
 }
 
-async fn encyclopedia_search(label: &str) -> Option<(Vec<Value>, &'static str, String)> {
+async fn encyclopedia_search(label: &str, topic: bool) -> Option<(Vec<Value>, &'static str, String)> {
     let mut url = Url::parse("https://en.wikipedia.org/w/api.php").unwrap();
     url.query_pairs_mut().extend_pairs([
         ("action", "query"), ("generator", "search"), ("gsrsearch", label), ("gsrlimit", "3"),
         ("prop", "extracts|info"), ("exintro", "1"), ("exlimit", "3"), ("explaintext", "1"), ("inprop", "url"), ("format", "json"),
     ]);
-    let (final_url, bytes) = tokio::time::timeout(SEARCH_BUDGET,
-        crate::link_preview::Service::shared().public_json(url.as_str())).await.ok()?.ok()?;
+    let (final_url, bytes) = match tokio::time::timeout(SEARCH_BUDGET,
+        crate::link_preview::Service::shared().public_json(url.as_str())).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(error)) => { tracing::info!(provider = "wikipedia", reason = "fetch_failed", error = %error, "subject web search failed"); return None; }
+        Err(_) => { tracing::info!(provider = "wikipedia", reason = "timeout", "subject web search exceeded its budget"); return None; }
+    };
     if final_url.host_str() != Some("en.wikipedia.org") || final_url.path() != "/w/api.php" { return None; }
-    let pages = encyclopedia_results(&bytes, label);
-    if pages.is_empty() { return None; }
+    let pages = encyclopedia_results(&bytes, label, topic);
+    if pages.is_empty() { tracing::info!(provider = "wikipedia", reason = "no_usable_results", "subject web search returned no usable pages"); return None; }
     let mut link = Url::parse("https://en.wikipedia.org/w/index.php").unwrap();
     link.query_pairs_mut().append_pair("search", label);
     Some((pages, "wikipedia", link.to_string()))
 }
 
-fn encyclopedia_results(bytes: &[u8], label: &str) -> Vec<Value> {
+fn encyclopedia_results(bytes: &[u8], label: &str, topic: bool) -> Vec<Value> {
     let Ok(value) = serde_json::from_slice::<Value>(bytes) else { return vec![]; };
     let Some(pages) = value["query"]["pages"].as_object() else { return vec![]; };
     let mut pages: Vec<_> = pages.values().collect();
@@ -232,13 +240,13 @@ fn encyclopedia_results(bytes: &[u8], label: &str) -> Vec<Value> {
         let url = Url::parse(page["fullurl"].as_str()?).ok()?;
         if url.scheme() != "https" || url.host_str() != Some("en.wikipedia.org") || !url.path().starts_with("/wiki/")
             || !url.username().is_empty() || url.password().is_some() || description.is_empty()
-            || !matches_subject(label, &title, "en.wikipedia.org", &description) { return None; }
+            || !matches_result(label, &title, "en.wikipedia.org", &description, topic) { return None; }
         Some(json!({"kind":"search_result","url":url.as_str(),"title":title,"description":description,"publisher":"en.wikipedia.org",
             "retrieved_at":chrono::Utc::now().to_rfc3339()}))
     }).take(3).collect()
 }
 
-fn feed_results(bytes: &[u8], label: &str) -> Vec<Value> {
+fn feed_results(bytes: &[u8], label: &str, topic: bool) -> Vec<Value> {
     let Ok(text) = std::str::from_utf8(bytes) else { return vec![]; };
     let Ok(document) = roxmltree::Document::parse(text) else { return vec![]; };
     let name = normalized_subject_name(label);
@@ -250,7 +258,7 @@ fn feed_results(bytes: &[u8], label: &str) -> Vec<Value> {
         let title = compact(field("title")?, 240);
         let description = compact(field("description").unwrap_or(""), 600);
         if !matches!(url.scheme(), "http" | "https") || !url.username().is_empty() || url.password().is_some()
-            || !matches_subject(label, &title, host, &description)
+            || !matches_result(label, &title, host, &description, topic)
             || !seen.insert(url.to_string()) { return None; }
         Some(json!({"kind":"search_result","url":url.as_str(),"title":title,"description":description,"publisher":host,
             "retrieved_at":chrono::Utc::now().to_rfc3339()}))
@@ -277,6 +285,30 @@ fn subject_words(label: &str) -> Vec<String> {
     label.split_whitespace().map(normalized).filter(|word| !word.is_empty()
         && !["bv", "nv", "ltd", "inc", "llc", "limited", "plc"].contains(&word.as_str())).collect()
 }
+fn is_topic(kind: &str) -> bool {
+    matches!(kind.to_ascii_lowercase().as_str(), "topic" | "query" | "keyword")
+}
+
+fn topic_words(text: &str) -> std::collections::BTreeSet<String> {
+    text.split(|c: char| !c.is_alphanumeric()).map(str::to_lowercase)
+        .filter(|word| !word.is_empty() && ![
+            "a", "an", "the", "and", "or", "of", "in", "on", "for", "from", "with", "to",
+            "latest", "recent", "current", "news", "headline", "headlines", "updates",
+        ].contains(&word.as_str()))
+        .map(|word| match word.as_str() { "financial" => "finance".into(), _ => word }).collect()
+}
+
+fn matches_result(label: &str, title: &str, host: &str, description: &str, topic: bool) -> bool {
+    if !topic { return matches_subject(label, title, host, description); }
+    // Topic queries are not proper names. Match meaningful terms, without
+    // requiring conjunctions or requested output words in every result.
+    let words = topic_words(label);
+    if words.is_empty() { return matches_subject(label, title, host, description); }
+    let evidence = topic_words(&format!("{title} {host} {description}"));
+    let required = words.len().div_ceil(2).max(2).min(words.len());
+    words.intersection(&evidence).count() >= required
+}
+
 fn matches_subject(label: &str, title: &str, host: &str, description: &str) -> bool {
     let words = subject_words(label);
     let name = words.join("");
@@ -310,7 +342,7 @@ fn likely_subject_host(url: &Url, label: &str, company: bool) -> bool {
     name.len() >= 3 && host.split('.').next().is_some_and(|part| normalized(part) == name || normalized(part) == normalized_subject_name(label))
 }
 
-fn search_results(bytes: &[u8], label: &str) -> Vec<Value> {
+fn search_results(bytes: &[u8], label: &str, topic: bool) -> Vec<Value> {
     let html = Html::parse_document(&String::from_utf8_lossy(bytes));
     let links = Selector::parse("a[href]").unwrap();
     let heading = Selector::parse("h3").unwrap();
@@ -332,7 +364,7 @@ fn search_results(bytes: &[u8], label: &str) -> Vec<Value> {
             .take_while(|parent| parent.select(&heading).take(2).count() <= 1)
             .find_map(|parent| parent.select(&snippet).next().map(|node| compact(node.text().collect::<Vec<_>>().join(" "), 600)))
             .unwrap_or_default();
-        if !matches_subject(label, &title, host, &description) { return None; }
+        if !matches_result(label, &title, host, &description, topic) { return None; }
         Some(json!({"kind":"search_result","url":url.as_str(),"title":title,"description":description,"publisher":host}))
     }).take(5).collect()
 }
@@ -363,23 +395,42 @@ fn homepage_page(url: &Url, bytes: &[u8], label: &str) -> Option<Value> {
 mod tests {
     use super::*;
     #[test]
+    fn topic_results_match_content_without_weakening_entity_names() {
+        let label = "business and financial headlines";
+        let html = br#"<div class='result'><a class='result__a' href='https://example.org/business'>Business news</a><p class='result__snippet'>Finance, markets and economy coverage.</p></div>
+          <div class='result'><a class='result__a' href='https://example.org/pensions'>Pensioenfonds Vervoer</a><p class='result__snippet'>Uw pensioen.</p></div>"#;
+        assert!(html_search_results(html, label, false).is_empty());
+        let pages = html_search_results(html, label, true);
+        assert_eq!(pages.len(), 1);
+        assert_eq!(pages[0]["url"], "https://example.org/business");
+        let feed = br#"<rss><channel><item><title>Business news</title><link>https://example.org/business</link><description>Finance and markets coverage.</description></item></channel></rss>"#;
+        assert_eq!(feed_results(feed, label, true).len(), 1);
+        let google = br#"<div><a href='https://example.org/business'><h3>Business news</h3></a><div class='VwiC3b'>Finance and markets coverage.</div></div>"#;
+        assert_eq!(search_results(google, label, true).len(), 1);
+        assert!(!matches_result("Ada Lovelace", "Ada", "example.org", "A programming language.", false));
+        assert!(!matches_result(label, "Business directory", "example.org", "Local addresses.", true));
+        assert!(is_topic("topic") && is_topic("query") && is_topic("keyword"));
+        assert!(!is_topic("person") && !is_topic("company"));
+    }
+
+    #[test]
     fn independent_fallbacks_keep_attribution_and_reject_unrelated_results() {
         let html = br#"<div class='result'><a class='result__a' href='//duckduckgo.com/l/?uddg=https%3A%2F%2Fmonzo.com%2F'>Monzo</a><a class='result__snippet'>Monzo Bank Limited is a UK bank.</a></div>
           <div class='result'><a class='result__a' href='https://other.org/'>Other company</a><p class='result__snippet'>Different company</p></div>
           <div class='result'><a class='result__a' href='javascript:bad()'>Monzo Bank</a></div>"#;
-        let pages = html_search_results(html, "MONZO BANK LIMITED");
+        let pages = html_search_results(html, "MONZO BANK LIMITED", false);
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0]["url"], "https://monzo.com/");
-        assert!(html_search_results(b"<form>Verify that you are human</form>", "Monzo").is_empty());
+        assert!(html_search_results(b"<form>Verify that you are human</form>", "Monzo", false).is_empty());
         let json = json!({"query":{"pages":{
             "1":{"title":"Monzo","extract":"Monzo Bank Limited is a British bank.","fullurl":"https://en.wikipedia.org/wiki/Monzo","index":1},
             "2":{"title":"Other bank","extract":"Unrelated content","fullurl":"https://en.wikipedia.org/wiki/Other","index":2},
             "3":{"title":"Monzo","extract":"Monzo Bank Limited","fullurl":"https://evil.org/","index":3}
         }}});
-        let pages = encyclopedia_results(&serde_json::to_vec(&json).unwrap(), "MONZO BANK LIMITED");
+        let pages = encyclopedia_results(&serde_json::to_vec(&json).unwrap(), "MONZO BANK LIMITED", false);
         assert_eq!(pages.len(), 1);
         assert_eq!(pages[0]["publisher"], "en.wikipedia.org");
-        assert!(encyclopedia_results(b"{\"error\":{}}", "Monzo").is_empty());
+        assert!(encyclopedia_results(b"{\"error\":{}}", "Monzo", false).is_empty());
     }
 
     #[test]
@@ -387,10 +438,10 @@ mod tests {
     fn replay_saved_public_search_responses() {
         let dir = std::path::Path::new(".local/subject-search-debug");
         let label = "MONZO BANK LIMITED";
-        let google = search_results(&std::fs::read(dir.join("google.txt")).unwrap(), label);
-        let bing = feed_results(&std::fs::read(dir.join("bing.txt")).unwrap(), label);
-        let ddg = html_search_results(&std::fs::read(dir.join("duckduckgo.txt")).unwrap(), label);
-        let wiki = encyclopedia_results(&std::fs::read(dir.join("wikipedia.txt")).unwrap(), label);
+        let google = search_results(&std::fs::read(dir.join("google.txt")).unwrap(), label, false);
+        let bing = feed_results(&std::fs::read(dir.join("bing.txt")).unwrap(), label, false);
+        let ddg = html_search_results(&std::fs::read(dir.join("duckduckgo.txt")).unwrap(), label, false);
+        let wiki = encyclopedia_results(&std::fs::read(dir.join("wikipedia.txt")).unwrap(), label, false);
         println!("usable pages: Google={}, Bing={}, DuckDuckGo={}, Wikipedia={}", google.len(), bing.len(), ddg.len(), wiki.len());
         assert!(!ddg.is_empty() || !wiki.is_empty(), "No real fallback response produced a sourced intro");
     }
@@ -402,14 +453,14 @@ mod tests {
           <item><title>Other company</title><link>https://unrelated.org/</link></item>
           <item><title>Coolblue</title><link>javascript:alert(1)</link></item>
           <item><title>Coolblue overview</title><link>https://encyclopedia.org/Coolblue</link><description>Coolblue is an electronics retailer.</description></item>
-        </channel></rss>"#, "Coolblue B.V.");
+        </channel></rss>"#, "Coolblue B.V.", false);
         assert_eq!(pages.len(), 2);
         assert_eq!(pages[0]["description"], "Coolblue is an electronics retailer.");
         assert_eq!(pages[1]["description"], "Computers & appliances");
         assert_eq!(pages[0]["kind"], "search_result");
         assert_eq!(pages[0]["publisher"], "encyclopedia.org");
         assert_eq!(pages[1]["publisher"], "www.coolblue.nl");
-        assert!(feed_results(b"<html>challenge</html>", "Coolblue").is_empty());
+        assert!(feed_results(b"<html>challenge</html>", "Coolblue", false).is_empty());
     }
 
     #[test]
@@ -420,11 +471,11 @@ mod tests {
           <item><title>Monzo music</title><link>https://example.org/music</link><description>A music festival.</description></item>
           <item><title>Another bank</title><link>https://example.org/other</link><description>Online banking services.</description></item>
         </channel></rss>"#;
-        assert_eq!(feed_results(feed, "MONZO BANK LIMITED").len(), 2);
+        assert_eq!(feed_results(feed, "MONZO BANK LIMITED", false).len(), 2);
         let html = br#"<div><a href='https://monzo.com/'><h3>Monzo | Online banking made easy</h3></a><div class='VwiC3b'>A UK bank for your everyday money.</div></div>"#;
-        assert_eq!(search_results(html, "MONZO BANK LIMITED").len(), 1);
+        assert_eq!(search_results(html, "MONZO BANK LIMITED", false).len(), 1);
         let siblings = format!("<section>{}<div><a href='https://unrelated.org/'><h3>Other site</h3></a></div></section>", std::str::from_utf8(html).unwrap());
-        assert_eq!(search_results(siblings.as_bytes(), "MONZO BANK LIMITED").len(), 1);
+        assert_eq!(search_results(siblings.as_bytes(), "MONZO BANK LIMITED", false).len(), 1);
         for domain in ["https://monzo.com/", "https://monzobank.com/"] {
             assert!(likely_subject_host(&Url::parse(domain).unwrap(), "MONZO BANK LIMITED", true));
         }
@@ -448,7 +499,7 @@ mod tests {
     #[tokio::test]
     #[ignore = "live public internet; makes no paid calls"]
     async fn live_subject_release() {
-        for (kind, label) in [("company", "MONZO BANK LIMITED"), ("person", "Ada Lovelace"), ("object", "Eiffel Tower")] {
+        for (kind, label) in [("company", "MONZO BANK LIMITED"), ("person", "Ada Lovelace"), ("object", "Eiffel Tower"), ("topic", "business and financial headlines")] {
             let subject = Subject { id: "release-check".into(), kind: kind.into(), label: label.into(), identifiers: Default::default() };
             let context = fetch(&subject).await;
             let pages = context["pages"].as_array().unwrap();
@@ -479,11 +530,11 @@ mod tests {
 
     #[test]
     fn search_reads_only_named_company_results_and_unwraps_google_links() {
-        let pages = search_results(br#"<a href='/url?q=https%3A%2F%2Fwww.coolblue.nl%2F'><h3>Coolblue - official site</h3></a><a href='https://unrelated.org'><h3>Other business</h3></a><a href='javascript:alert(1)'><h3>Coolblue</h3></a>"#, "Coolblue BV");
+        let pages = search_results(br#"<a href='/url?q=https%3A%2F%2Fwww.coolblue.nl%2F'><h3>Coolblue - official site</h3></a><a href='https://unrelated.org'><h3>Other business</h3></a><a href='javascript:alert(1)'><h3>Coolblue</h3></a>"#, "Coolblue BV", false);
         assert_eq!(pages.len(), 1); assert_eq!(pages[0]["url"], "https://www.coolblue.nl/");
         assert!(likely_subject_host(&Url::parse(pages[0]["url"].as_str().unwrap()).unwrap(), "Coolblue B.V.", true));
         assert!(!likely_subject_host(&Url::parse("https://companyinfo.nl").unwrap(), "Coolblue", true));
-        assert!(search_results(b"<a href='https://other.nl'><h3>Other Inc.</h3></a>", "Apple Inc.").is_empty());
+        assert!(search_results(b"<a href='https://other.nl'><h3>Other Inc.</h3></a>", "Apple Inc.", false).is_empty());
     }
     #[test]
     fn homepage_is_bounded_plain_text_without_scripts_or_hidden_content() {
@@ -519,7 +570,7 @@ mod tests {
         assert_eq!(search_query(&subject), "Coolblue Netherlands official website");
         for name in ["Ada Lovelace", "Eiffel Tower"] {
             let feed = format!("<rss><channel><item><title>{name}</title><link>https://example.org/profile</link><description>Overview of {name}.</description></item></channel></rss>");
-            let pages = feed_results(feed.as_bytes(), name);
+            let pages = feed_results(feed.as_bytes(), name, false);
             assert_eq!(pages.len(), 1);
             assert_eq!(pages[0]["description"], format!("Overview of {name}."));
         }
