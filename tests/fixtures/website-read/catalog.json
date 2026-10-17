@@ -1,0 +1,130 @@
+{
+  "services": [
+    {
+      "id": "a2cb8ea3-e5ca-42d8-8195-17abdabdd819",
+      "endpoint_id": "083326ff-e9f9-410f-bea4-0e2aaca9e56a",
+      "api_slug": "linkup",
+      "name": "Linkup",
+      "source_url": "https://docs.linkup.so/pages/documentation/endpoints/search/reference",
+      "method": "POST",
+      "path": "/v1/search",
+      "listing_type": "api",
+      "list_atomic": 10000,
+      "fixed_params": {
+        "depth": "standard",
+        "outputType": "sourcedAnswer",
+        "maxResults": 3,
+        "includeInlineCitations": true
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 300,
+      "sample_payload": {
+        "answer": "Apiosk is a payment infrastructure platform that enables AI agents and software to make payments and transact money. It allows developers to monetize their APIs, data services, and digital products by making them discoverable and payable through its network. Users can describe what they need, review pricing, and approve work before Apiosk handles the calls and returns results. The platform supports euro settlement through SEPA and provides bookkeeping-ready records. Apiosk also offers tools for developers to connect agents, publish services, and manage payments programmatically.",
+        "sources": [
+          {
+            "name": "Apiosk",
+            "url": "https://www.linkedin.com/company/apiosk"
+          },
+          {
+            "name": "Apiosk | MCP Server",
+            "url": "https://mcp.so/servers/apiosk"
+          }
+        ]
+      },
+      "jurisdiction": null,
+      "contract": {
+        "capability_slug": "research.website.read",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "web.website_query",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "web.website_url",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "web.website_query": {
+            "location": "body",
+            "name": "q"
+          },
+          "web.website_url": {
+            "location": "body",
+            "name": "url"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.linkup_answer_page": {
+              "path": "$"
+            }
+          }
+        },
+        "identifies": null,
+        "max_fan_out": 1
+      },
+      "description": "Read a supplied website URL and related pages to answer the requested website questions with cited sources."
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "web.website_query",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "title": "query"
+      }
+    },
+    {
+      "slug": "web.website_url",
+      "value_schema": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 500,
+        "pattern": "^https?://[^\\s]+$",
+        "title": "url"
+      }
+    },
+    {
+      "slug": "web.linkup_answer_page",
+      "name": "Sourced web answer via Linkup",
+      "description": "Returned response page with provider attribution and original URLs. Search is bounded, not an exhaustive crawl.",
+      "subject_kind": "web",
+      "value_schema": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "sources"
+        ]
+      }
+    }
+  ],
+  "known_sources": []
+}

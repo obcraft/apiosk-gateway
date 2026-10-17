@@ -1,0 +1,282 @@
+[
+  {
+    "question": "Read this company's website https://www.mollie.com/ and find its services and contact details.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.99,
+          "description": "Read the specified website and extract the requested information such as services offered and contact details.",
+          "domain": "research",
+          "inputs": [
+            "url",
+            "query"
+          ],
+          "missing": [],
+          "name": "Website reading",
+          "outputs": [
+            "answer",
+            "sources"
+          ],
+          "slug": "research.website.read",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:45.962034+00:00",
+        "text_sha256": "b04c39831498dc5f4686c83fee33f0188731bce5608ed05671e73815cc539fab"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "query": "Read this company's website https://www.mollie.com/ and find its services and contact details.",
+            "url": "https://www.mollie.com/"
+          },
+          "label": "https://www.mollie.com/",
+          "type": "website"
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "question": "Lees https://www.coolblue.nl/klantenservice en zoek de contactgegevens en diensten.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.97,
+          "description": "Read and extract the requested contact details and services from the specified website.",
+          "domain": "research",
+          "inputs": [
+            "url",
+            "query"
+          ],
+          "missing": [],
+          "name": "Website reading",
+          "outputs": [
+            "answer",
+            "sources"
+          ],
+          "slug": "research.website.read",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "nl",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:46.584764+00:00",
+        "text_sha256": "2c0818024af28040c619660b320a906813942fc7fa68a21620510117e9f70e1b"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "query": "Lees https://www.coolblue.nl/klantenservice en zoek de contactgegevens en diensten.",
+            "url": "https://www.coolblue.nl/klantenservice"
+          },
+          "label": "https://www.coolblue.nl/klantenservice",
+          "type": "website"
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "question": "Summarize https://www.example.org/company/services?lang=en and include sources.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 1.0,
+          "description": "Read and summarize the content of the specified website, providing the answer and sources.",
+          "domain": "research",
+          "inputs": [
+            "url",
+            "query"
+          ],
+          "missing": [],
+          "name": "Website reading",
+          "outputs": [
+            "answer",
+            "sources"
+          ],
+          "slug": "research.website.read",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": [
+          "summarize"
+        ]
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:47.217912+00:00",
+        "text_sha256": "3d75a7916c7f544ecf7fe7717101023f933e89efd168ced020940021b2b940ad"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "query": "Summarize https://www.example.org/company/services?lang=en and include sources.",
+            "url": "https://www.example.org/company/services?lang=en"
+          },
+          "label": "https://www.example.org/company/services?lang=en",
+          "type": "website"
+        }
+      ]
+    },
+    "expected": true
+  },
+  {
+    "question": "Find the DNS records for example.org.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 1.0,
+          "description": "Retrieve DNS records for the specified domain.",
+          "domain": "general",
+          "inputs": [
+            "query"
+          ],
+          "missing": [],
+          "name": "DNS records lookup",
+          "outputs": [
+            "dns_records"
+          ],
+          "slug": "general.dns.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:47.966353+00:00",
+        "text_sha256": "79094243b81bcc46d77fe4bcc86ea28a4ddc83da7b28dca69a36b32be822ba31"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "query": "example.org"
+          },
+          "label": "example.org",
+          "type": "domain"
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "question": "Find the official website for Mollie.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.9,
+          "description": "Find the official website for the given entity",
+          "domain": "general",
+          "inputs": [],
+          "missing": [],
+          "name": "Website lookup",
+          "outputs": [
+            "url"
+          ],
+          "slug": "general.website.lookup",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:48.535818+00:00",
+        "text_sha256": "58368e39602ed70c3cd09d912c21d3905319869de003357d0694ba5fcd89fc8a"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {},
+          "label": "Mollie",
+          "type": "company"
+        }
+      ]
+    },
+    "expected": false
+  },
+  {
+    "question": "Check the registration and owners of Mollie, whose website is https://www.mollie.com/.",
+    "parsed": {
+      "capabilities": [
+        {
+          "confidence": 0.9,
+          "description": "Retrieve the registration details and owner information for the specified company.",
+          "domain": "company",
+          "inputs": [
+            "name",
+            "url"
+          ],
+          "missing": [],
+          "name": "Company registration and owners",
+          "outputs": [
+            "registration_details",
+            "owner_details"
+          ],
+          "slug": "company.registrationInfo",
+          "source_hint": null,
+          "status": null,
+          "subject_id": "s1"
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "language": "en",
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-10-17T19:04:49.241090+00:00",
+        "text_sha256": "e39fce50b994fecf7e57c6217e55e9faa217e1b6a50178f80d620d1cc44063a8"
+      },
+      "subjects": [
+        {
+          "id": "s1",
+          "identifiers": {
+            "name": "Mollie",
+            "url": "https://www.mollie.com/"
+          },
+          "label": "Mollie",
+          "type": "company"
+        }
+      ]
+    },
+    "expected": false
+  }
+]

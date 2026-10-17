@@ -183,6 +183,9 @@ fn index(catalog: &Catalog) -> Arc<Index> {
     // Each document's words that only its English rendering has.
     let mut rendered: Vec<BTreeSet<String>> = Vec::with_capacity(documents.capacity());
     for (position, service) in catalog.services.iter().enumerate() {
+        // The exact URL route bypasses lexical ranking; keep its vocabulary
+        // out of the index so ordinary requests retain their existing scores.
+        if service.contract.capability_slug == crate::website_read::CAPABILITY { continue; }
         let known = catalog
             .known_sources
             .iter()
@@ -318,7 +321,10 @@ fn index(catalog: &Catalog) -> Arc<Index> {
             rendered.push(rendered_only(&indexed, Some(description)));
             documents.push(indexed);
         }
-        let descriptions = &source.metadata.capability_descriptions;
+        let mut descriptions = source.metadata.capability_descriptions.clone();
+        if let Some(descriptions) = descriptions.as_object_mut() {
+            descriptions.remove(crate::website_read::CAPABILITY);
+        }
         let mut text = format!(
             "{} {} {} {} {}",
             source.name,
@@ -807,6 +813,10 @@ pub fn filter_coinbase_in_english(
     rendered: &dyn Fn(&str) -> Option<Arc<str>>,
 ) {
     for found in matches {
+        if found.slug == crate::website_read::CAPABILITY {
+            found.coinbase.clear();
+            continue;
+        }
         let Some((position, capability)) = parsed
             .capabilities
             .iter()
@@ -1040,6 +1050,15 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
         .filter(|(_, capability)| capability.slug != "general.conversation")
         .map(|(position, capability)| {
             let query = capability_query(capability, parsed, &empty_task);
+            if capability.slug == crate::website_read::CAPABILITY {
+                let apiosk: Vec<_> = if crate::website_read::requested(capability, parsed) {
+                    catalog.services.iter().filter(|service| crate::website_read::service(service))
+                        .take(1).map(endpoint).collect()
+                } else { vec![] };
+                return Match { slug: capability.slug.clone(), query,
+                    operations: apiosk.iter().filter_map(|candidate| candidate.capability.clone()).collect(),
+                    apiosk, coinbase: vec![], coinbase_status: "ready".into() };
+            }
             if crate::capability_intake::answer_instruction(capability) {
                 return Match { slug: capability.slug.clone(), query, operations: BTreeSet::new(),
                     apiosk: vec![], coinbase: vec![], coinbase_status: "ready".into() };

@@ -321,7 +321,7 @@ impl Kind {
 
 /// Conservative public destinations only. Downloads, signatures and common
 /// credential query fields retain normal click/download semantics, without fetch.
-fn public_url(raw: &str) -> Result<Url> {
+pub(crate) fn public_url(raw: &str) -> Result<Url> {
     ensure!(
         raw.len() <= 4096 && !raw.chars().any(char::is_control),
         "invalid URL"

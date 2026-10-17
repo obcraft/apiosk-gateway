@@ -155,7 +155,8 @@ pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catal
         if !parsed.capabilities.iter().any(|cap| cap.subject_id.as_ref() == Some(&subject.id)
             && !crate::capability_intake::answer_instruction(cap)) { continue; }
         let mut candidates: Vec<_> = catalog.services.iter().filter(|service|
-            !service.unverified && !service.is_registered_operation() && compatible(service, subject, catalog))
+            service.contract.capability_slug != crate::website_read::CAPABILITY
+                && !service.unverified && !service.is_registered_operation() && compatible(service, subject, catalog))
             .map(|service| (service, requirement(service, subject, catalog))).collect();
         // Prefer immediately usable operations; category and tag overlap break
         // ties without replacing the typed input/output compatibility proof.

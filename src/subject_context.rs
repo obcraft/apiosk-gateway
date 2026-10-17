@@ -42,6 +42,10 @@ async fn cached_context(key: String, fetch: impl std::future::Future<Output = Va
 fn named_subjects(parsed: &ParsedRequest) -> Vec<&Subject> {
     let mut names = std::collections::BTreeSet::new();
     parsed.subjects.iter().filter(|s| {
+        // Explicit website reading has its own quoted retrieval. Do not add
+        // an unrelated search/homepage preview or duplicate its network work.
+        if parsed.capabilities.iter().any(|cap| cap.subject_id.as_deref() == Some(s.id.as_str())
+            && crate::website_read::requested(cap, parsed)) { return false; }
         // The parser's type vocabulary is open: a landmark, building, event,
         // artwork or other named subject must not depend on an entity allowlist.
         // Bare financial identifiers and credentials are not public-web subjects.
