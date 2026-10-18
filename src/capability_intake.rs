@@ -583,6 +583,10 @@ fn supplied_input(input: &str, capability: &Capability, subject: &Subject) -> bo
     if company && matches!(input, "name" | "company_name" | "organization_name" | "organisation_name" | "business_name") { return true; }
     if matches!(kind, "person" | "individual") && matches!(input, "name" | "person_name") { return true; }
     if matches!(kind, "topic" | "query" | "keyword") && matches!(input, "topic" | "query" | "keyword" | "search_term") { return true; }
+    // A search term, sector or service the person typed is the free-text
+    // query itself ("notices for \"schoonmaak\""). Only a named company or
+    // person does not imply an unspecified topic.
+    if question_input(input) && !company && !matches!(kind, "person" | "individual") { return true; }
     if matches!(kind, "address" | "location" | "place" | "property" | "building") && matches!(input, "address" | "location") { return true; }
     if input == "url" && reqwest::Url::parse(&subject.label).is_ok_and(|url| matches!(url.scheme(), "http" | "https") && url.host_str().is_some()) { return true; }
     matches!(input, "source" | "source_hint" | "provider") && capability.source_hint.is_some()

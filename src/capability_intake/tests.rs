@@ -112,6 +112,16 @@ fn free_text_search_concepts_are_grounded_by_the_question_itself() {
     input["capabilities"][0]["inputs"] = json!(["query", "record_type"]);
     let error = normalize(&input.to_string(), question, "fixture").unwrap_err().to_string();
     assert!(error.contains("input concepts require supplied identifiers or the literal subject: record_type"), "{error}");
+
+    // Local 2026-10-18: a quoted search term parsed as its own subject.
+    let question = "Search Dutch public procurement notices for \"schoonmaak\" and find related procurement guidance, with sources.";
+    for kind in ["search term", "service", "sector", "keyword"] {
+        let input = json!({"language":"en","subjects":[{"id":"s1","label":"schoonmaak","type":kind,"identifiers":{}}],
+            "capabilities":[{"slug":"procurement.notices.search","name":"Procurement notices","description":"Search public procurement notices.","domain":"procurement","inputs":["query"],"outputs":["notices"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+            "deliverable":{"format":"chat","operations":[]}});
+        let parsed = normalize(&input.to_string(), question, "fixture").unwrap_or_else(|error| panic!("{kind}: {error}"));
+        assert!(parsed.capabilities[0].missing.is_empty(), "{kind}");
+    }
 }
 
 #[test]
