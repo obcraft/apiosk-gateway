@@ -43,7 +43,7 @@ Authorization: Bearer apk_org_live_…
 | `sources:read` | `GET /v2/sources`, `GET /v2/sources/{id}`, `GET /v2/sources/{id}/endpoints` |
 | `sources:execute` | `POST /v1/execute/{source}/{operation}`, `POST /v2/sources/{id}/run` |
 | `ask:create` | `POST /v2/ask` discovery and `POST /v2/ask/plan` planning |
-| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask/plan` with `execution_mode: "auto"` |
+| `ask:execute` | `POST /v2/asks/{id}/run`, and `POST /v2/ask/plan` or `POST /v2/checks/pre-kyb` with `max_spend` (auto run) |
 | `billing:read` | `GET /v2/balance`, `GET /v2/usage` |
 
 A key belongs to the organisation, not to the person who created it. Its money
@@ -310,6 +310,41 @@ Every run, direct or Ask, has one shape:
 - **`limit`** caps how many result documents are returned.
 - **`data`** is present when a run produced exactly one source document, which
   is what a direct call normally is.
+
+## 6a. Pre-KYB check
+
+"Who is this company, really?" in one call (`docs/pre-kyb-check.md`). It is
+the `pre-kyb-screening` workflow with the ordinary ask body, plus the verdict
+copied to the top level.
+
+```http
+POST /v2/checks/pre-kyb
+Authorization: Bearer apk_org_live_…
+Idempotency-Key: pre-kyb-1
+Content-Type: application/json
+
+{ "name": "Mollie B.V.", "country": "NL", "screening_level": "Standard", "registration": "30204462",
+  "domain": "mollie.com", "vat_country": "NL", "vat_number": "815839091B01", "iban": "NL91ABNA0417164300",
+  "max_spend": 1.00, "wait_seconds": 25 }
+```
+
+- `name` and `country` (`NL`, `GB`, `FR`) are required; `screening_level` is
+  `Standard` (default) or `Enhanced`. `registration`, `domain`, `vat_country`
+  with `vat_number`, and `iban` are optional. Unknown fields are rejected.
+- With `max_spend` the check runs at once (`ask:create` and `ask:execute`),
+  under the same spend rules as `execution_mode: "auto"`. Without it you get
+  the priced plan with `status: "requires_approval"`; run it with
+  `POST /v2/asks/{id}/run`.
+- `GET /v2/checks/pre-kyb/{id}` reads the check back, with the same
+  `limit` and `wait_seconds` query parameters as `GET /v2/asks/{id}`.
+
+The response is the run shape above with one extra key, `verdict`: the
+`answer.verdict` of a finished check (`decision` `pass`, `review` or
+`reject`, `label`, `headline`, `reasons`, `next_action`, `subject`,
+`identity[]`, `checks[]`, `coverage_gaps[]`), or `null` while the run is still
+pricing or running. The verdict is computed by code from the saved source
+documents; `answer.kind` is `pre_kyb_check` and `answer.status` is `partial`
+when any check is `unknown`.
 
 ## 7. Balance and billing
 

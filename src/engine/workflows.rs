@@ -25,12 +25,24 @@ fn registration_cache() -> &'static moka::future::Cache<(Uuid, Uuid), i64> {
 }
 
 fn named_run_summary(task: &Task) -> Option<Value> {
-    task.analysis.as_ref().map(|analysis| json!({
-        "status": analysis["status"],
-        "observations_count": analysis["observations"].as_array().map_or(0, Vec::len),
-        "results_count": task.active_results.len(),
-        "detail_location": "saved_task"
-    }))
+    task.analysis.as_ref().map(|analysis| {
+        let mut summary = json!({
+            "status": analysis["status"],
+            "observations_count": analysis["observations"].as_array().map_or(0, Vec::len),
+            "results_count": task.active_results.len(),
+            "detail_location": "saved_task"
+        });
+        // A pre-KYB check is a code-owned verdict; the run index reads its decision.
+        if analysis["kind"] == crate::pre_kyb::KIND {
+            summary["kind"] = analysis["kind"].clone();
+            summary["verdict"] = analysis["verdict"].clone();
+            summary["decision"] = analysis["verdict"]["decision"].clone();
+        }
+        summary
+    })
+}
+fn decided(task: &Task) -> Option<&str> {
+    task.analysis.as_ref().filter(|a| a["kind"] == crate::pre_kyb::KIND).and_then(|a| a["verdict"]["decision"].as_str())
 }
 
 fn run_json(row: &sqlx::postgres::PgRow) -> Value {
@@ -87,7 +99,7 @@ impl Engine {
     }
 
     pub async fn start_workflow(&self, p: &Principal, slug: &str, request: crate::workflow_catalog::StartRequest) -> anyhow::Result<Response> {
-        if let Some(response) = crate::workflows::start_rejection(request.request_id) { return Ok(response); }
+        if let Some(response) = crate::workflows::start_rejection(request.request_id, slug) { return Ok(response); }
         if let Some(response)=self.request_claim(p,request.request_id,&digest(&("start-workflow",slug,&request)), "start-workflow").await? { return Ok(response); }
         let result=async {
             let catalog=self.catalog.get().await?;
@@ -116,7 +128,7 @@ impl Engine {
         let mut input=serde_json::to_value(&workflow.input)?;
         input["workflow_title"]=json!(workflow.title);
         let question=task.conversation.last().map(|t|t.question.as_str()).unwrap_or("");
-        let status=if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {"failed"} else if response.status==Status::Partial {"partial"} else {run_status(&response.status,None)};
+        let status=if task.analysis.as_ref().is_some_and(|a|a["status"]=="unavailable") {"failed"} else if decided(task).is_some() {"completed"} else if response.status==Status::Partial {"partial"} else {run_status(&response.status,None)};
         sqlx::query("INSERT INTO workflow_runs(id,owner_id,workspace_id,workflow_slug,surface,status,task_id,quote_ref,input,question,result) VALUES($1,$2,$3,$4,$11,$5,$6,$7,$8,$9,$10) ON CONFLICT(task_id,quote_ref) DO UPDATE SET status=EXCLUDED.status,result=EXCLUDED.result,updated_at=now() WHERE (workflow_runs.status,workflow_runs.result) IS DISTINCT FROM (EXCLUDED.status,EXCLUDED.result)")
             .bind(Uuid::new_v4()).bind(p.owner).bind(task.workspace_id).bind(&workflow.slug).bind(status).bind(task_id).bind(quote_ref).bind(input).bind(question).bind(named_run_summary(task)).bind(if p.is_person() {"workflows"} else {"connected_agent"}).execute(&self.store.pool).await?;
         registration_cache().insert((task_id, quote_ref), revision).await;
@@ -138,9 +150,11 @@ impl Engine {
             None => None,
         };
         if let Some(task) = &task {
-            let live = if run["workflow_slug"] != SUPPLIER_CHECK && task.context_view["analysis"]["status"] == "unavailable" { "failed" }
+            let decision = run["decision"].as_str().or_else(|| task.context_view["analysis"].get("kind").filter(|k| *k == crate::pre_kyb::KIND).and_then(|_| task.context_view["analysis"]["verdict"]["decision"].as_str()));
+            let live = if decision.is_some() { "completed" }
+                else if run["workflow_slug"] != SUPPLIER_CHECK && task.context_view["analysis"]["status"] == "unavailable" { "failed" }
                 else if run["workflow_slug"] != SUPPLIER_CHECK && task.status == Status::Partial { "partial" }
-                else { run_status(&task.status, run["decision"].as_str()) };
+                else { run_status(&task.status, None) };
             let quote = task.proposal.as_ref().map(|q| q.quote_ref);
             if run["decision"].is_null() && (live != run["status"] || json!(quote) != run["quote_ref"]) {
                 sqlx::query("UPDATE workflow_runs SET status=$2,quote_ref=coalesce($3,quote_ref),updated_at=now() WHERE id=$1").bind(id).bind(live).bind(quote).execute(&self.store.pool).await?;

@@ -4,12 +4,24 @@
 use crate::{invoice_document::FIELDS, supplier_check};
 use serde_json::{json, Value};
 
-/// Temporary pause of the named Workflows feature, independent of recurring orders.
+/// Temporary pause of the named Workflows overview, independent of recurring
+/// orders. Individual slugs are released through `enabled`.
 pub const ENABLED: bool = false;
 pub const DISABLED_MESSAGE: &str = "Workflows are temporarily disabled.";
 
-pub fn start_rejection(request_id: uuid::Uuid) -> Option<crate::protocol::Response> {
-    (!ENABLED).then(|| crate::protocol::Response::error(request_id, crate::protocol::Status::Unsupported, "workflows_disabled", DISABLED_MESSAGE))
+/// The one workflow that runs while the feature is paused: the Pre-KYB check
+/// (`docs/pre-kyb-check.md`). The App mirrors this with `isWorkflowEnabled`.
+pub fn enabled(slug: &str) -> bool {
+    ENABLED || slug == crate::pre_kyb::SLUG
+}
+
+pub fn start_rejection(request_id: uuid::Uuid, slug: &str) -> Option<crate::protocol::Response> {
+    (!enabled(slug)).then(|| crate::protocol::Response::error(request_id, crate::protocol::Status::Unsupported, "workflows_disabled", DISABLED_MESSAGE))
+}
+
+/// Only the enabled definitions of a `{"workflows": [...]}` listing.
+pub fn enabled_only(definitions: Vec<Value>) -> Vec<Value> {
+    definitions.into_iter().filter(|w| w["slug"].as_str().is_some_and(enabled)).collect()
 }
 
 pub const SUPPLIER_CHECK: &str = "supplier-payment-check";
@@ -126,11 +138,20 @@ mod pause_tests {
     #[test]
     fn paused_workflow_start_has_no_task_or_purchase_to_continue() {
         let request_id = uuid::Uuid::new_v4();
-        let response = super::start_rejection(request_id).expect("workflows are paused");
+        let response = super::start_rejection(request_id, "customer-onboarding").expect("workflows are paused");
         assert_eq!(response.request_id, request_id);
         assert_eq!(response.status, crate::protocol::Status::Unsupported);
         assert_eq!(response.errors[0]["code"], "workflows_disabled");
         assert!(response.state.is_none());
         assert!(response.proposal.is_none());
+        assert!(!super::enabled(super::SUPPLIER_CHECK));
+    }
+    #[test]
+    fn the_pre_kyb_check_is_not_paused() {
+        assert!(super::enabled("pre-kyb-screening"));
+        assert!(super::start_rejection(uuid::Uuid::new_v4(), "pre-kyb-screening").is_none());
+        let listed = super::enabled_only(vec![serde_json::json!({"slug":"pre-kyb-screening"}), serde_json::json!({"slug":"customer-onboarding"})]);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0]["slug"], "pre-kyb-screening");
     }
 }

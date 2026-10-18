@@ -45,6 +45,8 @@ const MAX_WAIT_SECONDS: u64 = 55;
 const MAX_SPEND_USD: f64 = 100_000.0;
 
 type Answer = Result<HttpResponse, HttpResponse>;
+/// A finished body before serialisation, so a wrapper can add to it.
+type Body = Result<(StatusCode, Value), HttpResponse>;
 
 // ---------------------------------------------------------------------------
 // One error shape: {"error":{"code","message",...details}}
@@ -792,9 +794,9 @@ struct WorkflowInput {
 /// means a plan can be built, not that a country or company has complete data.
 pub async fn ask_workflows(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
     if let Err(response) = context(&state, &headers, &["sources:read"]).await { return response; }
-    if !crate::workflows::ENABLED { return Json(json!({"workflows": [], "enabled": false})).into_response(); }
     match state.engine.catalog.get().await {
-        Ok(catalog) => Json(json!({"workflows":crate::workflow_catalog::definitions(&catalog),"notice":"Country availability checks planning only. Review the exact source calls and total ceiling before running; records vary by entity and period."})).into_response(),
+        // The feature stays paused except for the slugs `workflows::enabled` releases.
+        Ok(catalog) => Json(json!({"workflows":crate::workflows::enabled_only(crate::workflow_catalog::definitions(&catalog)),"notice":"Country availability checks planning only. Review the exact source calls and total ceiling before running; records vary by entity and period."})).into_response(),
         Err(error) => unavailable("workflow catalog", &error),
     }
 }
@@ -805,6 +807,13 @@ pub async fn plan_ask(State(state): State<ServerState>, headers: HeaderMap, body
 }
 async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answer {
     let req: AskRequest = parse(body)?;
+    let (code, body) = ask_request(state, headers, req, "ask").await?;
+    Ok((code, Json(body)).into_response())
+}
+/// The shared ask flow behind `POST /v2/ask/plan` and the check endpoints:
+/// start (or price) the ask, run it in auto mode, and describe it once.
+/// `route` scopes the Idempotency-Key.
+async fn ask_request(state: &ServerState, headers: &HeaderMap, req: AskRequest, route: &str) -> Body {
     let scopes: &[&str] = if req.execution_mode == Mode::Auto { &["ask:create", "ask:execute"] } else { &["ask:create"] };
     let ctx = context(state, headers, scopes).await?;
     if req.question.is_some() == req.workflow.is_some() {
@@ -819,7 +828,7 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
         return Err(problem(StatusCode::BAD_REQUEST, "invalid_request", "max_spend is required with execution_mode \"auto\"."));
     }
     let limit = limit(req.limit)?;
-    let request = request_id(headers, &ctx, "ask")?;
+    let request = request_id(headers, &ctx, route)?;
     let response = {
         let Ok(_permit) = state.permits.try_acquire() else { return Err(busy()) };
         if let Some(workflow) = req.workflow {
@@ -840,23 +849,103 @@ async fn ask_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Ans
             // the plan, and the caller decides.
             (Some(cap), Some(max)) if cap > max && !authorized(state, &ctx, id).await.unwrap_or(false) => {
                 let note = json!({"code": "max_spend", "message": "The plan's maximum cost is above max_spend, so it was not run. Nothing was charged."});
-                return finish(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
+                return finish_body(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
             }
             // Auto mode never buys from a source that has not answered a live
             // call yet. The caller sees the plan and may run it explicitly.
             (Some(_), _) if !authorized(state, &ctx, id).await.unwrap_or(false) && plan_unverified(state, &ctx, id).await => {
                 let note = json!({"code": "unverified_source", "message": "The plan uses a source that has not been verified by a live call yet, so auto mode did not run it. Review the plan and run it with POST /v2/asks/{id}/run. Nothing was charged."});
-                return finish(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
+                return finish_body(state, &ctx, id, Duration::ZERO, limit, Some(note)).await;
             }
             (Some(_), _) => {
                 let bearer = token(headers).map_err(|_| no_bearer())?;
                 authorize_and_run(state, &ctx, bearer, id, max_spend).await?;
-                return finish(state, &ctx, id, wait_for(req.wait_seconds), limit, None).await;
+                return finish_body(state, &ctx, id, wait_for(req.wait_seconds), limit, None).await;
             }
             _ => {}
         }
     }
-    finish(state, &ctx, id, Duration::ZERO, limit, None).await
+    finish_body(state, &ctx, id, Duration::ZERO, limit, None).await
+}
+
+// ---------------------------------------------------------------------------
+// Pre-KYB check: the `pre-kyb-screening` workflow as one call
+// (docs/pre-kyb-check.md). Same ask body, with `verdict` copied to the top.
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PreKybRequest {
+    name: String,
+    country: String,
+    #[serde(default)]
+    screening_level: Option<String>,
+    #[serde(default)]
+    registration: Option<String>,
+    #[serde(default)]
+    domain: Option<String>,
+    #[serde(default)]
+    vat_country: Option<String>,
+    #[serde(default)]
+    vat_number: Option<String>,
+    #[serde(default)]
+    iban: Option<String>,
+    #[serde(default)]
+    max_spend: Option<Value>,
+    #[serde(default)]
+    wait_seconds: Option<u64>,
+    #[serde(default)]
+    limit: Option<usize>,
+}
+
+/// The verdict of a `pre_kyb_check` answer, or null for any other answer.
+fn pre_kyb_verdict(body: &Value) -> Value {
+    if body["answer"]["kind"] == crate::pre_kyb::KIND { body["answer"]["verdict"].clone() } else { Value::Null }
+}
+
+/// `POST /v2/checks/pre-kyb`: the input fields plus `max_spend` (auto run) and
+/// optional `wait_seconds`. Without `max_spend` it returns the priced plan and
+/// the ask id to run with `POST /v2/asks/{id}/run`.
+pub async fn pre_kyb_check(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
+    pre_kyb_check_inner(&state, &headers, &body).await.unwrap_or_else(|r| r)
+}
+async fn pre_kyb_check_inner(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answer {
+    let req: PreKybRequest = parse(body)?;
+    let mut input = BTreeMap::new();
+    input.insert("name".to_owned(), json!(req.name));
+    input.insert("country".to_owned(), json!(req.country));
+    input.insert("screening_level".to_owned(), json!(req.screening_level.unwrap_or_else(|| "Standard".into())));
+    for (key, value) in [("registration", req.registration), ("domain", req.domain), ("vat_country", req.vat_country), ("vat_number", req.vat_number), ("iban", req.iban)] {
+        if let Some(value) = value.filter(|v| !v.trim().is_empty()) {
+            input.insert(key.to_owned(), json!(value));
+        }
+    }
+    let ask = AskRequest {
+        question: None,
+        workflow: Some(WorkflowInput { slug: crate::pre_kyb::SLUG.to_owned(), input }),
+        execution_mode: if req.max_spend.is_some() { Mode::Auto } else { Mode::default() },
+        max_spend: req.max_spend,
+        limit: req.limit,
+        wait_seconds: req.wait_seconds,
+    };
+    let (code, mut body) = ask_request(state, headers, ask, "checks/pre-kyb").await?;
+    body["verdict"] = pre_kyb_verdict(&body);
+    Ok((code, Json(body)).into_response())
+}
+
+/// `GET /v2/checks/pre-kyb/{id}`: the ask body of a pre-KYB check with its
+/// `verdict` on top (null until the run has completed, or for other asks).
+pub async fn pre_kyb_status(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Query(query): Query<StatusQuery>) -> HttpResponse {
+    pre_kyb_status_inner(&state, &headers, id, query).await.unwrap_or_else(|r| r)
+}
+async fn pre_kyb_status_inner(state: &ServerState, headers: &HeaderMap, id: Uuid, query: StatusQuery) -> Answer {
+    let ctx = context(state, headers, &[]).await?;
+    let limit = limit(query.limit)?;
+    resume_if_authorized(state, &ctx, headers, id).await;
+    let wait = query.wait_seconds.map_or(Duration::ZERO, |s| wait_for(Some(s)));
+    let (code, mut body) = finish_body(state, &ctx, id, wait, limit, None).await?;
+    body["verdict"] = pre_kyb_verdict(&body);
+    Ok((code, Json(body)).into_response())
 }
 
 #[derive(Deserialize, Default)]
@@ -980,15 +1069,20 @@ pub async fn run_status(State(state): State<ServerState>, headers: HeaderMap, Pa
             };
         }
     }
-    if let Ok(bearer) = token(&headers) {
-        if authorized(&state, &ctx, id).await.unwrap_or(false) && !state.engine.worker_active(id).await.unwrap_or(true) {
+    resume_if_authorized(&state, &ctx, &headers, id).await;
+    let wait = query.wait_seconds.map_or(Duration::ZERO, |s| wait_for(Some(s)));
+    finish(&state, &ctx, id, wait, limit, None).await.unwrap_or_else(|r| r)
+}
+
+/// An approved run whose worker stopped is resumed from its saved journal.
+async fn resume_if_authorized(state: &ServerState, ctx: &AuthContext, headers: &HeaderMap, id: Uuid) {
+    if let Ok(bearer) = token(headers) {
+        if authorized(state, ctx, id).await.unwrap_or(false) && !state.engine.worker_active(id).await.unwrap_or(true) {
             if let Err(error) = state.engine.start_worker(ctx.principal.clone(), bearer.to_owned(), id).await {
                 tracing::warn!(task = %id, error = %error, "public api run could not resume");
             }
         }
     }
-    let wait = query.wait_seconds.map_or(Duration::ZERO, |s| wait_for(Some(s)));
-    finish(&state, &ctx, id, wait, limit, None).await.unwrap_or_else(|r| r)
 }
 
 // ---------------------------------------------------------------------------
@@ -1096,6 +1190,11 @@ fn public_status(r: &Response, authorized: bool) -> &'static str {
 /// its source does, instead of on the next poll tick. A run still going
 /// answers `202` with its id to poll; a failed one `502`.
 async fn finish(state: &ServerState, ctx: &AuthContext, id: Uuid, wait: Duration, limit: Option<usize>, note: Option<Value>) -> Answer {
+    let (code, body) = finish_body(state, ctx, id, wait, limit, note).await?;
+    Ok((code, Json(body)).into_response())
+}
+/// `finish` before serialisation, for endpoints that add to the body.
+async fn finish_body(state: &ServerState, ctx: &AuthContext, id: Uuid, wait: Duration, limit: Option<usize>, note: Option<Value>) -> Body {
     let deadline = Instant::now() + wait;
     while Instant::now() < deadline && state.engine.worker_active(id).await.unwrap_or(false) {
         tokio::time::sleep(Duration::from_millis(100)).await;
@@ -1112,7 +1211,7 @@ async fn finish(state: &ServerState, ctx: &AuthContext, id: Uuid, wait: Duration
         "failed" => StatusCode::BAD_GATEWAY,
         _ => StatusCode::OK,
     };
-    Ok((code, Json(body)).into_response())
+    Ok((code, body))
 }
 
 async fn describe(state: &ServerState, ctx: &AuthContext, id: Uuid, r: &Response, status: &str, limit: Option<usize>) -> anyhow::Result<Value> {

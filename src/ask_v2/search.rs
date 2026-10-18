@@ -666,7 +666,8 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
     // "Board members" and "directors" describe the same company roster.
     // Require the phrase: an unrelated board game with club members is not
     // evidence of a governance endpoint.
-    let board_members = self::tokens(text).windows(2)
+    let ordered = self::tokens(text);
+    let board_members = ordered.windows(2)
         .any(|pair| pair[0] == "board" && matches!(pair[1].as_str(), "member" | "members"));
     let officers = ["officer", "director", "bestuurder"]
         .iter()
@@ -687,7 +688,12 @@ fn document(target: Target, text: &str, capabilities: BTreeSet<String>) -> Docum
         && (has("price") || has("quote") || has("market") || has("trading")));
     let analyst = has("analyst") && (has("consensu") || has("consensus") || has("rating") || has("recommendation") || has("target"));
     let insider = has("insider") && (has("transaction") || has("trade") || has("trading") || has("dealing"));
-    let valuation = has("valuation") || has("multiple") || (has("enterprise") && has("value"));
+    // The noun names a valuation ("valuation multiples", "EV/EBITDA
+    // multiple"); the adjective counts things ("headlines from multiple
+    // publishers") and must not turn a news request into company multiples.
+    let multiples = ordered.iter().any(|word| word == "multiples")
+        || (has("multiple") && (has("ebitda") || has("ebit") || has("earning")));
+    let valuation = has("valuation") || multiples || (has("enterprise") && has("value"));
     let facets = (u16::from(financial) * FINANCIAL)
         | (u16::from(officers) * OFFICERS)
         | (u16::from(control) * CONTROL)

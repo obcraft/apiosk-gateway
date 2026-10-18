@@ -196,7 +196,16 @@ impl Engine {
                 } else { None });
                 let answering_span = telemetry::span(if direct.is_some() { Phase::DirectAnswer } else { Phase::Analysis }).task(id);
                 let mut preserved_previous_analysis = false;
-                task.analysis = Some(if let Some(answer) = direct {
+                task.analysis = Some(if task.workflow.as_ref().is_some_and(|w| w.slug == crate::pre_kyb::SLUG) {
+                    // Deterministic pre-KYB verdict from saved documents; no model and no purchase.
+                    match self.pre_kyb_verdict(p, id, &task, &plan).await {
+                        Ok(analysis) => analysis,
+                        Err(error) => {
+                            tracing::warn!(error=%error, "pre-kyb verdict failed");
+                            json!({"status":"unavailable","limitations":["The pre-KYB check could not be evaluated. Your source results are saved; no additional source purchase was made."],"observations":[]})
+                        }
+                    }
+                } else if let Some(answer) = direct {
                     tracing::info!(task = %id, "saved source answered directly");
                     answer
                 } else if let Some(check) = task.supplier_check.clone() {

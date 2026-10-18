@@ -12,6 +12,7 @@ pub use input::bind_subjects;
 mod followups;
 mod results;
 mod selection;
+mod pre_kyb;
 mod supplier;
 mod supporting_news;
 mod workflows;
@@ -362,8 +363,8 @@ impl Engine {
     ) -> anyhow::Result<Response> {
         // Explicit named-workflow entry points share the temporary feature gate.
         // Normal Ask discovery and recurring execution do not select this mode.
-        if req.context_delta.workflow_slug.is_some() || forced.as_ref().is_some_and(|(_, workflow)| workflow.is_some()) {
-            if let Some(response) = crate::workflows::start_rejection(req.request_id) { return Ok(response); }
+        if let Some(slug) = req.context_delta.workflow_slug.as_deref().or_else(|| forced.as_ref().and_then(|(_, workflow)| workflow.as_ref().map(|w| w.slug.as_str()))) {
+            if let Some(response) = crate::workflows::start_rejection(req.request_id, slug) { return Ok(response); }
         }
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.

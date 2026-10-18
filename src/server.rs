@@ -146,6 +146,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/ask", post(crate::public_api::ask))
         .route("/v2/ask/plan", post(crate::public_api::plan_ask))
         .route("/v2/ask/workflows", get(crate::public_api::ask_workflows))
+        .route("/v2/checks/pre-kyb", post(crate::public_api::pre_kyb_check))
+        .route("/v2/checks/pre-kyb/:id", get(crate::public_api::pre_kyb_status))
         .route("/v2/asks/:id", get(crate::public_api::run_status))
         .route("/v2/asks/:id/run", post(crate::public_api::run_ask))
         .route("/v2/asks/:id/continue", post(crate::public_api::continue_ask))
@@ -611,16 +613,22 @@ async fn workflows(State(state): State<ServerState>, headers: HeaderMap, Query(q
         Ok(p) => p,
         Err(r) => return r,
     };
-    if !crate::workflows::ENABLED { return Json(json!({"workflows": [], "enabled": false})).into_response(); }
     let display = state.engine.store.money_display(p.owner).await;
     match state.engine.catalog.get().await {
-        Ok(catalog) => Json(crate::workflows::definitions_for_client(&catalog, &display, query.catalog == Some(2))).into_response(),
+        Ok(catalog) => {
+            // The feature stays paused except for the slugs `workflows::enabled` releases.
+            let mut body = crate::workflows::definitions_for_client(&catalog, &display, query.catalog == Some(2));
+            let workflows = crate::workflows::enabled_only(body["workflows"].as_array().cloned().unwrap_or_default());
+            body["enabled"] = json!(!workflows.is_empty());
+            body["workflows"] = json!(workflows);
+            Json(body).into_response()
+        }
         Err(_) => failure(StatusCode::SERVICE_UNAVAILABLE, "catalog_unavailable", "Workflows are temporarily unavailable."),
     }
 }
 
 async fn start_workflow(State(state): State<ServerState>, headers: HeaderMap, Path(slug): Path<String>, Json(request): Json<crate::workflow_catalog::StartRequest>) -> HttpResponse {
-    if !crate::workflows::ENABLED { return failure(StatusCode::SERVICE_UNAVAILABLE, "workflows_disabled", crate::workflows::DISABLED_MESSAGE); }
+    if !crate::workflows::enabled(&slug) { return failure(StatusCode::SERVICE_UNAVAILABLE, "workflows_disabled", crate::workflows::DISABLED_MESSAGE); }
     let Ok(_permit) = state.permits.try_acquire() else { return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly."); };
     let p = match caller(&state, &headers).await { Ok(p) => p, Err(r) => return r };
     match state.engine.start_workflow(&p, &slug, request).await {
