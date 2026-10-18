@@ -563,17 +563,6 @@ fn identifier_input(input: &str) -> bool {
         || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn"].contains(&input)
 }
 
-/// Free-text search concepts are the person's own words, which every request
-/// supplies. On a capability without a subject, a model naming one ("query",
-/// "topic") has not invented a missing provider parameter, so it must not fail
-/// the interpretation. A subject-scoped capability keeps the stricter rule (a
-/// company label does not imply a topic), and invented criteria such as a
-/// record type, service or period are still corrected.
-fn question_input(input: &str) -> bool {
-    matches!(input, "query" | "search_query" | "search_term" | "search_terms" | "keyword" | "keywords"
-        | "topic" | "question" | "prompt")
-}
-
 fn supplied_input(input: &str, capability: &Capability, subject: &Subject) -> bool {
     if subject.identifiers.get(input).is_some_and(|value| !value.is_empty()) { return true; }
     if identifier_input(input) { return false; }
@@ -592,7 +581,7 @@ fn supplied_input(input: &str, capability: &Capability, subject: &Subject) -> bo
 /// Missing identifiers remain visible for supported execution dependencies;
 /// other absent concepts are invalid model extraction and get one correction.
 fn missing_inputs(capability: &Capability, subjects: &[Subject]) -> Vec<String> {
-    capability.inputs.iter().filter(|input| !(capability.subject_id.is_none() && question_input(input)) && !subjects.iter()
+    capability.inputs.iter().filter(|input| !subjects.iter()
         .filter(|subject| capability.subject_id.as_ref() == Some(&subject.id))
         .any(|subject| supplied_input(input, capability, subject))).cloned().collect()
 }
