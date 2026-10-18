@@ -97,6 +97,24 @@ fn missing_inputs_preserve_identifier_dependencies_without_borrowing_other_subje
 }
 
 #[test]
+fn free_text_search_concepts_are_grounded_by_the_question_itself() {
+    // Production 2026-10-18: a subjectless search capability with inputs
+    // ["query"] failed twice and the person got a 503 instead of sources.
+    let question = "Show the latest business and financial headlines from multiple news sources, with source links.";
+    let mut input = json!({"language":"en","subjects":[],"capabilities":[{"slug":"news.headlines.latest","name":"Latest news headlines","description":"Retrieve the latest news headlines with source links.","domain":"research","inputs":["query"],"outputs":["headline","url"],"subject_id":null,"source_hint":null,"confidence":0.9}],
+        "deliverable":{"format":"chat","operations":[]}});
+    for free_text in ["query", "topic", "keyword", "search_term"] {
+        input["capabilities"][0]["inputs"] = json!([free_text]);
+        let parsed = normalize(&input.to_string(), question, "fixture").unwrap_or_else(|error| panic!("{free_text}: {error}"));
+        assert!(parsed.capabilities[0].missing.is_empty(), "{free_text}");
+    }
+    // Invented criteria are still corrected, not silently accepted.
+    input["capabilities"][0]["inputs"] = json!(["query", "record_type"]);
+    let error = normalize(&input.to_string(), question, "fixture").unwrap_err().to_string();
+    assert!(error.contains("input concepts require supplied identifiers or the literal subject: record_type"), "{error}");
+}
+
+#[test]
 fn supplied_input_concepts_are_grounded_to_their_own_subject() {
     let question = "Find records for catering in Nederland and transport in Belgium.";
     let mut input = json!({"language":"en","subjects":[
