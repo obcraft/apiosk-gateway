@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseEnv } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
+import { superviseLauncher } from './dev-local-supervisor.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const runtime = path.join(root, 'gateway/.local/dev-stack');
@@ -106,10 +107,16 @@ function groupAlive(child) {
 }
 
 /** Keep handlers installed throughout cleanup, including repeated Ctrl+C. */
-export function installShutdownHandlers(controller, { input = process.stdin, signals = process } = {}) {
+export function installShutdownHandlers(controller, {
+  input = process.stdin, signals = process, requireParent = false,
+} = {}) {
   const stop = () => controller.abort();
   const keys = chunk => { if (chunk.includes('\u0004')) stop(); };
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) signals.on(signal, stop);
+  if (requireParent) {
+    signals.on('disconnect', stop);
+    if (!signals.connected) stop();
+  }
   // A terminal's Ctrl+D is EOF. Ignore stdin for detached/noninteractive runs,
   // where /dev/null or a closed pipe must not stop a healthy stack immediately.
   const terminal = Boolean(input.isTTY);
@@ -121,6 +128,7 @@ export function installShutdownHandlers(controller, { input = process.stdin, sig
   }
   return () => {
     for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) signals.removeListener(signal, stop);
+    if (requireParent) signals.removeListener('disconnect', stop);
     if (terminal) {
       input.removeListener('end', stop);
       input.removeListener('close', stop);
@@ -165,6 +173,7 @@ export async function runServices(services, {
   signal, timeoutMs = 600_000, stopWhenReady = false,
   onStatus = console.log, onReady = () => {}, pollMs = 500,
 } = {}) {
+  if (signal?.aborted) return;
   await checkPorts(services);
   const children = [];
   try {
@@ -271,7 +280,9 @@ async function main() {
   mkdirSync(runtime, { recursive: true, mode: 0o700 });
   config.mcp.APIOSK_MCP_OAUTH_SECRET ||= localSecret();
   const controller = new AbortController();
-  const removeShutdownHandlers = installShutdownHandlers(controller);
+  const removeShutdownHandlers = installShutdownHandlers(controller, {
+    requireParent: process.env.APIOSK_LOCAL_SUPERVISED === '1',
+  });
   console.log(`Supabase API: ${config.supabase}\nExecution: ${args.has('--execute') ? 'enabled for approved requests' : 'off (use --execute to enable approved requests)'}\nLogs: ${runtime}\n`);
   try { await runServices(services, {
     signal: controller.signal, stopWhenReady: args.has('--smoke'),
@@ -287,5 +298,9 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
-  main().catch(error => { console.error(error.message); process.exitCode = 1; });
+  if (process.env.APIOSK_LOCAL_SUPERVISED !== '1') {
+    superviseLauncher(fileURLToPath(import.meta.url), process.argv.slice(2));
+  } else {
+    main().catch(error => { console.error(error.message); process.exitCode = 1; });
+  }
 }

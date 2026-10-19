@@ -351,7 +351,7 @@ pub(super) async fn parse(
             "Capability parsing is temporarily unavailable. Your question is kept; try again.",
         );
     };
-    let Ok(_permit) = state.permits.try_acquire() else {
+    let Ok(_permit) = state.permits.clone().try_acquire_owned() else {
         return failure(
             StatusCode::TOO_MANY_REQUESTS,
             "busy",
@@ -395,12 +395,55 @@ pub(super) async fn parse(
         Ok(token) => token,
         Err(_) => return failure(StatusCode::UNPROCESSABLE_ENTITY,"planning_too_large","This plan contains too much detail. Narrow the question and try again."),
     };
-    let company_context = crate::subject_context::collect(&parsed).await;
-    let output = json!({"parsed_request":parsed,"model":interpretation.output.model,"company_context":company_context,
+    let mut output = json!({"parsed_request":parsed,"model":interpretation.output.model,
         "planning_token":token,"attempts":interpretation.attempts,"model_calls":crate::telemetry::model_http_requests(),
         "timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_ms":interpretation.output.timing.parse_ms}});
     tracing::info!(request_id=%request.request_id, model=%output["model"], attempts=interpretation.attempts, parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
+    if headers.get("accept").and_then(|value| value.to_str().ok()).is_some_and(|value| value.contains("application/x-ndjson")) {
+        // The canonical parse is useful before public web context finishes.
+        // Stream snapshots from this same request; never re-run the model.
+        return parse_progress(output, move |update| async move {
+            let _permit = _permit;
+            crate::subject_context::collect_with_updates(&parsed, update).await
+        });
+    }
+    output["company_context"] = json!(crate::subject_context::collect(&parsed).await);
     Json(output).into_response()
+}
+
+fn parse_progress<F, Fut>(mut output: Value, collect: F) -> Response
+where
+    F: FnOnce(Box<dyn Fn(usize, Value) + Send + Sync>) -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = Vec<Value>> + Send,
+{
+    // Updates are bounded by four subjects and nine pages per subject.
+    let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
+    output["company_context"] = json!([]);
+    output["context_status"] = json!("loading");
+    tokio::spawn(async move {
+        let send = |value: &Value| { let _ = sender.send(Ok::<_, std::convert::Infallible>(format!("{value}\n"))); };
+        send(&output);
+        let snapshot = std::sync::Arc::new(std::sync::Mutex::new(output));
+        let updates = snapshot.clone();
+        let progress = sender.clone();
+        let work = async {
+            let contexts = collect(Box::new(move |index, context| {
+                let mut next = updates.lock().unwrap();
+                let contexts = next["company_context"].as_array_mut().unwrap();
+                if contexts.len() <= index { contexts.resize(index + 1, Value::Null); }
+                contexts[index] = context;
+                let _ = progress.send(Ok(format!("{next}\n")));
+            })).await;
+            let mut next = snapshot.lock().unwrap();
+            next["company_context"] = json!(contexts);
+            next["context_status"] = json!("completed");
+            send(&next);
+        };
+        // Closing or replacing a question cancels its remaining free reads.
+        tokio::select! { _ = sender.closed() => {}, _ = work => {} }
+    });
+    ([("content-type", "application/x-ndjson"), ("cache-control", "private, no-store"), ("x-accel-buffering", "no")],
+        axum::body::Body::from_stream(tokio_stream::wrappers::UnboundedReceiverStream::new(receiver))).into_response()
 }
 
 /// What the Ask page sends when a question is not yet a clear data question:
@@ -1129,6 +1172,54 @@ mod tests {
             known_slugs: vec![],
             correction: None,
         }
+    }
+
+    #[tokio::test]
+    async fn parse_progress_emits_parse_and_page_before_slow_description_finishes() {
+        use futures_util::StreamExt;
+        let (release, wait) = tokio::sync::oneshot::channel();
+        let response = parse_progress(json!({"planning_token":"same-signed-parse","model_calls":1}), move |update| async move {
+            update(0, json!({"company":"Example","pages":[{"title":"Example","url":"https://example.org"}]}));
+            wait.await.unwrap();
+            let context = json!({"company":"Example","pages":[{"title":"Example","url":"https://example.org","description":"Example is a company."}]});
+            update(0, context.clone());
+            vec![context]
+        });
+        assert_eq!(response.headers()["content-type"], "application/x-ndjson");
+        let mut stream = response.into_body().into_data_stream();
+        let first: Value = serde_json::from_slice(&stream.next().await.unwrap().unwrap()).unwrap();
+        assert_eq!(first["planning_token"], "same-signed-parse");
+        assert_eq!(first["company_context"], json!([]));
+        let early = tokio::time::timeout(Duration::from_secs(1), stream.next()).await.unwrap().unwrap().unwrap();
+        let early: Value = serde_json::from_slice(&early).unwrap();
+        assert_eq!(early["company_context"][0]["pages"][0]["title"], "Example");
+        assert!(early["company_context"][0]["pages"][0]["description"].is_null());
+        release.send(()).unwrap();
+        let enriched: Value = serde_json::from_slice(&stream.next().await.unwrap().unwrap()).unwrap();
+        assert_eq!(enriched["company_context"][0]["pages"][0]["description"], "Example is a company.");
+        let last: Value = serde_json::from_slice(&stream.next().await.unwrap().unwrap()).unwrap();
+        assert_eq!(last["context_status"], "completed");
+        assert_eq!(last["planning_token"], first["planning_token"]);
+        assert_eq!(last["model_calls"], 1);
+        assert!(stream.next().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn parse_progress_disconnect_drops_pending_work_and_releases_permit() {
+        use futures_util::StreamExt;
+        let permits = std::sync::Arc::new(tokio::sync::Semaphore::new(1));
+        let permit = permits.clone().try_acquire_owned().unwrap();
+        let response = parse_progress(json!({}), move |_| async move {
+            let _permit = permit;
+            std::future::pending::<Vec<Value>>().await
+        });
+        let mut stream = response.into_body().into_data_stream();
+        assert!(stream.next().await.is_some());
+        assert_eq!(permits.available_permits(), 0);
+        drop(stream);
+        tokio::time::timeout(Duration::from_secs(1), async {
+            while permits.available_permits() == 0 { tokio::task::yield_now().await; }
+        }).await.unwrap();
     }
     #[test]
     fn bounds_transport_without_imposing_old_planner_contract() {

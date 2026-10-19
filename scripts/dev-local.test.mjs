@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,6 +7,7 @@ import test from 'node:test';
 import { EventEmitter, once } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { spawn } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
 import { enableLocalRecurring, checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
 
 async function freePort() {
@@ -58,6 +59,63 @@ test('noninteractive stdin EOF does not stop background services', () => {
   assert.equal(controller.signal.aborted, true);
   remove(); input.destroy();
 });
+
+for (const connected of [true, false]) {
+  test(`supervised launcher cleans up when parent ${connected ? 'disconnects' : 'already died'}`, () => {
+    const input = new PassThrough();
+    const signals = new EventEmitter();
+    signals.connected = connected;
+    const controller = new AbortController();
+    const remove = installShutdownHandlers(controller, { input, signals, requireParent: true });
+    if (connected) {
+      assert.equal(controller.signal.aborted, false);
+      signals.emit('disconnect');
+    }
+    assert.equal(controller.signal.aborted, true);
+    remove();
+    assert.equal(signals.listenerCount('disconnect'), 0);
+    input.destroy();
+  });
+}
+
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGKILL']) {
+  test(`supervisor ${signal} reaches launcher cleanup through its IPC lifeline`, { timeout: 10000 }, async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'apiosk-supervisor-'));
+    const marker = path.join(dir, 'cleaned-up');
+    const launcher = path.join(dir, 'launcher.mjs');
+    writeFileSync(launcher, `
+      import { writeFileSync } from 'node:fs';
+      import { installShutdownHandlers } from ${JSON.stringify(new URL('./dev-local.mjs', import.meta.url).href)};
+      const controller = new AbortController();
+      const remove = installShutdownHandlers(controller, { requireParent: process.env.APIOSK_LOCAL_SUPERVISED === '1' });
+      const cleanup = () => {
+        writeFileSync(${JSON.stringify(marker)}, 'done');
+        remove();
+        if (process.connected) process.disconnect();
+      };
+      controller.signal.addEventListener('abort', cleanup, { once: true });
+      if (controller.signal.aborted) cleanup();
+      console.log('ready');
+    `);
+    const supervisor = spawn(process.execPath, ['--input-type=module', '-e', `
+      import { superviseLauncher } from ${JSON.stringify(new URL('./dev-local-supervisor.mjs', import.meta.url).href)};
+      superviseLauncher(${JSON.stringify(launcher)});
+    `], { stdio: ['ignore', 'pipe', 'pipe'] });
+    const exited = once(supervisor, 'exit');
+    try {
+      await once(supervisor.stdout, 'data');
+      assert.equal(supervisor.kill(signal), true);
+      const deadline = Date.now() + 3000;
+      while (!existsSync(marker) && Date.now() < deadline) await delay(20);
+      assert.equal(existsSync(marker), true, 'launcher must clean up even if supervisor cannot handle the signal');
+      await exited;
+    } finally {
+      if (supervisor.exitCode === null && supervisor.signalCode === null) supervisor.kill('SIGKILL');
+      await exited;
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+}
 
 test('shutdown waits for owned processes and escalates an ignored SIGTERM', async t => {
   const child = spawn(process.execPath, ['-e', `

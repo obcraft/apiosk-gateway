@@ -8,8 +8,8 @@ use serde_json::{json, Value};
 use std::{sync::OnceLock, time::Duration};
 use url::Url;
 
-// Primary search, fallback and a page read add at most 5.5 seconds of network waiting
-// after the existing parser. Supplied homepages are read alongside search.
+// Search, encyclopedia and supplied homepages start together. Every result is
+// published on arrival; the final snapshot still supports non-streaming clients.
 const SEARCH_BUDGET: Duration = Duration::from_secs(2);
 const PAGE_BUDGET: Duration = Duration::from_millis(1500);
 
@@ -20,10 +20,19 @@ fn cache() -> &'static moka::future::Cache<String, Value> {
 }
 
 pub(crate) async fn collect(parsed: &ParsedRequest) -> Vec<Value> {
+    collect_with_updates(parsed, |_, _| {}).await
+}
+
+pub(crate) async fn collect_with_updates(parsed: &ParsedRequest, update: impl Fn(usize, Value) + Send + Sync) -> Vec<Value> {
     let subjects = named_subjects(parsed);
-    join_all(subjects.into_iter().map(|subject| async move {
+    join_all(subjects.into_iter().enumerate().map(|(index, subject)| {
+      let update = &update;
+      async move {
         let key = crate::state::digest(&(&subject.kind, subject.label.to_lowercase(), &subject.identifiers));
-        cached_context(key, fetch(subject)).await
+        let value = cached_context(key, fetch_with_updates(subject, &|value| update(index, value))).await;
+        update(index, value.clone());
+        value
+      }
     })).await
 }
 
@@ -74,38 +83,74 @@ fn empty(label: &str) -> Value {
         "homepage_status":"unavailable","pages":[],"retrieved_at":chrono::Utc::now().to_rfc3339()})
 }
 
-async fn fetch(subject: &Subject) -> Value {
+#[cfg(test)]
+async fn fetch(subject: &Subject) -> Value { fetch_with_updates(subject, &|_| {}).await }
+
+async fn fetch_with_updates(subject: &Subject, update: &(dyn Fn(Value) + Send + Sync)) -> Value {
     let mut result = empty(&subject.label);
     result["subject_type"] = json!(subject.kind);
     let query = search_query(subject);
+    result["search_url"] = json!(search_url(&query).as_str());
+    result["search_status"] = json!("loading");
+    result["homepage_status"] = json!("loading");
+    update(result.clone());
     // A supplied homepage is independent of search availability and latency.
     let supplied = subject.identifiers.iter()
         .filter(|(key, _)| matches!(key.as_str(), "website" | "company.website" | "website_url" | "domain" | "company.domain" | "company.url"))
         .find_map(|(_, value)| homepage_url(value))
         .or_else(|| homepage_url(&subject.label));
-    let (search, supplied_page) = tokio::join!(free_search(&subject.label, &query, is_topic_subject(subject)), async {
-        match supplied.as_ref() {
-            Some(url) => read_homepage(url, &subject.label).await,
-            None => None,
-        }
-    });
-    let (mut pages, provider, search_link) = search;
-    result["search_provider"] = json!(provider);
-    result["search_url"] = json!(search_link);
-    result["search_status"] = json!(if pages.is_empty() { "unavailable" } else { "completed" });
-    let homepage = if supplied.is_some() { supplied_page } else {
-        let candidate = pages.iter().filter_map(|page| homepage_url(page["url"].as_str()?))
-            .find(|url| likely_subject_host(url, &subject.label, matches!(subject.kind.as_str(), "company" | "organization" | "organisation")));
-        match candidate {
-            Some(url) => read_homepage(&url, &subject.label).await,
-            None => None,
-        }
-    };
-    if let Some(page) = homepage {
-        pages.retain(|p| p["url"] != page["url"]);
-        pages.insert(0, page);
-        result["homepage_status"] = json!("completed");
+    enum Arrival { Search(Found), Overview(Option<Found>), Homepage(Option<Value>) }
+    let topic = is_topic_subject(subject);
+    let mut reads: FuturesUnordered<BoxFuture<'_, Arrival>> = FuturesUnordered::new();
+    reads.push(async { Arrival::Search(free_search(&subject.label, &query, topic).await) }.boxed());
+    // A fast promotional snippet must not cancel the descriptive lookup.
+    reads.push(async { Arrival::Overview(encyclopedia_search(&subject.label, topic).await) }.boxed());
+    let mut homepage_started = supplied.is_some();
+    if let Some(url) = supplied {
+        reads.push(async move { Arrival::Homepage(read_homepage(&url, &subject.label).await) }.boxed());
     }
+    let mut pages: Vec<Value> = vec![];
+    while let Some(arrival) = reads.next().await {
+        match arrival {
+            Arrival::Search((found, provider, link)) | Arrival::Overview(Some((found, provider, link))) => {
+                if result["search_provider"].is_null() && !found.is_empty() {
+                    result["search_provider"] = json!(provider);
+                    result["search_url"] = json!(link);
+                }
+                if !homepage_started {
+                    let candidate = found.iter().filter_map(|page| homepage_url(page["url"].as_str()?))
+                        .find(|url| likely_subject_host(url, &subject.label, matches!(subject.kind.as_str(), "company" | "organization" | "organisation")));
+                    if let Some(url) = candidate {
+                        homepage_started = true;
+                        reads.push(async move { Arrival::Homepage(read_homepage(&url, &subject.label).await) }.boxed());
+                    }
+                }
+                for mut page in found {
+                    page["search_provider"] = json!(provider);
+                    // Preserve arrival order and identity as a description improves.
+                    if pages.iter().any(|saved| saved["url"] == page["url"]) { continue; }
+                    // Five search hits, three encyclopedia hits and one homepage.
+                    // Never remove an already displayed hit to make room.
+                    if pages.len() >= 9 { continue; }
+                    pages.push(page);
+                    result["pages"] = json!(pages);
+                    update(result.clone());
+                }
+            }
+            Arrival::Homepage(page) => {
+                result["homepage_status"] = json!(if page.is_some() { "completed" } else { "unavailable" });
+                if let Some(page) = page {
+                    if let Some(existing) = pages.iter_mut().find(|saved| saved["url"] == page["url"]) { *existing = page; }
+                    else if pages.len() < 9 { pages.push(page); }
+                    result["pages"] = json!(pages);
+                }
+                update(result.clone());
+            }
+            Arrival::Overview(None) => {},
+        }
+    }
+    result["search_status"] = json!(if pages.is_empty() { "unavailable" } else { "completed" });
+    if !homepage_started { result["homepage_status"] = json!("unavailable"); }
     result["pages"] = json!(pages);
     result
 }
@@ -161,7 +206,7 @@ async fn free_search(label: &str, query: &str, topic: bool) -> (Vec<Value>, &'st
     if topic { primary.push(news_search(label, query).boxed()); }
     if let Some(found) = first_usable(primary).await { return found; }
     // Try independent, non-JS public sources before giving up.
-    first_usable(vec![html_search(label, topic).boxed(), encyclopedia_search(label, topic).boxed()]).await
+    html_search(label, topic).await
         .unwrap_or_else(|| (vec![], "google", google.to_string()))
 }
 
@@ -619,7 +664,7 @@ mod tests {
         let company = Subject { label: "Apiosk".into(), identifiers: [("website".into(), "https://apiosk.com/".into())].into(), ..company };
         let context = fetch(&company).await;
         assert_eq!(context["homepage_status"], "completed", "{context}");
-        assert_eq!(context["pages"][0]["kind"], "homepage");
+        assert!(context["pages"].as_array().unwrap().iter().any(|page| page["kind"] == "homepage"));
         println!("APIOSK_CONTEXT={context}");
     }
 
