@@ -220,7 +220,8 @@ impl Client {
     pub fn admit_search(&self, owner: &str) -> bool {
         self.admit_at(owner, Operation::Search, Instant::now())
     }
-    /// A written conversation reply: at most one per parse, so the same budget.
+    /// A written conversation reply, or a chat follow-up's routing: at most
+    /// one per parse, so the same budget.
     pub fn admit_reply(&self, owner: &str) -> bool {
         self.admit_at(owner, Operation::Reply, Instant::now())
     }
