@@ -864,7 +864,7 @@ pub(crate) fn analysis_operations(task: &Task) -> Value {
         .cloned()
         .unwrap_or_default();
     if let Some(turn) = task.conversation.last() {
-        operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the same language: {}", turn.question)));
+        operations.insert(0, json!(format!("Answer this question directly using only the saved source fields, in the language it asks for, otherwise in its own language: {}", turn.question)));
     }
     if operations.is_empty() {
         operations.push(json!("Summarize the requested source facts concisely using exact evidence values."));

@@ -383,7 +383,7 @@ mod tests {
     fn a_large_array_keeps_the_question_rows_from_anywhere_with_original_pointers_and_counts() {
         let source = rows(5000);
         assert!(serialized_len(&source) > ANALYSIS_INPUT_BYTES);
-        let operations = json!(["Answer this question directly using only the saved source fields, in the same language: Balance sheet line 4321"]);
+        let operations = json!(["Answer this question directly using only the saved source fields, in the language it asks for, otherwise in its own language: Balance sheet line 4321"]);
         let projected = project(std::slice::from_ref(&source), &operations, ANALYSIS_INPUT_BYTES);
         assert!(serialized_len(&projected) <= ANALYSIS_INPUT_BYTES);
         let document = &projected[0]["document"];

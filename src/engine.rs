@@ -1,5 +1,6 @@
 mod compute;
 mod conversation;
+pub use conversation::AskFollowUp;
 pub use compute::UpgradeRequest;
 mod endpoint_selection;
 mod source_selection;
@@ -80,6 +81,18 @@ fn account_navigation(app_url: &str, workspace: Option<Uuid>) -> Value {
 
 /// Leave only the conversation: the reply asks the person for something
 /// before anything can be planned.
+/// A saved-results follow-up replaces the task's quote. The turn that bought
+/// those results keeps showing what that purchase cost: its index, quote and cap.
+fn purchase_turn(task: &Task) -> Option<(usize, Uuid, i64)> {
+    if !task.saved_answer { return None; }
+    task.conversation.iter().enumerate().find_map(|(index, turn)| {
+        let proposal = turn.output.as_ref()?.proposal.as_ref()?;
+        if !proposal["steps"].as_array().is_some_and(|steps| !steps.is_empty()) { return None; }
+        let quote = proposal["quote_ref"].as_str()?.parse().ok()?;
+        Some((index, quote, proposal["max_total_atomic"].as_str().and_then(|cap| cap.parse().ok()).unwrap_or(0)))
+    })
+}
+
 fn clear_plan(task: &mut Task) {
     task.output_grounding = None;
     task.saved_answer = false;
@@ -953,6 +966,9 @@ impl Engine {
         let page = |result: Uuid| -> anyhow::Result<Value> {
             pages.get(&result).cloned().ok_or_else(|| sqlx::Error::RowNotFound.into())
         };
+        if let Some((index, quote, cap)) = purchase_turn(&task) {
+            r.context_view["conversation"][index]["output"]["billing"] = self.store.billing(p.owner, id, Some(quote), cap).await?;
+        }
         // Hydrate saved turn results through the same owner-scoped reader as
         // the current result, including freshly signed report download links.
         for (index, turn) in task.conversation.iter().enumerate() {
@@ -1238,6 +1254,26 @@ mod saved_analysis_retry_tests {
         assert!(saved_analysis_retry(&task, false));
         task.cancelled = true;
         assert!(!saved_analysis_retry(&task, true));
+    }
+}
+
+#[cfg(test)]
+mod purchase_turn_tests {
+    use super::*;
+
+    #[test]
+    fn only_a_saved_follow_up_points_the_bought_turn_at_its_own_quote() {
+        let quote = Uuid::new_v4();
+        let mut task = Task::default();
+        task.record_turn("Employer rating for Starbucks", None);
+        task.active_results.push(Uuid::new_v4());
+        task.archive_output(Some(json!({"quote_ref":quote,"max_total_atomic":"23000","steps":["Glassdoor rating"]})));
+        task.record_turn("Vertaal naar het Nederlands", None);
+        assert_eq!(purchase_turn(&task), None, "an ordinary continuation keeps the current quote");
+        task.saved_answer = true;
+        assert_eq!(purchase_turn(&task), Some((0, quote, 23000)));
+        task.conversation[0].output.as_mut().unwrap().proposal = Some(json!({"quote_ref":Uuid::new_v4(),"steps":[]}));
+        assert_eq!(purchase_turn(&task), None, "a saved answer's own zero-cost turn bought nothing");
     }
 }
 

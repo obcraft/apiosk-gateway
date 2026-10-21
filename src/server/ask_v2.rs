@@ -271,6 +271,54 @@ pub(super) async fn follow_up(
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+pub(super) struct ConversationRequest {
+    request_id: Uuid,
+    question: String,
+    /// The chat's purchases, most recent first.
+    task_refs: Vec<Uuid>,
+}
+
+/// A follow-up in an Ask chat that already shows an answer. Saved results
+/// answer it in place (no source runs, nothing charged), or Ask searches for
+/// sources as for any question, or asks one question back.
+pub(super) async fn conversation(
+    State(state): State<ServerState>, headers: HeaderMap, Json(request): Json<ConversationRequest>,
+) -> Response {
+    let person = match app_person(&state, &headers).await { Ok(person) => person, Err(response) => return response };
+    if request.question.trim().is_empty() || request.question.encode_utf16().count() > 16_000
+        || request.task_refs.is_empty() || request.task_refs.len() > 20 || request.task_refs.iter().any(Uuid::is_nil) {
+        return failure(StatusCode::BAD_REQUEST, "invalid_follow_up", "Enter a follow-up of up to 16,000 characters.");
+    }
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly. Your conversation is kept.");
+    };
+    if state.engine.parser.ask_v2().is_some_and(|client| !client.admit_reply(&person.owner.to_string())) {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "rate_limited", "Please wait a minute before asking another follow-up.");
+    }
+    let bearer = super::token(&headers).unwrap_or_default().to_owned();
+    match state.engine.ask_follow_up(&person, request.request_id, request.question.trim(), &request.task_refs).await {
+        Ok(crate::engine::AskFollowUp::SavedAnswer(tasks)) => {
+            for task in &tasks {
+                // Queued and saved before this point. A worker that cannot
+                // start here is continued by the App's next read of the task,
+                // through its saved-only analysis action (nothing is charged).
+                if let Err(error) = state.engine.start_worker(person.clone(), bearer.clone(), *task).await {
+                    tracing::warn!(error = %error, "saved Ask answer will resume on recovery");
+                }
+            }
+            Json(json!({"kind":"saved_answer","task_refs":tasks})).into_response()
+        }
+        Ok(crate::engine::AskFollowUp::Search) => Json(json!({"kind":"search"})).into_response(),
+        Ok(crate::engine::AskFollowUp::Clarification(message)) => Json(json!({"kind":"clarification","message":message})).into_response(),
+        Err(error) => {
+            tracing::warn!(error = %error, "Ask follow-up routing unavailable");
+            failure(StatusCode::SERVICE_UNAVAILABLE, "follow_up_unavailable", "The follow-up could not be routed. Your conversation is kept; try again.")
+        }
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(super) struct PrefillRequest {
     question: String,
     inputs: Vec<crate::ask_v2::prefill::Input>,
