@@ -36,6 +36,25 @@ from a stale queued response. Manual tests consume the approved scheduled run.
 
 ## Reviewed behavior
 
+A question with an explicit English or Dutch schedule (for example "iedere
+maandag ... mail me alleen nieuwe signalen") now prepares the recurring form
+inline below the Ask plan. It prefills weekdays, time when supplied, Gmail/Slack
+and change-only delivery. The user reviews the default time, run count and
+timezone. Source intake preserves the requested company information categories;
+schedule and delivery of those results are not additional retrieval requirements.
+No customer-list upload or private invoice balance is implied.
+
+The existing completed-receipt requirement remains: approve the first check and
+resolve ambiguous companies through the normal choice flow. That check is billed
+separately. The inline form retains edits while the check finishes, then prepares
+the exact recurring quote automatically without approving it. Before completion
+it labels the plan price and finite total as estimates; afterward it shows the
+current per-run price, total to reserve and delivery destination. A separate
+explicit schedule approval reserves the reviewed amount. Failed or partial
+checks cannot activate a schedule. Ordinary one-off requests retain **Make
+recurring**. These are locally tested UI and prompt changes, not evidence of
+live source coverage, a funded schedule or actual email delivery.
+
 After a completed purchased task, **Make recurring** recovers the original sources
 and receipts on the server. The review shows ordered sources, dependencies,
 fee-inclusive cap per run, schedule, funding mode, date rules, connected account,
