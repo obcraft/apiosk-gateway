@@ -1228,36 +1228,6 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     }
                 }
             }
-            // A request that names a source and supplies that source's typed
-            // identifier keeps its scope when the paraphrase is too thin for
-            // the floor ("look up X (KVK 12345678) in KVK"): offer the named
-            // source's relevant calls that this identifier can already run.
-            // A bare name never widens a named provider's scope.
-            if apiosk.is_empty() {
-                if let (Some(slugs), Some(subject)) = (restricted.as_ref(), capability.subject_id.as_ref()
-                    .and_then(|id| parsed.subjects.iter().find(|subject| &subject.id == id))) {
-                    let typed = |service: &Service| super::source_options::input_values(service, subject, catalog).keys()
-                        .any(|field| service.contract.requires.iter().any(|input| !input.optional && &input.fact_type == field)
-                            && catalog.vocabulary.get(field).is_some_and(|fact| fact.value_schema["pattern"].is_string()));
-                    let mut ready: Vec<_> = index.documents.iter().filter_map(|document| {
-                        let Target::Endpoint(position) = document.target else { return None; };
-                        let service = &catalog.services[position];
-                        let relevance = score(&wanted, document, &index);
-                        (slugs.contains(&service.api_slug) && !service.unverified && relevance > 0.0
-                            && !signal.adjustment(&document.coverage).demoted
-                            && super::source_options::missing(service, subject, catalog).is_empty()
-                            && typed(service))
-                            .then_some((relevance, service))
-                    }).collect();
-                    ready.sort_by(|a, b| b.0.total_cmp(&a.0).then(a.1.total().cmp(&b.1.total()))
-                        .then(a.1.endpoint_id.cmp(&b.1.endpoint_id))
-                        .then(a.1.contract.capability_slug.cmp(&b.1.contract.capability_slug)));
-                    let mut offered = BTreeSet::new();
-                    apiosk.extend(ready.into_iter()
-                        .filter(|(_, service)| offered.insert((service.endpoint_id, service.contract.capability_slug.clone())))
-                        .take(3).map(|(_, service)| endpoint(service)));
-                }
-            }
             let mut seen_endpoints: BTreeSet<_> = apiosk.iter().filter_map(|candidate| candidate.endpoint_id.clone()).collect();
             // Missing automation support must not erase registered matching
             // endpoints or displace executable choices. Keep both shortlists.
@@ -2550,40 +2520,6 @@ mod tests {
                 && candidate.price.is_none()
         );
         assert!(found[0].operations.is_empty());
-    }
-
-    #[test]
-    fn a_named_source_with_its_typed_identifier_survives_a_thin_paraphrase() {
-        let catalog = Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/homepage-starters/catalog.json")).unwrap());
-        let question = "KYB check: look up Mollie B.V. (KVK 30204462) in KVK and screen the company name with OpenSanctions, with sources.";
-        let parse = |identifiers: serde_json::Value| crate::capability_intake::normalize(&json!({"language":"en",
-            "subjects":[{"id":"s1","label":"Mollie B.V.","type":"company","identifiers":identifiers}],
-            "capabilities":[{"slug":"company.kvk.lookup","name":"Company KVK lookup","description":"Lookup company details in KVK",
-                "domain":"company","inputs":["kvk"],"outputs":["company_details"],"subject_id":"s1","source_hint":"kvk","confidence":0.9}],
-            "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
-        // The model's captured paraphrase: the named register plus its number.
-        {
-            let request = parse(json!({"kvk":"30204462"}));
-            let capability = &request.capabilities[0];
-            let subject = &request.subjects[0];
-            eprintln!("DBG subject {:?} hinted {:?}", subject, hinted_sources(capability, &catalog));
-            let index = index(&catalog);
-            let wanted = wanted(capability, &request);
-            for document in &index.documents {
-                let Target::Endpoint(position) = document.target else { continue };
-                let service = &catalog.services[position];
-                if service.api_slug != "kvk-dutch-business-register" { continue }
-                eprintln!("DBG {} score {} missing {:?} values {:?}", service.contract.capability_slug, score(&wanted, document, &index),
-                    super::super::source_options::missing(service, subject, &catalog), super::super::source_options::input_values(service, subject, &catalog));
-            }
-        }
-        let found = search(&parse(json!({"kvk":"30204462"})), &catalog);
-        assert!(!found[0].operations.is_empty(), "{:?}", found[0].apiosk);
-        assert!(found[0].apiosk.iter().filter(|candidate| candidate.availability == "supported")
-            .all(|candidate| candidate.source_slug.as_deref() == Some("kvk-dutch-business-register")));
-        // A bare name never widens the named source past the relevance floor.
-        let named_only = search(&parse(json!({})), &catalog);
-        assert!(named_only[0].operations.is_empty(), "{:?}", named_only[0].apiosk);
     }
 
     #[test]
