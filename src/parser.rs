@@ -1485,7 +1485,10 @@ impl Parser {
                 None => serde_json::from_str(raw)?,
             };
             reply.validate()?;
-            if let Some(intake) = intake { source_grounding::validate(&reply.output_bindings, intake, catalog)?; }
+            if let Some(intake) = intake {
+                source_grounding::canonicalize(&mut reply.output_bindings, reply.intent.as_ref(), intake, catalog);
+                source_grounding::validate(&reply.output_bindings, intake, catalog)?;
+            }
             if let Some(intake) = intake.filter(|intake| !reply.discover && explicit_request::data_request(intake)) {
                 if !explicit_request::genuine_decline(reply.decline_reason.as_deref(), &reply.message) {
                     anyhow::ensure!(declined.swap(true, Ordering::Relaxed), explicit_request::DECLINED);
@@ -1988,7 +1991,7 @@ mod tests {
         assert_eq!(completion_budget("multi-source-analysis"), (60, 65));
         assert_eq!(completion_budget("analysis"), (30, 65));
         assert_eq!(completion_budget("chat"), (20, 30));
-        assert_eq!(completion_budget("capability-plan"), (40, 65));
+        assert_eq!(completion_budget("capability-plan"), (20, 40));
         assert_eq!(completion_budget("capability-intake"), (10, 20));
         assert_eq!(completion_budget("capability-search"), (10, 20));
         assert_eq!(completion_budget("clarification"), (6, 12));

@@ -438,3 +438,41 @@ fn customized_sources_get_semantic_matching_and_keep_their_pinned_endpoints() {
     };
     verify_plan(&intent, &task, &expanded, &catalog, &bindings).unwrap();
 }
+
+#[test]
+fn fact_and_path_citations_resolve_to_one_admitted_field_id() {
+    let captured: Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/name-search-alternative.json"
+    )).unwrap();
+    let catalog = Catalog::build(serde_json::from_str(include_str!(
+        "../../../tests/fixtures/homepage-starters/catalog.json"
+    )).unwrap());
+    let parsed_request = serde_json::from_value(captured["parsed_request"].clone()).unwrap();
+    let matches = crate::ask_v2::search::search(&parsed_request, &catalog);
+    let intake = Intake { selected_capabilities:matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+        parsed_request, matches, apiosk_sources_searched:2, catalog_version:catalog.version.clone() };
+    let screening = candidates(&intake, 1, &catalog).into_iter()
+        .find(|service| service.contract.capability_slug == "company.sanctions-screen").unwrap();
+    let fields: Vec<Field> = inventory(screening, &catalog).into_values().collect();
+    let root = fields.iter().find(|field| field.path.is_empty()).expect("a structured screening result");
+    let nested = fields.iter().find(|field| !field.path.is_empty()).expect("a nested screening field");
+    let mut bindings = vec![Binding { requirement:1, output:intake.parsed_request.capabilities[1].outputs[0].clone(),
+        fields:vec![root.fact.clone(), format!("{}.{}", nested.fact, nested.path.trim_start_matches('/'))],
+        interpretation:"Summarize the returned screening matches.".into(), limitation:None }];
+    assert!(validate(&bindings, &intake, &catalog).is_err(), "readable names are not field ids");
+    canonicalize(&mut bindings, None, &intake, &catalog);
+    assert_eq!(bindings[0].fields, vec![root.id.clone(), nested.id.clone()]);
+    validate(&bindings, &intake, &catalog).unwrap();
+
+    // A name that no admitted field carries stays as written and is refused.
+    let mut invented = vec![Binding { fields:vec!["price_atomic".into()], ..bindings[0].clone() }];
+    canonicalize(&mut invented, None, &intake, &catalog);
+    assert_eq!(invented[0].fields, vec!["price_atomic".to_owned()]);
+    assert!(validate(&invented, &intake, &catalog).is_err());
+
+    // Beside a backed field, an unbacked citation is dropped, not trusted.
+    let mut mixed = vec![Binding { fields:vec![root.fact.clone(), "price_atomic".into()], ..bindings[0].clone() }];
+    canonicalize(&mut mixed, None, &intake, &catalog);
+    assert_eq!(mixed[0].fields, vec![root.id.clone()]);
+    validate(&mixed, &intake, &catalog).unwrap();
+}

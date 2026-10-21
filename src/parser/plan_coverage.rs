@@ -932,8 +932,8 @@ pub(crate) fn outputs_cover(
 }
 
 fn output_metadata(output:&str)->bool {
-    matches!(output,"source" | "source_reference" | "source_references" | "source_citations"
-        | "missing_fields" | "search_coverage" | "coverage_description")
+    matches!(output,"source" | "sources" | "source_reference" | "source_references" | "source_citations"
+        | "citations" | "missing_fields" | "search_coverage" | "coverage_description")
 }
 
 pub(super) fn output_covered(output:&str,service:&crate::catalog::Service,catalog:&Catalog,required_only:bool)->bool {

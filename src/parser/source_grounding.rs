@@ -405,6 +405,69 @@ pub(super) fn compile(intake:&Intake,catalog:&Catalog,selected:&[&Service])->Vec
     if validate(&bindings,intake,catalog).is_ok() {bindings} else {vec![]}
 }
 
+/// The model sees each field as {id, fact, path} and sometimes cites the fact
+/// or path instead of the opaque id. Resolve a citation only when it names
+/// exactly one field of the requirement's admitted endpoints, preferring the
+/// endpoints the reply's goals select. Unbacked citations are dropped beside
+/// a backed one; a binding without any backed field still fails validation.
+pub(super) fn canonicalize(
+    bindings: &mut [Binding],
+    intent: Option<&super::Intent>,
+    intake: &Intake,
+    catalog: &Catalog,
+) {
+    for binding in bindings.iter_mut() {
+        let services = candidates(intake, binding.requirement, catalog);
+        let selected = |service: &Service| intent.is_some_and(|intent| intent.goals.iter().any(|goal|
+            goal.capability == service.contract.capability_slug
+                && goal.constraints.get("source").and_then(Value::as_str).is_none_or(|source| source == service.api_slug)
+                && super::plan_coverage::endpoint_matches(goal.constraints.get("endpoint_id"), Some(&service.endpoint_id.to_string()))));
+        let fields: Vec<(bool, Field)> = services.iter()
+            .flat_map(|service| inventory(service, catalog).into_values().map(|field| (selected(service), field)))
+            .collect();
+        // One binding describes one endpoint's response: anchor shared field
+        // names to the admitted endpoint that backs most of its citations.
+        let anchor = services.iter().max_by_key(|service| (
+            binding.fields.iter().filter(|reference| fields.iter().any(|(_, field)|
+                field.service == service.id && (&field.id == *reference || cites(field, reference)))).count(),
+            selected(service),
+        )).map(|service| service.id);
+        let mut resolved = Vec::new();
+        for reference in &binding.fields {
+            let id = if fields.iter().any(|(_, field)| &field.id == reference) {
+                reference.clone()
+            } else {
+                let named = |scope: u8| fields.iter()
+                    .filter(|(chosen, field)| match scope { 0 => Some(field.service) == anchor, 1 => *chosen, _ => true }
+                        && cites(field, reference))
+                    .map(|(_, field)| field.id.as_str()).collect::<BTreeSet<_>>();
+                [named(0), named(1), named(2)].into_iter().find(|ids| !ids.is_empty())
+                    .filter(|ids| ids.len() == 1)
+                    .and_then(|ids| ids.into_iter().next().map(str::to_owned))
+                    .unwrap_or_else(|| reference.clone())
+            };
+            if !resolved.contains(&id) {
+                resolved.push(id);
+            }
+        }
+        // A citation of another requirement's endpoint proves nothing here;
+        // drop it only while a backed field still grounds this binding.
+        let backed: Vec<String> = resolved.iter()
+            .filter(|id| fields.iter().any(|(_, field)| &field.id == *id)).cloned().collect();
+        binding.fields = if backed.is_empty() { resolved } else { backed };
+    }
+}
+
+fn cites(field: &Field, reference: &str) -> bool {
+    let reference = reference.trim();
+    if field.path.is_empty() {
+        return reference == field.fact;
+    }
+    reference == format!("{}{}", field.fact, field.path)
+        || reference == format!("{}.{}", field.fact, field.path.trim_start_matches('/'))
+        || reference == field.path
+}
+
 pub(super) fn validate(
     bindings: &[Binding],
     intake: &Intake,
