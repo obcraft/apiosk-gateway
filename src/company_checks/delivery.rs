@@ -14,18 +14,18 @@ pub fn message(snapshot: &Value) -> Value {
         .cloned()
         .collect();
     let mut body = format!(
-        "Apiosk bedrijfsmonitor — {}\n",
+        "Apiosk company monitor — {}\n",
         snapshot["checked_at"].as_str().unwrap_or("")
     );
     for s in &signals {
         body.push_str(&format!(
-            "\n{} (KvK {})\n{}\n",
+            "\n{} (KVK {})\n{}\n",
             s["company_name"].as_str().unwrap_or(""),
             s["kvk_number"].as_str().unwrap_or(""),
             s["message"].as_str().unwrap_or("")
         ));
         if s["carried_forward"] == true {
-            body.push_str("Eerder waargenomen maar nog niet per e-mail bevestigd; zie de oorspronkelijke brondatum.\n");
+            body.push_str("Previously observed but not yet confirmed by email; see the original source date.\n");
         }
         if s["kind"] == "registry_change" {
             body.push_str(&format!(
@@ -36,18 +36,18 @@ pub fn message(snapshot: &Value) -> Value {
             ));
         }
         if let Some(url) = s["url"].as_str() {
-            body.push_str(&format!("Bron: {url}\n"));
+            body.push_str(&format!("Source: {url}\n"));
             if let Some(date) = s["published_at"].as_str() {
-                body.push_str(&format!("Publicatiedatum: {date}\n"));
+                body.push_str(&format!("Published: {date}\n"));
             }
         }
         for e in s["evidence"].as_array().into_iter().flatten() {
             body.push_str(&format!(
-                "Bron: {} · opgehaald {} · bewijs {} {}\n",
+                "Source: {} · retrieved {} · evidence {} {}\n",
                 e["source"]["name"]
                     .as_str()
                     .or_else(|| e["source"]["provider"].as_str())
-                    .unwrap_or("bron"),
+                    .unwrap_or("source"),
                 e["retrieved_at"].as_str().unwrap_or(""),
                 e["result_ref"].as_str().unwrap_or(""),
                 e["pointer"].as_str().unwrap_or("")
@@ -59,7 +59,7 @@ pub fn message(snapshot: &Value) -> Value {
                     u.scheme() == "https" && u.username().is_empty() && u.password().is_none()
                 })
             {
-                body.push_str(&format!("Broninformatie: {url}\n"));
+                body.push_str(&format!("Source information: {url}\n"));
             }
         }
     }
@@ -82,17 +82,17 @@ pub fn message(snapshot: &Value) -> Value {
         .filter(|c| c["status"] != "checked")
         .collect();
     if !gaps.is_empty() {
-        body.push_str("\nOnvolledige dekking:\n");
+        body.push_str("\nIncomplete coverage:\n");
     }
     for g in gaps {
         body.push_str(&format!(
-            "KvK {}: {}\n",
+            "KVK {}: {}\n",
             g["kvk_number"].as_str().unwrap_or(""),
             g["message"].as_str().unwrap_or("")
         ));
     }
-    body.push_str("\nMogelijke sanctieovereenkomsten en nieuwsvermeldingen bevestigen geen identiteit. Nieuw betekent niet eerder gemeld door deze monitor.\n");
-    json!({"subject":format!("Apiosk: {} nieuwe bedrijfssignalen",signals.len()),"body":body,
+    body.push_str("\nPotential sanctions matches and news mentions do not confirm identity. New means not previously reported by this monitor.\n");
+    json!({"subject":format!("Apiosk: {} new company signals",signals.len()),"body":body,
         "signal_ids":signals.iter().map(|s|&s["signal_id"]).collect::<Vec<_>>(),"recipient":"self"})
 }
 

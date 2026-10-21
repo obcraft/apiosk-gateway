@@ -19,6 +19,8 @@ pub(super) struct Start {
     check_id: Uuid,
     occurrence: String,
     companies: Option<Vec<company_checks::Company>>,
+    /// An uploaded client list, read here rather than retyped by the host.
+    companies_csv: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -83,7 +85,15 @@ pub(super) async fn start(
     if !valid_occurrence(&b.occurrence) {
         return validation("Use a stable occurrence key (letters, digits, dash, underscore, colon or dot; at most 128 characters).");
     }
-    if let Some(ref companies) = b.companies {
+    let input = match (b.companies, b.companies_csv) {
+        (Some(_), Some(_)) => return validation("Supply companies or companies_csv, not both."),
+        (list, None) => list,
+        (None, Some(csv)) => match company_checks::companies_from_csv(&csv) {
+            Ok(list) => Some(list),
+            Err(e) => return failure(StatusCode::BAD_REQUEST, "invalid_company_csv", &e.to_string()),
+        },
+    };
+    if let Some(ref companies) = input {
         if company_checks::validate_companies(companies).is_err() {
             return validation(
                 "Supply one to three unique companies with names and eight-digit KVK strings.",
@@ -102,7 +112,7 @@ pub(super) async fn start(
         Err(r) => return r,
     };
     let (companies, run) =
-        match store::begin(&s.engine, &p, b.check_id, &b.occurrence, b.companies).await {
+        match store::begin(&s.engine, &p, b.check_id, &b.occurrence, input).await {
             Ok(v) => v,
             Err(e) => return error(e),
         };
@@ -117,7 +127,7 @@ pub(super) async fn start(
         s.engine.view(&p, task, run.request_id, None).await
     } else {
         s.engine
-            .discover(
+            .discover_recipe(
                 &p,
                 DiscoverRequest {
                     request_id: run.request_id,
@@ -125,6 +135,7 @@ pub(super) async fn start(
                     state: None,
                     context_delta: Default::default(),
                 },
+                company_checks::recipe(&companies),
             )
             .await
     };

@@ -214,6 +214,18 @@ impl Engine {
         let result = self.discover_inner(p, &req, false).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
+    /// A code-built recipe (the host-scheduled company check) is priced as
+    /// built: no model parse, the same claim, resolver, quote and approval.
+    pub async fn discover_recipe(&self, p: &Principal, req: DiscoverRequest, intent: crate::parser::Intent) -> anyhow::Result<Response> {
+        if let Some(r) = self
+            .request_claim(p, req.request_id, &digest(&("discover-recipe", p.connection, &req, &intent)), "discover")
+            .await?
+        {
+            return Ok(r);
+        }
+        let result = self.intake(p, &req, false, Some((intent, None))).await;
+        Ok(self.complete(p, req.request_id, result).await)
+    }
 
     /// Recover an identical research request before applying snapshot expiry.
     /// This read never claims a new request or creates a task.

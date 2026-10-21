@@ -120,7 +120,7 @@ pub(super) fn project(
                         "registry_change",
                         field,
                         comparison,
-                        "Beschikbare bedrijfsgegevens in het KvK-register zijn gewijzigd.",
+                        "Available company details in the KVK register have changed.",
                         pointer,
                         before.cloned().unwrap_or(Value::Null),
                     );
@@ -169,7 +169,7 @@ pub(super) fn project(
                 let stable = json!({"id":id,"topics":canonical_strings(&row["properties"]["topics"]),"datasets":canonical_strings(&row["datasets"])});
                 let caption = row["caption"].as_str().unwrap_or(id);
                 let mut finding=signal(c,s,"potential_screening_match",id,stable,
-                    &format!("Mogelijke overeenkomst met sanctievermelding: {caption}. Handmatige identiteitscontrole vereist; dit is geen bevestigde sanctietreffer."),
+                    &format!("Potential match with a sanctions entry: {caption}. Manual identity review required; this is not a confirmed sanctions hit."),
                     &format!("/data/responses/{query}/results/{index}"),Value::Null);
                 let mut link = url::Url::parse("https://www.opensanctions.org/entities/").unwrap();
                 link.path_segments_mut().unwrap().push(id).push("");
@@ -183,11 +183,11 @@ pub(super) fn project(
         }
     }
     for (category, checked, gap) in [
-        ("registry",registry,"Geen volledig bedrijfsregisterresultaat met exact dit KvK-nummer beschikbaar."),
-        ("news",news,"Geen volledig ondersteund nieuwszoekresultaat beschikbaar. Geen nieuws gevonden betekent niet dat er geen ontwikkelingen zijn."),
-        ("sanctions",sanctions,"Geen volledige sanctiescreening voor deze bedrijfsidentiteit beschikbaar. Geen vrijgave op basis van ontbrekende resultaten.")
+        ("registry",registry,"No complete register result with exactly this KVK number is available."),
+        ("news",news,"No complete supported news search result is available. Finding no news does not mean there are no developments."),
+        ("sanctions",sanctions,"No complete sanctions screening is available for this company identity. Missing results are never a clearance.")
     ] {
-        coverage.push(json!({"kvk_number":c.kvk_number,"category":category,"status":if checked {"checked"} else {"unknown"},"message":if checked {"Binnen de vermelde bronscope gecontroleerd."} else {gap}}));
+        coverage.push(json!({"kvk_number":c.kvk_number,"category":category,"status":if checked {"checked"} else {"unknown"},"message":if checked {"Checked within the stated source scope."} else {gap}}));
     }
 }
 

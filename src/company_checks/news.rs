@@ -101,7 +101,7 @@ pub(super) fn project(
         signals.push(
             json!({"kvk_number":c.kvk_number,"company_name":c.name,"kind":"news_mention",
             "identity":url,"source":"news","comparison_value":url,"current":title,"previous":null,
-            "message":format!("Nieuw waargenomen nieuwsbericht: {title}"),"review_required":true,
+            "message":format!("Newly observed news article: {title}"),"review_required":true,
             "identity_match":"name_mention_not_verified","url":url,"published_at":date.to_rfc3339(),
             "evidence":[evidence(s,&pointer)]}),
         );

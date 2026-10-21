@@ -44,7 +44,7 @@ fn unreported_screening_is_retained_with_original_evidence_across_source_failure
     assert_eq!(b["source_count"], 0);
     assert_eq!(b["coverage"][2]["status"], "unknown");
     let mail = delivery::message(&b);
-    assert!(mail["body"].as_str().unwrap().contains("Eerder waargenomen"));
+    assert!(mail["body"].as_str().unwrap().contains("Previously observed"));
     let ids = BTreeSet::from([a["new_signals"][0]["signal_id"].as_str().unwrap().to_owned()]);
     assert_eq!(report(&[], Some(&b), &ids)["new_signal_count"], 0);
     let refreshed = report(&[s], Some(&b), &BTreeSet::new());
@@ -58,9 +58,94 @@ fn validates_company_identity_without_invoice_or_csv() {
     let mut c = customer();
     c.kvk_number = "1234567".into();
     assert!(validate_companies(&[c]).is_err());
-    assert!(!question(&[customer()]).contains("insolventie"));
-    assert!(question(&[customer()]).contains("nieuwsberichten"));
+    assert!(!question(&[customer()]).contains("insolvency"));
+    assert!(question(&[customer()]).contains("news articles"));
     assert!(question(&[customer()]).contains("01234567"));
+}
+#[test]
+fn every_company_gets_the_three_fixed_source_checks() {
+    let mut second = customer();
+    second.kvk_number = "76543210".into();
+    let i = recipe(&[customer(), second]);
+    assert_eq!(i.subjects.len(), 2);
+    assert_eq!(i.subjects[1].values["company_registry.kvknummer"], "76543210");
+    assert_eq!(i.subjects[0].values["web.query"], "Acme B.V.");
+    // Only Tavily's news topic returns the publication dates news.rs requires.
+    assert_eq!(i.subjects[0].values["web_tools.input.topic"], "news");
+    let checks: Vec<_> = i
+        .goals
+        .iter()
+        .map(|g| (g.subject, g.capability.as_str(), g.constraints["source"].as_str().unwrap()))
+        .collect();
+    for subject in 0..2 {
+        assert!(checks.contains(&(subject, "company.registry-profile", "kvk-dutch-business-register")));
+        assert!(checks.contains(&(subject, "company.sanctions-screen", "opensanctions")));
+        assert!(checks.contains(&(subject, "web.search", "tavily")));
+    }
+    assert_eq!(i.goals.len(), 6);
+}
+#[test]
+fn an_uploaded_client_csv_becomes_the_company_list() {
+    // Dutch Excel: BOM, semicolons, quoted name, extra column, dropped zero.
+    let csv = "\u{feff}Klant;KvK-nummer;Accountmanager\n\"Acme; Holding B.V.\";1234567;Sam\n\nBeta B.V.;76543210;\n";
+    assert_eq!(
+        companies_from_csv(csv).unwrap(),
+        vec![
+            Company { name: "Acme; Holding B.V.".into(), kvk_number: "01234567".into() },
+            Company { name: "Beta B.V.".into(), kvk_number: "76543210".into() },
+        ]
+    );
+    let comma = "name,kvk_number\nHeineken N.V.,33011433\nMollie B.V.,30204462\nCoolblue B.V.,24330087\n";
+    assert_eq!(companies_from_csv(comma).unwrap().len(), 3);
+}
+#[test]
+fn a_client_csv_is_refused_rather_than_guessed() {
+    let error = |csv: &str| companies_from_csv(csv).unwrap_err().to_string();
+    assert!(error("name,city\nAcme B.V.,Utrecht\n").contains("KVK number column"));
+    assert!(error("name,kvk\nAcme B.V.,12AB5678\n").contains("Row 2"));
+    assert!(error("name,kvk\nAcme B.V.,1234\n").contains("eight-digit"));
+    assert!(error("name,kvk\nA,11111111\nB,22222222\nC,33333333\nD,44444444\n").contains("at most three"));
+    assert!(error("name,kvk\nA,11111111\nB,11111111\n").contains("Duplicate"));
+    assert!(error("").contains("empty"));
+}
+#[test]
+fn a_missing_named_source_refuses_the_check_instead_of_planning_part_of_it() {
+    // The fixture catalog has KVK and OpenSanctions but no Tavily operation.
+    let catalog = crate::catalog::Catalog::build(
+        serde_json::from_str(include_str!("../../tests/fixtures/workflows/catalog.json")).unwrap(),
+    );
+    assert!(!catalog.services.iter().any(|s| s.api_slug == "tavily"));
+    assert!(!matches!(
+        crate::workflow_catalog::plan_preview(&catalog, &recipe(&[customer()])),
+        crate::resolver::Resolution::Plan(_)
+    ));
+}
+#[tokio::test]
+async fn a_recipe_request_fails_closed_when_the_store_is_unreachable() {
+    let http = reqwest::Client::new();
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .acquire_timeout(std::time::Duration::from_secs(2))
+        .connect_lazy("postgresql://postgres@127.0.0.1:1/unused")
+        .unwrap();
+    let store = crate::store::Store { pool: pool.clone() };
+    let engine = crate::engine::Engine {
+        store: store.clone(),
+        catalog: crate::catalog::CatalogCache::new(pool),
+        parser: crate::parser::Parser::new(http.clone(), "http://127.0.0.1:1/".into(), "unused".into(), "unused".into()),
+        signer: crate::state::Signer::new(vec![8; 32]).unwrap(),
+        app_url: "http://localhost".into(),
+        executor: crate::execution::Executor { store, http, supabase_url: "http://127.0.0.1:1".into(), enabled: false },
+    };
+    let p = crate::auth::Principal { owner: Uuid::new_v4(), connection: Some(Uuid::new_v4()), workspace: None };
+    let req = crate::protocol::DiscoverRequest {
+        request_id: Uuid::new_v4(),
+        question: question(&[customer()]),
+        state: None,
+        context_delta: Default::default(),
+    };
+    // Without the request store nothing is claimed, planned or bought: the
+    // error reaches the route, which answers it instead of a price.
+    assert!(engine.discover_recipe(&p, req, recipe(&[customer()])).await.is_err());
 }
 #[test]
 fn no_sources_is_unknown_not_clear_or_complete() {
@@ -356,7 +441,7 @@ fn email_contains_only_new_signals_with_evidence_and_coverage_gaps() {
     assert!(
         body.contains("01234567")
             && body.contains("opensanctions")
-            && body.contains("Onvolledige dekking")
+            && body.contains("Incomplete coverage")
     );
     assert!(!body.contains("Openstaand"));
     let reported = BTreeSet::from([first["signals"][0]["signal_id"]
