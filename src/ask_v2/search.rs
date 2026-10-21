@@ -2562,13 +2562,28 @@ mod tests {
                 "domain":"company","inputs":["kvk"],"outputs":["company_details"],"subject_id":"s1","source_hint":"kvk","confidence":0.9}],
             "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
         // The model's captured paraphrase: the named register plus its number.
+        {
+            let request = parse(json!({"kvk":"30204462"}));
+            let capability = &request.capabilities[0];
+            let subject = &request.subjects[0];
+            eprintln!("DBG subject {:?} hinted {:?}", subject, hinted_sources(capability, &catalog));
+            let index = index(&catalog);
+            let wanted = wanted(capability, &request);
+            for document in &index.documents {
+                let Target::Endpoint(position) = document.target else { continue };
+                let service = &catalog.services[position];
+                if service.api_slug != "kvk-dutch-business-register" { continue }
+                eprintln!("DBG {} score {} missing {:?} values {:?}", service.contract.capability_slug, score(&wanted, document, &index),
+                    super::super::source_options::missing(service, subject, &catalog), super::super::source_options::input_values(service, subject, &catalog));
+            }
+        }
         let found = search(&parse(json!({"kvk":"30204462"})), &catalog);
         assert!(!found[0].operations.is_empty(), "{:?}", found[0].apiosk);
         assert!(found[0].apiosk.iter().filter(|candidate| candidate.availability == "supported")
             .all(|candidate| candidate.source_slug.as_deref() == Some("kvk-dutch-business-register")));
         // A bare name never widens the named source past the relevance floor.
         let named_only = search(&parse(json!({})), &catalog);
-        assert!(named_only[0].operations.iter().all(|operation| found[0].operations.contains(operation) || !operation.is_empty()));
+        assert!(named_only[0].operations.is_empty(), "{:?}", named_only[0].apiosk);
     }
 
     #[test]
