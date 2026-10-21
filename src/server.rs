@@ -28,6 +28,7 @@ mod integrations;
 mod link_preview;
 mod news;
 mod recurring;
+mod company_checks;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -154,6 +155,11 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
         .route("/v2/recurring-orders", get(recurring::list))
+        .route("/v2/company-checks", post(company_checks::start))
+        .route("/v2/company-checks/:id", get(company_checks::read))
+        .route("/v2/company-checks/:id/collect", post(company_checks::collect))
+        .route("/v2/company-checks/:id/acknowledge", post(company_checks::acknowledge))
+        .route("/v2/company-checks/:id/email", post(company_checks::email))
         .route("/v2/recurring-orders/access", get(recurring::access))
         .route("/v2/recurring-orders/quote", post(recurring::quote))
         .route("/v2/recurring-orders/destinations", post(recurring::destinations))

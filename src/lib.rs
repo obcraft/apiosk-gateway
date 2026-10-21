@@ -71,6 +71,7 @@ pub mod readiness;
 pub mod replay;
 
 pub mod recurring;
+pub mod company_checks;
 
 #[cfg(test)]
 mod additional_examples_tests;

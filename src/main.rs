@@ -189,6 +189,7 @@ async fn main() -> anyhow::Result<()> {
         }
     });
     apiosk_gateway_v2::recurring::start(engine.clone());
+    apiosk_gateway_v2::company_checks::start(engine.clone());
     let app = router(
         ServerState {
             engine,
