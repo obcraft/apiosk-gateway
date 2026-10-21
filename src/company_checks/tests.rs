@@ -98,6 +98,62 @@ fn an_uploaded_client_csv_becomes_the_company_list() {
     let comma = "name,kvk_number\nHeineken N.V.,33011433\nMollie B.V.,30204462\nCoolblue B.V.,24330087\n";
     assert_eq!(companies_from_csv(comma).unwrap().len(), 3);
 }
+fn read(question: &str) -> Option<(Vec<(String, String)>, Vec<String>)> {
+    let intent = direct_intent(question)?;
+    let companies = intent
+        .subjects
+        .iter()
+        .map(|s| (s.label.clone(), s.values["company_registry.kvknummer"].as_str().unwrap().to_owned()))
+        .collect();
+    let sources = intent
+        .goals
+        .iter()
+        .filter(|g| g.subject == 0)
+        .map(|g| g.constraints["source"].as_str().unwrap().to_owned())
+        .collect();
+    Some((companies, sources))
+}
+fn demo() -> Vec<(String, String)> {
+    [("Heineken N.V.", "33011433"), ("Mollie B.V.", "30204462"), ("Coolblue B.V.", "24330087")]
+        .iter()
+        .map(|(n, k)| (n.to_string(), k.to_string()))
+        .collect()
+}
+#[test]
+fn a_chatbot_company_check_reads_the_client_list_without_a_model() {
+    let all = vec!["kvk-dutch-business-register".to_owned(), "opensanctions".into(), "tavily".into()];
+    for question in [
+        "Run the company check on this client list:\nname,kvk\nHeineken N.V.,33011433\nMollie B.V.,30204462\nCoolblue B.V.,24330087\nThanks.",
+        "Company check for my clients Heineken N.V. (KVK 33011433), Mollie B.V. (KVK 30204462) and Coolblue B.V. (KVK 24330087).",
+        "Use Apiosk to run the company check on this client list:\n- Heineken N.V. — KVK: 33011433\n- Mollie B.V. — KVK: 30204462\n- Coolblue B.V. — KVK: 24330087",
+        "Check Heineken N.V. (KvK-nummer 33011433), Mollie B.V. (kvk 30204462) en Coolblue B.V. (kvk 24330087) for sanctions and news.",
+        "Company check:\n| Company | KVK |\n|---|---|\n| Heineken N.V. | 33011433 |\n| Mollie B.V. | 30204462 |\n| Coolblue B.V. | 24330087 |",
+    ] {
+        assert_eq!(read(question), Some((demo(), all.clone())), "{question}");
+    }
+    // Only the requested checks; the KVK profile anchors the identity.
+    let (companies, sources) =
+        read("The current KVK registry profile and an OpenSanctions sanctions screening for Heineken N.V. (KVK 33011433).").unwrap();
+    assert_eq!(companies, demo()[..1]);
+    assert_eq!(sources, ["kvk-dutch-business-register", "opensanctions"]);
+    let intent = direct_intent("Sanctions screening and KVK profile for bol.com B.V. (KVK 1234567)").unwrap();
+    assert_eq!((intent.subjects[0].label.as_str(), &intent.subjects[0].values["company_registry.kvknummer"]), ("bol.com B.V.", &json!("01234567")));
+    assert!(!intent.subjects[0].values.contains_key("web.query"));
+}
+#[test]
+fn an_unclear_company_question_is_left_to_the_ordinary_interpretation() {
+    for question in [
+        // One check: an ordinary lookup.
+        "KVK profile for Heineken N.V. (KVK 33011433)",
+        // No KVK numbers, a number without a name, or more than three companies.
+        "Run the company check on Heineken, Mollie and Coolblue",
+        "Company check for KVK 33011433",
+        "Company check: A B.V. (KVK 11111111), B B.V. (KVK 22222222), C B.V. (KVK 33333333), D B.V. (KVK 44444444)",
+        "Company check: A B.V. (KVK 11111111) and A B.V. (KVK 11111111)",
+    ] {
+        assert!(direct_intent(question).is_none(), "{question}");
+    }
+}
 #[test]
 fn a_client_csv_is_refused_rather_than_guessed() {
     let error = |csv: &str| companies_from_csv(csv).unwrap_err().to_string();

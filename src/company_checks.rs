@@ -160,38 +160,184 @@ const CHECKS: [(&str, &str); 3] = [
 /// parse chooses its sources, identifiers or news filters. The ordinary
 /// resolver, quote, approval and execution still own every call and price.
 pub fn recipe(companies: &[Company]) -> crate::parser::Intent {
+    recipe_for(companies, &[0, 1, 2])
+}
+
+/// The recipe limited to the requested checks, as indexes into `CHECKS`.
+fn recipe_for(companies: &[Company], checks: &[usize]) -> crate::parser::Intent {
     use crate::parser::{Goal, Intent, Subject};
+    const REPORTS: [&str; 3] = [
+        "its KVK identity and available company details",
+        "OpenSanctions potential sanctions-list matches, never presented as confirmed identities",
+        "dated news developments with source links",
+    ];
+    let news = checks.contains(&2);
     let subjects = companies
         .iter()
-        .map(|c| Subject {
-            entity_ref: None,
-            label: c.name.clone(),
-            values: BTreeMap::from([
+        .map(|c| {
+            let mut values = BTreeMap::from([
                 ("company_registry.kvknummer".to_owned(), json!(c.kvk_number)),
                 ("company.search.country_code".to_owned(), json!("NL")),
+            ]);
+            if news {
                 // Tavily dates results only in its news topic; news.rs still
                 // applies the seven-day window to the saved results.
-                ("web.query".to_owned(), json!(c.name)),
-                ("web_tools.input.topic".to_owned(), json!("news")),
-                ("web.input.timerange".to_owned(), json!("week")),
-            ]),
+                values.insert("web.query".to_owned(), json!(c.name));
+                values.insert("web_tools.input.topic".to_owned(), json!("news"));
+                values.insert("web.input.timerange".to_owned(), json!("week"));
+            }
+            Subject { entity_ref: None, label: c.name.clone(), values }
         })
         .collect();
     let goals = (0..companies.len())
         .flat_map(|subject| {
-            CHECKS.iter().map(move |(source, capability)| Goal {
-                capability: (*capability).to_owned(),
+            checks.iter().map(move |&check| Goal {
+                capability: CHECKS[check].1.to_owned(),
                 subject,
-                constraints: BTreeMap::from([("source".to_owned(), json!(source))]),
+                constraints: BTreeMap::from([("source".to_owned(), json!(CHECKS[check].0))]),
             })
         })
         .collect();
+    let reports: Vec<_> = checks.iter().map(|&check| REPORTS[check]).collect();
     Intent {
         subjects,
         goals,
-        answer_operations: vec!["Report each company separately: its KVK identity and available company details; OpenSanctions potential sanctions-list matches, never presented as confirmed identities; and dated news developments with source links. A name match or news mention does not confirm identity. Use only saved evidence, say unknown for a missing check and name missing coverage. Return a concise result in the user's language.".into()],
+        answer_operations: vec![format!("Report each company separately: {}. A name match or news mention does not confirm identity. Use only saved evidence, say unknown for a missing check and name missing coverage. Return a concise result in the user's language.", reports.join("; "))],
         unresolved_references: vec![],
     }
+}
+
+/// Wording that asks for the whole company check.
+const CHECK_PHRASES: &[&str] = &[
+    "company check", "company-check", "companies check", "client check", "client list",
+    "customer list", "check my clients", "check these companies", "bedrijfscontrole",
+    "bedrijfscheck", "klantcontrole", "klantenlijst",
+];
+/// Wording that names one check, by index into `CHECKS`.
+const CHECK_WORDS: [&[&str]; 3] = [
+    &["registry", "register", "registration", "kvk profile", "kvk record", "company profile", "company details", "inschrijving", "uittreksel"],
+    &["sanction", "sanctie", "screening", "watchlist"],
+    &["news", "nieuws", "media", "tavily", "developments", "articles"],
+];
+
+/// A connected chatbot's company check, read without a model: one to three
+/// companies with their KVK numbers (a pasted client list, or "Name (KVK
+/// 12345678)"), and either the company check itself or at least two of its
+/// checks. The KVK profile anchors each identity, so it is always included.
+/// Anything less clear is left to the ordinary interpretation.
+pub fn direct_intent(question: &str) -> Option<crate::parser::Intent> {
+    let q = question.to_lowercase();
+    let mut checks: Vec<usize> = (0..CHECKS.len()).filter(|&i| CHECK_WORDS[i].iter().any(|w| q.contains(w))).collect();
+    if CHECK_PHRASES.iter().any(|p| q.contains(p)) {
+        checks = vec![0, 1, 2];
+    } else if checks.len() < 2 {
+        return None;
+    } else if checks[0] != 0 {
+        checks.insert(0, 0);
+    }
+    let companies = pasted_csv(question)
+        .or_else(|| named_kvk_numbers(question))
+        .filter(|companies| validate_companies(companies).is_ok())?;
+    Some(recipe_for(&companies, &checks))
+}
+
+/// A client list pasted as CSV: a header line with name and KVK columns, and
+/// the delimited lines that follow it.
+fn pasted_csv(question: &str) -> Option<Vec<Company>> {
+    let lines: Vec<&str> = question.lines().collect();
+    lines.iter().enumerate().find_map(|(i, header)| {
+        let delimiter = [';', '\t', ',']
+            .into_iter()
+            .filter(|d| header.contains(*d))
+            .max_by_key(|d| header.matches(*d).count())?;
+        let rows = lines[i + 1..].iter().take_while(|line| line.contains(delimiter));
+        let block: Vec<&str> = std::iter::once(*header).chain(rows.copied()).collect();
+        companies_from_csv(&block.join("\n")).ok()
+    })
+}
+
+/// Companies written in a sentence or list: each eight-digit number (or a
+/// shorter one right after a KVK label, padded as in a CSV) takes the name
+/// written just before it. A number without a readable name refuses the list.
+fn named_kvk_numbers(question: &str) -> Option<Vec<Company>> {
+    let lower = question.to_lowercase();
+    if !lower.contains("kvk") && !lower.contains("chamber of commerce") {
+        return None;
+    }
+    let bytes = question.as_bytes();
+    let (mut companies, mut from, mut i) = (Vec::new(), 0, 0);
+    while i < bytes.len() {
+        if !bytes[i].is_ascii_digit() {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i < bytes.len() && bytes[i].is_ascii_digit() {
+            i += 1;
+        }
+        let standalone = (start == 0 || !bytes[start - 1].is_ascii_alphanumeric())
+            && (i == bytes.len() || !bytes[i].is_ascii_alphanumeric());
+        let (before, labelled) = strip_label(&question[from..start]);
+        if !standalone || !(i - start == 8 || (labelled && (6..8).contains(&(i - start)))) {
+            continue;
+        }
+        companies.push(Company { name: company_name(before)?, kvk_number: format!("{:0>8}", &question[start..i]) });
+        from = i;
+    }
+    (!companies.is_empty()).then_some(companies)
+}
+
+/// The text without a trailing KVK label and its punctuation, and whether a
+/// label was removed.
+fn strip_label(mut text: &str) -> (&str, bool) {
+    const LABELS: &[&str] = &[
+        "chamber of commerce number", "chamber of commerce", "kvk-nummer", "kvknummer", "kvk nummer",
+        "kvk number", "kvk-nr.", "kvk-nr", "kvk nr.", "kvk nr", "kvk no.", "kvk no", "kvk",
+    ];
+    let mut labelled = false;
+    loop {
+        text = text.trim_end_matches(|c: char| c.is_whitespace() || "([{:,;#|=/-–—".contains(c));
+        let label = LABELS.iter().find(|l| {
+            text.len() >= l.len() && text.is_char_boundary(text.len() - l.len()) && text[text.len() - l.len()..].eq_ignore_ascii_case(l)
+        });
+        match label {
+            Some(l) => (text, labelled) = (&text[..text.len() - l.len()], true),
+            None => return (text, labelled),
+        }
+    }
+}
+
+/// The company name at the end of `text`: the capitalised words before the
+/// number, without list markers or the request around them.
+fn company_name(text: &str) -> Option<String> {
+    const PARTICLES: &[&str] = &["van", "de", "der", "den", "het", "von", "'t"];
+    const REQUEST: &[&str] = &[
+        "check", "run", "screen", "monitor", "please", "use", "apiosk", "company", "companies", "client",
+        "clients", "customer", "customers", "for", "the", "my", "our", "these", "this", "and", "controleer",
+        "bedrijf", "bedrijven", "klant", "klanten", "voor", "en",
+    ];
+    const LEGAL_FORMS: &[&str] = &["b.v.", "bv", "n.v.", "nv", "v.o.f.", "vof", "c.v.", "cv", "holding"];
+    let line = text.rsplit('\n').next().unwrap_or(text);
+    let words: Vec<&str> = line.split_whitespace().collect();
+    let name_like = |w: &str| {
+        let numbering = w.trim_end_matches(['.', ')']).bytes().all(|b| b.is_ascii_digit());
+        !numbering
+            && !w.contains(['(', ')', ',', ';', ':', '|'])
+            && w.chars().next().is_some_and(|c| c.is_uppercase() || c.is_ascii_digit() || c == '&')
+    };
+    let mut start = words.len();
+    while start > 0 && (name_like(words[start - 1]) || PARTICLES.contains(&words[start - 1])) {
+        start -= 1;
+    }
+    while start < words.len() && (PARTICLES.contains(&words[start]) || (words.len() - start > 1 && REQUEST.contains(&words[start].to_lowercase().as_str()))) {
+        start += 1;
+    }
+    // "bol.com B.V.": a bare legal form keeps the word before it.
+    if start > 0 && start < words.len() && words[start..].iter().all(|w| LEGAL_FORMS.contains(&w.to_lowercase().as_str())) {
+        start -= 1;
+    }
+    let name = words[start..].join(" ");
+    (!name.is_empty() && name.chars().any(char::is_alphabetic)).then_some(name)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

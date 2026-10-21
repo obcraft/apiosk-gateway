@@ -559,8 +559,12 @@ impl Engine {
         let mut chat_intent = None;
         // Invoice checks must not depend on the model recognising the wording.
         let invoice_fallback = if shortcuts { crate::supplier_check::fallback_intent(&req.question, &catalog) } else { None };
+        // A connected chatbot's company check (names with KVK numbers) is the
+        // fixed recipe, priced as built. The App's Ask flow is unchanged.
+        let company_check = (shortcuts && !app_chat).then(|| crate::company_checks::direct_intent(&req.question)).flatten();
+        let direct = direct || company_check.is_some();
         // A plain invoice check needs no interpretation: skip the model call.
-        let forced = forced.or_else(|| shortcuts.then(|| crate::supplier_check::direct_intent(&req.question, &catalog)).flatten());
+        let forced = forced.or(company_check).or_else(|| shortcuts.then(|| crate::supplier_check::direct_intent(&req.question, &catalog)).flatten());
         if app_chat && shortcuts && forced.is_none() && crate::supplier_check::needs_invoice_upload(&req.question, &catalog) {
             // Deterministic: ask for the invoice in the conversation, no model call.
             self.archive_conversation_output(p, id, req.request_id, &mut task).await?;
