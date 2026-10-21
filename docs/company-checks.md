@@ -37,7 +37,8 @@ read presentation reapplies the delivered-signal ledger to suppress old signals.
 The first KVK result is a baseline. Missing fields/results never erase a previous
 value. Supported arrays ignore ordering and link metadata. Unsent registry
 changes remain available while the same value is last observed. Undelivered news
-keeps its original evidence beyond the next search window, labelled historical;
+and potential screening matches keep their original evidence across missing
+later results, labelled historical;
 that evidence never counts as fresh coverage or a new source charge. Screening
 fingerprints ignore scores, retrieval times and ordering. News fingerprints use
 the canonical article URL across providers, stripping tracking parameters.

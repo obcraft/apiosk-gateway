@@ -142,8 +142,10 @@ pub fn snapshot(
     }
     // Preserve undelivered evidence across a failed/closed host session.
     // Registry changes remain relevant while that exact value is last observed;
-    // news retains its original publication/retrieval date, even after the next
-    // search window. Acknowledged findings are never carried forward.
+    // News and potential screening matches retain their original evidence even
+    // when a later source is unavailable. This is an unreported observation,
+    // not a claim that an old match is still present in the current source.
+    // Acknowledged findings are never carried forward.
     for pending in previous
         .and_then(|p| p["signals"].as_array())
         .into_iter()
@@ -160,7 +162,8 @@ pub fn snapshot(
             .is_some_and(|id| !reported.contains(id))
             && ((pending["kind"] == "registry_change"
                 && observations.get(&key) == Some(&pending["current"]))
-                || pending["kind"] == "news_mention")
+                || pending["kind"] == "news_mention"
+                || pending["kind"] == "potential_screening_match")
             && !signals.iter().any(|s| {
                 s["kind"] == pending["kind"]
                     && s["kvk_number"] == pending["kvk_number"]

@@ -32,6 +32,26 @@ fn screening() -> SavedSource {
     )
 }
 #[test]
+fn unreported_screening_is_retained_with_original_evidence_across_source_failure() {
+    let s = screening();
+    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let b = report(&[], Some(&a), &BTreeSet::new());
+    assert_eq!(b["new_signal_count"], 1);
+    assert_eq!(b["new_signals"][0]["signal_id"], a["new_signals"][0]["signal_id"]);
+    assert_eq!(b["new_signals"][0]["carried_forward"], true);
+    assert_eq!(b["new_signals"][0]["evidence"], a["new_signals"][0]["evidence"]);
+    assert_eq!(b["sources"][0]["historical"], true);
+    assert_eq!(b["source_count"], 0);
+    assert_eq!(b["coverage"][2]["status"], "unknown");
+    let mail = delivery::message(&b);
+    assert!(mail["body"].as_str().unwrap().contains("Eerder waargenomen"));
+    let ids = BTreeSet::from([a["new_signals"][0]["signal_id"].as_str().unwrap().to_owned()]);
+    assert_eq!(report(&[], Some(&b), &ids)["new_signal_count"], 0);
+    let refreshed = report(&[s], Some(&b), &BTreeSet::new());
+    assert_eq!(refreshed["new_signal_count"], 1);
+    assert_ne!(refreshed["new_signals"][0]["carried_forward"], true);
+}
+#[test]
 fn validates_company_identity_without_invoice_or_csv() {
     assert!(validate_companies(&[customer()]).is_ok());
     assert!(validate_companies(&[customer(), customer()]).is_err());

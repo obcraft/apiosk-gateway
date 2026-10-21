@@ -62,8 +62,11 @@ fn error(error: anyhow::Error) -> Response {
             "This check is not available for this account and connection.",
         );
     }
-    if error.downcast_ref::<sqlx::Error>().is_some() {
+    if let Some(database) = error.downcast_ref::<sqlx::Error>() {
         tracing::warn!(error=%error,"company check storage unavailable");
+        if database.as_database_error().is_some_and(|e| e.code().as_deref() == Some("42P01") && e.message().contains("company_check")) {
+            return failure(StatusCode::SERVICE_UNAVAILABLE,"company_check_storage_not_ready","Company-monitor storage is not installed in this Gateway database. Apply the company_check_snapshots migration and restart Gateway before testing. Recover the same identifiers; do not start another purchase.");
+        }
         return failure(StatusCode::SERVICE_UNAVAILABLE,"company_check_unavailable","The check could not be saved. Retry with the same check_id and occurrence; do not start another purchase.");
     }
     failure(StatusCode::CONFLICT,"company_check_conflict", "The check could not continue. Recover the current occurrence before starting another; company lists are immutable.")
