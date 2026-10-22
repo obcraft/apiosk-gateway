@@ -514,7 +514,8 @@ impl Engine {
                 }
             }
         } else if !app_chat && resuming && recovery.as_ref().zip(earlier_intake.as_ref())
-            .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version)) {
+            .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version)
+                && crate::parser::connected_planning::scope_feedback(intake, &catalog).is_none()) {
             // A connected caller can resume the exact unpaid question from
             // its validated discovery; never reuse a price or authorization.
             earlier_intake.clone()

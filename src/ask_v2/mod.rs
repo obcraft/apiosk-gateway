@@ -127,9 +127,60 @@ impl Client {
         literals: &str,
         known_slugs: &[String],
     ) -> Result<Interpretation> {
+        self.interpret_scoped(model_request, question, literals, known_slugs, None).await
+    }
+
+    /// Connected requests additionally check that a criterion named by the
+    /// interpretation is bound when an admitted source documents that input.
+    /// This uses the existing single correction, never an extra model loop.
+    pub(crate) async fn interpret_connected_with_context(
+        &self,
+        model_request: &str,
+        question: &str,
+        literals: &str,
+        known_slugs: &[String],
+        catalog: &crate::catalog::Catalog,
+    ) -> Result<Interpretation> {
+        self.interpret_scoped(model_request, question, literals, known_slugs, Some(catalog)).await
+    }
+
+    async fn interpret_scoped(
+        &self,
+        model_request: &str,
+        question: &str,
+        literals: &str,
+        known_slugs: &[String],
+        connected_catalog: Option<&crate::catalog::Catalog>,
+    ) -> Result<Interpretation> {
+        // A repair must bind the original criterion, even if the model drops
+        // that criterion from its new description instead of supplying it.
+        let mut required_scope = Vec::new();
+        let mut normalize = |output: &Output| -> Result<ParsedRequest> {
+            let mut parsed_request = capability_intake::normalize_with_context(&output.text, question, literals, &output.model)?;
+            if let Some(catalog) = connected_catalog {
+                let matches = search::search(&parsed_request, catalog);
+                let mut intake = capability_intake::Intake {
+                    selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+                    parsed_request: parsed_request.clone(), matches,
+                    catalog_version: catalog.version.clone(),
+                    apiosk_sources_searched: capability_intake::source_count(catalog),
+                };
+                if let Some(feedback) = crate::parser::connected_planning::scope_feedback_for(&required_scope, &intake, catalog) {
+                    return Err(anyhow!(feedback));
+                }
+                if let Some(feedback) = crate::parser::connected_planning::scope_feedback(&intake, catalog) {
+                    required_scope.extend(crate::parser::connected_planning::scope_requirements(&intake, catalog));
+                    return Err(anyhow!(feedback));
+                }
+                ensure!(crate::parser::connected_planning::preserve_scope(&required_scope, &mut intake, catalog),
+                    "corrected interpretation must retain the original collection scope");
+                parsed_request = intake.parsed_request;
+            }
+            Ok(parsed_request)
+        };
         tokio::time::timeout(self.deadline.saturating_mul(2), async {
             let (model, correction) = match self.parse_with(&self.model, model_request, known_slugs, None).await {
-                Ok(output) => match capability_intake::normalize_with_context(&output.text, question, literals, &output.model) {
+                Ok(output) => match normalize(&output) {
                     Ok(parsed_request) => return Ok(Interpretation { parsed_request, output, attempts: 1 }),
                     Err(error) => {
                         #[cfg(test)]
@@ -147,7 +198,7 @@ impl Client {
                 }
             };
             let output = self.parse_with(model, model_request, known_slugs, correction.as_deref()).await?;
-            match capability_intake::normalize_with_context(&output.text, question, literals, &output.model) {
+            match normalize(&output) {
                 Ok(parsed_request) => Ok(Interpretation { parsed_request, output, attempts: 2 }),
                 Err(error) => {
                     // Fixed validator classifications only; never model text.

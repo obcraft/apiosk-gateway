@@ -1541,11 +1541,16 @@ async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain()
     sqlx::query("INSERT INTO capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) VALUES($1,$2,'procurement.nl-public-contracts',1,'active',$3,$4,$5,NULL,'one',1,'{}','{}','{}',3600,$6,now(),'read','per_call')")
         .bind(Uuid::new_v4()).bind(endpoint).bind(&contract["requires"]).bind(&contract["input_map"])
         .bind(&contract["output_map"]).bind(&source["sample_payload"]).execute(&intake.pool).await.unwrap();
-    let question = "Zoek aanbestedingen voor de energiesector";
+    // This router fixture tests omitted sector scope. The full-catalog
+    // procurement regressions separately preserve and validate newest order.
+    let question = "Via Apiosk: Zoek aanbestedingen in de energiesector.";
     let parsed = json!({"language":"nl","subjects":[{"id":"s1","label":"energiesector","type":"sector","identifiers":{"name":"energiesector"}}],
         "capabilities":[{"slug":"general.search","name":"Search","description":"Search for tenders in the energy sector.","domain":"general","inputs":["sector"],"outputs":["tenders"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
         "deliverable":{"format":"chat","operations":["list"]}});
-    intake.model.ask_v2_replies.lock().unwrap().push_back(parsed.clone());
+    let omitted = json!({"language":"nl","subjects":[{"id":"s1","label":"aanbestedingen","type":"tender","identifiers":{}}],
+        "capabilities":[{"slug":"general.tender.search","name":"Tender search","description":"Search for tenders in the energy sector","domain":"general","inputs":[],"outputs":["tenders"],"subject_id":"s1","source_hint":null,"confidence":0.9}],
+        "deliverable":{"format":"chat","operations":[]}});
+    intake.model.ask_v2_replies.lock().unwrap().extend([omitted.clone(), parsed.clone()]);
     let before = task_count(&intake, &person).await;
     let (status, found) = intake.send(&person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
     assert_eq!(status, StatusCode::OK, "{found}");
@@ -1560,7 +1565,16 @@ async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain()
     assert_eq!(found["parsed_request"]["capabilities"][0]["outputs"], json!(["tenders"]));
     assert_eq!(found["parsed_request"]["capabilities"][0]["domain"], "general");
     assert_eq!(task_count(&intake, &person).await, before, "free discovery creates no task");
-    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1);
+    assert_eq!(found["attempts"], 2, "an omitted documented criterion gets exactly one correction");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 2);
+    {
+        let requests = intake.model.ask_v2_requests.lock().unwrap();
+        let correction = "Preserve these source-supported input criteria";
+        assert!(!requests[0]["messages"][0]["content"].as_str().unwrap().contains(correction));
+        let feedback = requests[1]["messages"][0]["content"].as_str().unwrap();
+        assert!(feedback.contains(correction));
+        assert!(feedback.contains("sector"));
+    }
     assert!(intake.model.chats().is_empty(), "discovery never invokes the planner");
     assert!(intake.edge.calls.lock().unwrap().is_empty());
     let app_person = Person::new();
@@ -1570,6 +1584,11 @@ async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain()
     assert_eq!(status, StatusCode::OK, "{app_search}");
     assert!(!app_search["matches"].as_array().unwrap().iter().flat_map(|found|found["apiosk"].as_array().unwrap())
         .any(|candidate|candidate["endpoint_id"]==endpoint.to_string()), "the frozen App search is unchanged");
+    intake.model.ask_v2_replies.lock().unwrap().push_back(omitted.clone());
+    let (status, app_parse) = intake.send(&app_person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::OK, "{app_parse}");
+    assert_eq!(app_parse["attempts"], 1, "the frozen App interpretation keeps its original validation policy");
+    assert_eq!(app_parse["parsed_request"]["capabilities"][0]["inputs"], json!([]));
 
     let mut scoped_parse = parsed.clone();
     scoped_parse["capabilities"][0]["domain"] = json!("procurement");
@@ -1585,18 +1604,70 @@ async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain()
     assert_eq!(scoped["parsed_request"]["capabilities"][0]["domain"], "procurement");
     assert_eq!(task_count(&intake, &person).await, before);
 
-    intake.model.ask_v2_replies.lock().unwrap().push_back(parsed);
+    let before_quote_parse = intake.model.ask_v2_requests.lock().unwrap().len();
+    intake.model.ask_v2_replies.lock().unwrap().extend([omitted.clone(), parsed.clone()]);
     let (status, quote) = intake.send(&person.bearer, "/v2/discover", Some(json!({
         "request_id":Uuid::new_v4(),"question":question,"state":null
     }))).await;
     assert_eq!(status, StatusCode::OK, "{quote}");
     assert_eq!(quote["status"], "ready", "{quote}");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), before_quote_parse + 2);
     assert_eq!(quote["proposal"]["steps"], json!(["procurement.nl-public-contracts"]));
     let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
     let saved: Value = sqlx::query_scalar("SELECT document->'intent' FROM tasks WHERE id=$1")
         .bind(task).fetch_one(&intake.pool).await.unwrap();
     assert_eq!(saved["subjects"][0]["values"]["company_intel.input.search"], "energiesector", "the supplied sector must survive discovery and pricing");
     assert_no_purchase(&intake, &person, task).await;
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+
+    let delta = json!({"explicit_values":[],"requested_focus_refs":[]});
+    intake.model.ask_v2_replies.lock().unwrap().extend([omitted.clone(), omitted.clone()]);
+    let before_rejection = intake.model.ask_v2_requests.lock().unwrap().len();
+    let (status, rejected) = intake.send(&person.bearer, "/v2/discover", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{rejected}");
+    let rejected_task = paused_task(&person, &rejected, "parsing", question, &delta);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), before_rejection + 2);
+    assert_no_purchase(&intake, &person, rejected_task).await;
+
+    let mut erased = omitted.clone();
+    erased["capabilities"][0]["description"] = json!("Search for tenders");
+    intake.model.ask_v2_replies.lock().unwrap().extend([omitted.clone(), erased]);
+    let before_erasure = intake.model.ask_v2_requests.lock().unwrap().len();
+    let (status, erasure) = intake.send(&person.bearer, "/v2/discover", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{erasure}");
+    let erased_task = paused_task(&person, &erasure, "parsing", question, &delta);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), before_erasure + 2,
+        "removing a criterion from the correction description cannot bypass its original requirement");
+    assert_no_purchase(&intake, &person, erased_task).await;
+
+    // A pre-upgrade paused task can already contain the incomplete intake.
+    // Even when its catalog and timestamp are fresh, retry must re-interpret it.
+    let catalog = intake.engine.catalog.get().await.unwrap();
+    let old_parse = apiosk_gateway_v2::capability_intake::normalize(&omitted.to_string(), question, "fixture").unwrap();
+    let matches = apiosk_gateway_v2::ask_v2::search::search(&old_parse, &catalog);
+    let old_intake = apiosk_gateway_v2::capability_intake::Intake {
+        parsed_request: old_parse, selected_capabilities: matches.iter().flat_map(|found|found.operations.iter().cloned()).collect(),
+        matches, catalog_version:catalog.version.clone(), apiosk_sources_searched:2,
+    };
+    sqlx::query("UPDATE tasks SET document=jsonb_set(jsonb_set(document,'{capability_intake}',$2),'{intake_recovery,stage}','\"planning\"'::jsonb) WHERE id=$1")
+        .bind(rejected_task).bind(serde_json::to_value(old_intake).unwrap()).execute(&intake.pool).await.unwrap();
+    intake.model.ask_v2_replies.lock().unwrap().push_back(parsed);
+    let before_retry = intake.model.ask_v2_requests.lock().unwrap().len();
+    let (status, retried) = intake.send(&person.bearer, "/v2/discover", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"state":rejected["state"],"context_delta":delta
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{retried}");
+    assert_eq!(retried["status"], "ready", "{retried}");
+    assert_eq!(retried["state"]["state_ref"], json!(rejected_task));
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), before_retry + 1);
+    let retried_intent: Value = sqlx::query_scalar("SELECT document->'intent' FROM tasks WHERE id=$1")
+        .bind(rejected_task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(retried_intent["subjects"][0]["values"]["company_intel.input.search"], "energiesector");
+    assert_no_purchase(&intake, &person, rejected_task).await;
     assert!(intake.edge.calls.lock().unwrap().is_empty());
 }
 

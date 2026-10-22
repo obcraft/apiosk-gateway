@@ -17,7 +17,7 @@ fn collection_alias(schema: &Value, output: &str) -> bool {
         }))
 }
 
-fn proves(service: &Service, catalog: &Catalog, outputs: &[String]) -> bool {
+pub(super) fn proves(service: &Service, catalog: &Catalog, outputs: &[String]) -> bool {
     !service.unverified && service.contract.output_map.produces.keys().any(|fact|
         catalog.vocabulary.get(fact).is_some_and(|definition| outputs.iter().any(|output|
             !matches!(output.as_str(), "data" | "results" | "records" | "items" | "content" | "entries")

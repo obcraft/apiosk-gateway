@@ -143,6 +143,154 @@ fn captured_generic_domain_recovers_a_priced_plan_with_its_typed_sector_literal(
 }
 
 #[test]
+fn cached_generic_intake_is_recovered_during_compile_without_rewriting_original_evidence() {
+    let (catalog, mut intake) = fixture("tenders");
+    intake.parsed_request = serde_json::from_str(include_str!("fixtures/connected-procurement/generic-production-intake.json")).unwrap();
+    intake.matches = ask_v2::search::search(&intake.parsed_request, &catalog);
+    intake.selected_capabilities.clear();
+    assert!(intake.matches.iter().all(|found| found.operations.is_empty() && found.apiosk.is_empty()));
+    let original = serde_json::to_value(&intake).unwrap();
+
+    // A recent cached intake bypasses fresh parsing/discovery. The connected
+    // compiler must recover its empty native match without a caller refresh.
+    let prepared = connected_planning::compile(QUESTION, &Task::default(), &catalog, &intake)
+        .expect("cached generic intake must recover a quoted source call");
+    assert_eq!(serde_json::to_value(&prepared.coverage.original_intake).unwrap(), original);
+    assert_eq!(serde_json::to_value(&intake).unwrap(), original);
+    assert!(prepared.coverage.gaps.is_empty());
+    assert!(prepared.coverage.notices().iter().any(|notice| notice.contains("No publication window was supplied")));
+
+    let mut task = Task { capability_intake:Some(prepared.intake), ..Task::default() };
+    task.record_turn(QUESTION, None);
+    let mut intent = prepared.reply.intent.unwrap();
+    bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("expected priced plan") };
+    plan.validate_independent_inputs(&task, &catalog.vocabulary).unwrap();
+    assert_eq!(plan.steps.len(), 1);
+    let step = &plan.steps[0];
+    assert_eq!(step.service.contract.capability_slug, "procurement.nl-public-contracts");
+    assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap(),
+        json!({"page":0,"size":20,"sort":"publicatieDatum,desc","search":"energiesector"}));
+    assert_eq!(plan.cap_atomic, 54_348);
+}
+
+#[test]
+fn captured_omitted_criterion_cannot_be_quoted_unfiltered_and_repaired_literal_is_preserved() {
+    let (catalog, mut intake) = fixture("tenders");
+    intake.parsed_request = serde_json::from_str(include_str!("fixtures/connected-procurement/omitted-production-intake.json")).unwrap();
+    intake.matches = ask_v2::search::search(&intake.parsed_request, &catalog);
+    intake.selected_capabilities.clear();
+    let original = serde_json::to_value(&intake).unwrap();
+    let feedback = connected_planning::scope_feedback(&intake, &catalog).expect("source-declared criterion was lost");
+    assert!(feedback.contains("sector"));
+    assert!(!feedback.contains("energy"), "the detector must not invent a translated input value");
+    assert!(connected_planning::compile(QUESTION, &Task::default(), &catalog, &intake).is_none());
+    assert_eq!(serde_json::to_value(&intake).unwrap(), original);
+    let requirements = connected_planning::scope_requirements(&intake, &catalog);
+    assert_eq!(requirements.len(), 1);
+    assert!(requirements[0].input_facts.contains("company_intel.input.search"));
+    let mut erased = intake.clone();
+    erased.parsed_request.capabilities[0].description = "Search for tenders".into();
+    assert!(connected_planning::scope_feedback(&erased, &catalog).is_none());
+    assert!(connected_planning::scope_feedback_for(&requirements, &erased, &catalog).is_some(), "removing the criterion's description cannot remove its requirement");
+    assert!(!connected_planning::preserve_scope(&requirements, &mut erased, &catalog));
+
+    intake.parsed_request.capabilities[0].inputs.push("sector".into());
+    intake.parsed_request.capabilities[0].subject_id = Some("corrected-subject".into());
+    intake.parsed_request.capabilities[0].description = "Search for tenders using the supplied criterion".into();
+    intake.parsed_request.subjects[0].id = "corrected-subject".into();
+    intake.parsed_request.subjects[0].label = "energiesector".into();
+    intake.parsed_request.subjects[0].kind = "sector".into();
+    intake.parsed_request.subjects[0].identifiers.insert("sector".into(), "energiesector".into());
+    assert!(connected_planning::scope_feedback(&intake, &catalog).is_none());
+    assert!(connected_planning::scope_feedback_for(&requirements, &intake, &catalog).is_none());
+    let mut dropped_collection = intake.clone();
+    dropped_collection.parsed_request.capabilities[0].outputs = vec!["suppliers".into()];
+    assert!(connected_planning::scope_feedback_for(&requirements, &dropped_collection, &catalog).is_some());
+    assert!(connected_planning::preserve_scope(&requirements, &mut intake, &catalog));
+    assert!(intake.parsed_request.capabilities[0].description.contains("using the supplied criterion"));
+    assert!(intake.parsed_request.capabilities[0].description.contains("new tenders"));
+    let prepared = connected_planning::compile(QUESTION, &Task::default(), &catalog, &intake).expect("corrected literal must produce the filtered quote");
+    assert!(prepared.coverage.notices().iter().any(|notice| notice.contains("No publication window was supplied")));
+    let mut task = Task { capability_intake:Some(prepared.intake), ..Task::default() };
+    task.record_turn(QUESTION, None);
+    let mut intent = prepared.reply.intent.unwrap();
+    bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("expected priced plan") };
+    plan.validate_independent_inputs(&task, &catalog.vocabulary).unwrap();
+    assert_eq!(plan.steps.len(), 1);
+    let step = &plan.steps[0];
+    assert_eq!(step.service.contract.capability_slug, "procurement.nl-public-contracts");
+    assert_eq!(step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap(),
+        json!({"page":0,"size":20,"sort":"publicatieDatum,desc","search":"energiesector"}));
+    assert_eq!(plan.cap_atomic, 54_348);
+}
+
+#[test]
+fn output_fields_and_generic_search_words_are_not_invented_input_criteria() {
+    for (description, output) in [
+        ("Search for new tenders with sector in each result", Some("sector")),
+        ("Browse tenders and return company sector information", None),
+        ("Search for tenders by query keyword or name", None),
+        ("Browse new tenders", None),
+    ] {
+        let (catalog, mut intake) = fixture("tenders");
+        intake.parsed_request = serde_json::from_str(include_str!("fixtures/connected-procurement/omitted-production-intake.json")).unwrap();
+        intake.parsed_request.capabilities[0].description = description.into();
+        if let Some(output) = output { intake.parsed_request.capabilities[0].outputs.push(output.into()); }
+        intake.matches = ask_v2::search::search(&intake.parsed_request, &catalog);
+        assert!(connected_planning::scope_feedback(&intake, &catalog).is_none(), "{description}");
+    }
+}
+
+#[test]
+fn one_subjects_bound_sector_cannot_repair_or_relabel_another_collection_request() {
+    let (catalog, mut intake) = fixture("tenders");
+    intake.parsed_request = serde_json::from_str(include_str!("fixtures/connected-procurement/omitted-production-intake.json")).unwrap();
+    let question = "Find new tenders in the energy sector and in the healthcare sector.";
+    intake.parsed_request.meta.text_sha256 = hex::encode(Sha256::digest(question.as_bytes()));
+    let mut second = intake.parsed_request.capabilities[0].clone();
+    second.slug = "general.healthcare.search".into();
+    second.description = "Search for new tenders in the healthcare sector".into();
+    second.subject_id = Some("healthcare-subject".into());
+    second.inputs = vec!["sector".into()];
+    intake.parsed_request.capabilities.push(second);
+    let mut subject = intake.parsed_request.subjects[0].clone();
+    subject.id = "healthcare-subject".into();
+    subject.label = "healthcare".into();
+    subject.kind = "sector".into();
+    subject.identifiers.insert("sector".into(), "healthcare".into());
+    intake.parsed_request.subjects.push(subject);
+    intake.matches = ask_v2::search::search(&intake.parsed_request, &catalog);
+    let requirements = connected_planning::scope_requirements(&intake, &catalog);
+    assert_eq!(requirements.len(), 1);
+
+    intake.parsed_request.capabilities[0].description = "Search tenders".into();
+    assert!(connected_planning::scope_feedback(&intake, &catalog).is_none());
+    assert!(connected_planning::scope_feedback_for(&requirements, &intake, &catalog).is_some());
+    let before = serde_json::to_value(&intake).unwrap();
+    assert!(!connected_planning::preserve_scope(&requirements, &mut intake, &catalog));
+    assert_eq!(serde_json::to_value(&intake).unwrap(), before);
+
+    let mut only_other = intake.clone();
+    only_other.parsed_request.capabilities.remove(0);
+    only_other.matches = ask_v2::search::search(&only_other.parsed_request, &catalog);
+    assert!(connected_planning::scope_feedback_for(&requirements, &only_other, &catalog).is_some());
+    assert!(!connected_planning::preserve_scope(&requirements, &mut only_other, &catalog));
+
+    intake.parsed_request.capabilities[0].inputs = vec!["sector".into()];
+    intake.parsed_request.subjects[0].identifiers.insert("sector".into(), "energy".into());
+    assert!(connected_planning::scope_feedback_for(&requirements, &intake, &catalog).is_none());
+    let other_description = intake.parsed_request.capabilities[1].description.clone();
+    assert!(connected_planning::preserve_scope(&requirements, &mut intake, &catalog));
+    assert!(intake.parsed_request.capabilities[0].description.contains("energy sector"));
+    assert_eq!(intake.parsed_request.capabilities[1].description, other_description);
+    let mut another_request = intake.clone();
+    another_request.parsed_request.meta.text_sha256 = "a different request".into();
+    assert!(connected_planning::scope_feedback_for(&requirements, &another_request, &catalog).is_some());
+}
+
+#[test]
 fn generic_discovery_keeps_source_and_country_restrictions_and_requires_schema_evidence() {
     for (source, country, strip_alias, output) in [
         (Some("different-provider"), None, false, "tenders"),

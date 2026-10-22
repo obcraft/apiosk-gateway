@@ -8,6 +8,8 @@ use std::collections::BTreeSet;
 mod collections;
 mod discovery;
 pub use discovery::{input_context, refresh_discovery};
+mod scope;
+pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requirements, ScopeRequirement};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gap {
@@ -63,8 +65,13 @@ fn metadata(output: &str) -> bool {
 /// when every remaining field and supplied filter passes the normal compiler.
 /// Original requirements remain saved, returned and disclosed before approval.
 pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake) -> Option<Prepared> {
+    if scope_feedback(original, catalog).is_some() { return None; }
     let original_intake = original.clone();
-    let mut input_view = input_context(original, catalog);
+    // An exact paused retry can reuse validated intake without parsing again.
+    // Recover its empty matches too, while retaining the saved request evidence.
+    let mut discovery_view = original.clone();
+    refresh_discovery(&mut discovery_view, catalog);
+    let mut input_view = input_context(&discovery_view, catalog);
     let mut limitations = collections::constrain_recency(question, &mut input_view, catalog)?;
     let recency_limited = !limitations.is_empty();
     let original = &input_view;

@@ -1299,12 +1299,12 @@ impl Parser {
     /// does: the Ask v2 capability parse, then the deterministic source search.
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
-        let mut intake = self.ask_intake_selected(question, None, task, catalog, earlier).await?;
+        let mut intake = self.ask_intake_selected(question, None, task, catalog, earlier, true).await?;
         connected_planning::refresh_discovery(&mut intake, catalog);
         Ok(self.complete_origin_search(intake, catalog).await)
     }
 
-    async fn ask_intake_selected(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
+    async fn ask_intake_selected(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>, connected: bool) -> anyhow::Result<crate::capability_intake::Intake> {
         use crate::capability_intake as intake;
         let parsed = {
             let client = self.ask_v2.as_ref().ok_or(ModelFailure::Unavailable)?;
@@ -1332,8 +1332,11 @@ impl Parser {
             };
             // Use the same reviewed interpretation as the App. Schema-valid
             // output alone does not prove that every requested clause survived.
-            client.interpret_with_context(&asked, question, &literals, &known)
-                .await.map_err(unavailable)?.parsed_request
+            if connected {
+                client.interpret_connected_with_context(&asked, question, &literals, &known, catalog).await
+            } else {
+                client.interpret_with_context(&asked, question, &literals, &known).await
+            }.map_err(unavailable)?.parsed_request
         };
         let mut matches = crate::ask_v2::search::search(&parsed, catalog);
         let mut selected_capabilities: std::collections::BTreeSet<String> = matches.iter().flat_map(|m| m.operations.iter().cloned()).collect();
@@ -1359,7 +1362,7 @@ impl Parser {
 
     /// Ask must finish capability extraction before any source search starts.
     pub async fn prepare_ask(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
-        let intake=self.ask_intake_selected(question,selection,task,catalog,task.capability_intake.as_ref()).await?;
+        let intake=self.ask_intake_selected(question,selection,task,catalog,task.capability_intake.as_ref(),false).await?;
         Ok(self.complete_origin_search(intake, catalog).await)
     }
 

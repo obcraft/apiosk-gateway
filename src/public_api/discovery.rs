@@ -32,7 +32,12 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
     let started=std::time::Instant::now();
     // One model request reads the question; both origin searches are then
     // deterministic and run concurrently.
-    let interpretation = client.interpret_with_context(question, question, question, &[]).await.map_err(|e| unavailable("Ask interpretation", &e))?;
+    let interpretation = if ctx.principal.connection.is_some() {
+        let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("Ask catalog", &e))?;
+        client.interpret_connected_with_context(question, question, question, &[], &catalog).await
+    } else {
+        client.interpret_with_context(question, question, question, &[]).await
+    }.map_err(|e| unavailable("Ask interpretation", &e))?;
     let parsed = &interpretation.parsed_request;
     let (apiosk, coinbase) = tokio::join!(
         async {
