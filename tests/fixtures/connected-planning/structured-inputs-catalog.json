@@ -1,0 +1,914 @@
+{
+  "services": [
+    {
+      "api_slug": "tavily",
+      "contract": {
+        "capability_slug": "web.search",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "web.input.enddate": {
+            "in": "body",
+            "name": "end_date"
+          },
+          "web.input.excludedomains": {
+            "in": "body",
+            "name": "exclude_domains"
+          },
+          "web.input.includedomains": {
+            "in": "body",
+            "name": "include_domains"
+          },
+          "web.input.startdate": {
+            "in": "body",
+            "name": "start_date"
+          },
+          "web.input.timerange": {
+            "in": "body",
+            "name": "time_range"
+          },
+          "web.query": {
+            "in": "body",
+            "name": "query"
+          },
+          "web_tools.input.topic": {
+            "in": "body",
+            "name": "topic"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "web.content": {
+              "path": "$.results[*].content"
+            },
+            "web.query": {
+              "path": "$.query"
+            },
+            "web.responsetime": {
+              "path": "$.response_time"
+            },
+            "web.title": {
+              "path": "$.results[*].title"
+            },
+            "web.url": {
+              "path": "$.results[*].url"
+            },
+            "web_tools.content": {
+              "path": "$.results[*].content"
+            },
+            "web_tools.query": {
+              "path": "$.query"
+            },
+            "web_tools.title": {
+              "path": "$.results[*].title"
+            },
+            "web_tools.url": {
+              "path": "$.results[*].url"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "web.query",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web_tools.input.topic",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.enddate",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.startdate",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.timerange",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.excludedomains",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.includedomains",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 2
+      },
+      "description": "Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer.",
+      "endpoint_id": "22144f16-e658-49a7-94f8-2dc6edbf7e88",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "877aa9e7-cbe0-4014-ae5f-ca5d0ca72e5b",
+      "jurisdiction": null,
+      "list_atomic": 10000,
+      "listing_type": "federated",
+      "method": "POST",
+      "name": "Tavily",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/search",
+      "preconditions": {},
+      "sample_payload": {
+        "answer": null,
+        "images": [],
+        "query": "what is x402?",
+        "request_id": "8146b0d8-db42-42a7-8fb9-3796fce6853e",
+        "response_time": 0.7,
+        "results": [
+          {
+            "content": "x402 is an open payment protocol that revives the HTTP 402 status code so AI agents can pay per request in stablecoins, with no API keys or accounts.",
+            "raw_content": null,
+            "score": 0.92,
+            "title": "x402 — Payment Required",
+            "url": "https://x402.org/"
+          }
+        ]
+      },
+      "source_url": "https://docs.tavily.com/documentation/api-reference/endpoint/search",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "exa",
+      "contract": {
+        "capability_slug": "web.page-to-text",
+        "cardinality": "many",
+        "identifies": null,
+        "input_map": {
+          "web.input.ids": {
+            "in": "body",
+            "name": "ids"
+          },
+          "web.input.text": {
+            "in": "body",
+            "name": "text"
+          },
+          "web.input.urls": {
+            "in": "body",
+            "name": "urls"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$.results[*]",
+          "produces": {
+            "web.text": {
+              "path": "$.text"
+            },
+            "web.title": {
+              "path": "$.title"
+            },
+            "web.url": {
+              "path": "$.url"
+            },
+            "web_tools.text": {
+              "path": "$.text"
+            },
+            "web_tools.title": {
+              "path": "$.title"
+            },
+            "web_tools.url": {
+              "path": "$.url"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "web.input.urls",
+            "optional": false,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.ids",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "web.input.text",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 3
+      },
+      "description": "Fetch one public URL and return its main content as clean text or markdown, with navigation, scripts and boilerplate stripped. For agents that need to read a page, not render it.",
+      "endpoint_id": "4524bb77-b59c-4b8d-8825-c5926421748c",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "bedfa6f5-e090-4be4-9596-d4e225fcc540",
+      "jurisdiction": null,
+      "list_atomic": 1000,
+      "listing_type": "federated",
+      "method": "POST",
+      "name": "Exa",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/contents",
+      "preconditions": {},
+      "sample_payload": {
+        "results": [
+          {
+            "text": "Page content...",
+            "title": "Example",
+            "url": "https://example.com"
+          }
+        ]
+      },
+      "source_url": "https://exa.ai/docs/reference/x402-guide",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "opensanctions",
+      "contract": {
+        "capability_slug": "company.uk-director-screening-1",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "company.uk_director_1.screening_query": {
+            "in": "body",
+            "name": "queries"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.uk_director_1.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.uk_director_1.screening_query",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Screen active UK director 1 with OpenSanctions, if present; one separately priced query",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "threshold": 0.7
+      },
+      "freshness_seconds": 3600,
+      "id": "f3227f8a-3776-42c8-8182-321eef185351",
+      "jurisdiction": "GB",
+      "list_atomic": 94518,
+      "listing_type": "api",
+      "method": "POST",
+      "name": "OpenSanctions",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/match",
+      "preconditions": {},
+      "sample_payload": {
+        "fixture_notice": "Synthetic response, not live screening",
+        "responses": {
+          "q1": {
+            "query": {
+              "properties": {
+                "name": [
+                  "Example Director"
+                ]
+              },
+              "schema": "Person"
+            },
+            "results": [],
+            "status": 200,
+            "total": {
+              "relation": "eq",
+              "value": 0
+            }
+          }
+        }
+      },
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "unverified": false,
+      "usage_notice": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company.uk_director_1.screening_query",
+      "value_schema": {
+        "required": [
+          "q1"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.uk_director_1.screening_result",
+      "value_schema": {
+        "properties": {
+          "query": {
+            "type": "object"
+          },
+          "results": {
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              200
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query",
+          "status",
+          "results"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "web_tools.content",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web_tools.input.topic",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web_tools.query",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web_tools.text",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web_tools.title",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web_tools.url",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.content",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.input.enddate",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.input.excludedomains",
+      "value_schema": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "web.input.ids",
+      "value_schema": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "web.input.includedomains",
+      "value_schema": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "web.input.startdate",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.input.text",
+      "value_schema": {
+        "type": "boolean"
+      }
+    },
+    {
+      "slug": "web.input.timerange",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.input.urls",
+      "value_schema": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "web.query",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.responsetime",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "web.text",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.title",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.url",
+      "value_schema": {
+        "type": "string"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "web.page-to-text": "Fetch one public URL and return its main content as clean text or markdown, with navigation, scripts and boilerplate stripped. For agents that need to read a page, not render it.",
+          "web.search": "Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer."
+        },
+        "categorized": 2,
+        "category": "search",
+        "coverage_notice": null,
+        "described": 2,
+        "description": "Semantic and keyword web search for agents, plus clean page-content retrieval for a URL you already have.",
+        "documented_inputs": 2,
+        "endpoint_count": 2,
+        "endpoints": [
+          {
+            "description": "Fetch the readable text of one page you already have the URL for — Exa crawls it, strips the chrome and returns the content with the title. Cheapest way to turn a link into text an agent can reason over.",
+            "endpoint_id": "4524bb77-b59c-4b8d-8825-c5926421748c",
+            "method": "POST",
+            "path": "/contents",
+            "registration": {
+              "list_atomic": 1000,
+              "listing_type": "federated",
+              "query_params": null,
+              "request_body": {
+                "properties": {
+                  "ids": {
+                    "description": "Alternative to urls: one Exa document id from an earlier search result.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  "text": {
+                    "default": true,
+                    "description": "Return the full page text. Included in this price; highlights and summary are charged extra by Exa and are not offered here.",
+                    "type": "boolean"
+                  },
+                  "urls": {
+                    "description": "Exactly one URL. Exa charges per URL, and this price covers one; a second URL doubles what the provider asks and the call is refused before payment.",
+                    "example": [
+                      "https://x402.org"
+                    ],
+                    "items": {
+                      "format": "uri",
+                      "type": "string"
+                    },
+                    "maxItems": 1,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "urls"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://exa.ai/docs/reference/x402-guide"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 2,
+        "provider_slug": null,
+        "recent_failures": 0,
+        "recent_successes": 1,
+        "recent_unresolved": 0,
+        "tagged": 2,
+        "tags": [
+          "content extraction",
+          "keyword search",
+          "page text",
+          "search engine",
+          "semantic search",
+          "url",
+          "web scraping",
+          "web search"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Exa",
+      "slug": "exa"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.sanctions-screen": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+          "company.uk-director-screening-1": "Screen active UK director 1 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-2": "Screen active UK director 2 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-3": "Screen active UK director 3 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-4": "Screen active UK director 4 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-5": "Screen active UK director 5 with OpenSanctions, if present; one separately priced query",
+          "company.watchlist-entity": "Read a specific OpenSanctions entity and its relationships.",
+          "company.watchlist-search": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+          "company.watchlist-statements": "Read source assertions for one OpenSanctions entity.",
+          "operation.opensanctions.get-algorithms-e565e717": "List the entity-matching scoring algorithms the /match endpoint accepts, each with the scoring features it uses, what each feature measures, its coefficient and a link to the implementation. Returns the six available algorithms (logic-v2, o",
+          "operation.opensanctions.get-catalog-0f108ac0": "List the datasets and collections available as query scopes — the values that go in the path of /search/{dataset}, /match/{dataset} and /reconcile/{dataset}. Returns each dataset's name, title, summary and description, its publisher and the",
+          "operation.opensanctions.get-reconcile-3c473989": "Service manifest for the OpenRefine reconciliation API — the W3C reconciliation protocol description that lets OpenRefine, and any other reconciliation client, screen a whole spreadsheet or column of names against OpenSanctions. Returns the"
+        },
+        "categorized": 7,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 7,
+        "description": "Sanctions, PEP and watchlist screening for people and companies. Check whether a person or a company is sanctioned (OFAC SDN, EU, UK OFSI, UN and hundreds of other lists), is a politically exposed person (PEP) or a close associate of one, appears on a debarment, wanted or crime-linked list, or is a known owner or officer of an entity that is. Screen a name with fuzzy matching and scored results, search the entity graph as text, pull one entity with its ownership, directorship and family links, or read the underlying source statements. Built on the OpenSanctions consolidated dataset, rebuilt co",
+        "documented_inputs": 7,
+        "endpoint_count": 7,
+        "endpoints": [
+          {
+            "description": "Screen a person or a company against sanctions lists, PEP registers and watchlists by example — the flagship OpenSanctions call and the right one for AML/KYC/KYB onboarding checks. Post one or more example entities (a name, plus any of birth date, nationality, country, address, tax or company registration number) and get back scored candidate matches with a per-feature explanation of why each scored as it did, so false positives can be tuned with a threshold instead of eyeballed. Answers \"is this person sanctioned\", \"is this company on the OFAC SDN list\", \"is this director a politically exposed person\", \"is this counterparty debarred\". Batch several names in one call by giving each its own key; every key comes back under the same name. Scope it by appending the dataset as a path segment: /",
+            "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+            "method": "POST",
+            "path": "/match",
+            "registration": {
+              "list_atomic": 94518,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "algorithm": {
+                    "default": "best",
+                    "description": "Scoring algorithm. \"best\" is an alias that currently resolves to logic-v2. GET /algorithms lists each one with the features it scores on.",
+                    "enum": [
+                      "best",
+                      "logic-v2",
+                      "ofac",
+                      "name-based",
+                      "name-qualified",
+                      "logic-v1",
+                      "regression-v1"
+                    ],
+                    "type": "string"
+                  },
+                  "changed_since": {
+                    "description": "Only match entities updated since this ISO date/time — for re-screening a book of customers against what changed.",
+                    "pattern": "^\\\\d{4}-\\\\d{2}-\\\\d{2}(T\\\\d{2}(:\\\\d{2}(:\\\\d{2})?)?)?$",
+                    "type": "string"
+                  },
+                  "dataset": {
+                    "default": "default",
+                    "description": "Dataset or collection to screen against, appended as a path segment. Use default (everything), sanctions, peps, debarment, crime, or a single source dataset such as us_ofac_sdn or eu_fsf. List the options with GET /catalog.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "exclude_dataset": {
+                    "description": "Remove these datasets from the results.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "exclude_entity_ids": {
+                    "description": "Entity IDs to exclude from matching, e.g. ones already cleared as false positives.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "exclude_schema": {
+                    "description": "Remove these entity types from the results, e.g. Address.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "include_dataset": {
+                    "description": "Only include results from these datasets (within the scope named in the path).",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "limit": {
+                    "default": 5,
+                    "description": "Number of candidate matches to return per query.",
+                    "maximum": 500,
+                    "type": "integer"
+                  },
+                  "threshold": {
+                    "default": 0.7,
+                    "description": "Score at or above which a candidate is reported as a match rather than merely a near miss. Raise it to cut false positives, lower it to widen the net.",
+                    "type": "number"
+                  },
+                  "topics": {
+                    "description": "Only return results carrying any of these topics, e.g. sanction, role.pep, crime, debarment.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {
+                  "queries": {
+                    "additionalProperties": {
+                      "properties": {
+                        "id": {
+                          "description": "Your own identifier for this query entity, echoed back.",
+                          "type": "string"
+                        },
+                        "properties": {
+                          "additionalProperties": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "description": "FollowTheMoney properties, each an ARRAY of strings even when there is one value. name is the only one that really matters; birthDate, nationality, country, address, idNumber, taxNumber, registrationNumber and innCode all sharpen the score.",
+                          "type": "object"
+                        },
+                        "schema": {
+                          "description": "Entity type from the FollowTheMoney model: Person, Company, Organization, LegalEntity, Vessel, Airplane.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "schema",
+                        "properties"
+                      ],
+                      "type": "object"
+                    },
+                    "description": "Map of your own query key -> entity example. Each key comes back in the response under the same name, so a batch of names can be screened in one call.",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "queries"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://www.opensanctions.org/docs/api/"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 6,
+        "recent_unresolved": 0,
+        "tagged": 7,
+        "tags": [
+          "aml",
+          "audit trail",
+          "beneficial ownership",
+          "bulk screening",
+          "data freshness",
+          "data lineage",
+          "dataset catalog",
+          "entity lookup",
+          "entity search",
+          "faceted search",
+          "matching algorithms",
+          "name matching",
+          "openrefine",
+          "ownership graph",
+          "pep check",
+          "pep search",
+          "provenance",
+          "reconciliation",
+          "reference data",
+          "sanctions lists",
+          "sanctions record",
+          "sanctions screening",
+          "sanctions search",
+          "scoring",
+          "source data",
+          "spreadsheet",
+          "statements",
+          "threshold tuning",
+          "ubo",
+          "watchlist"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "OpenSanctions",
+      "slug": "opensanctions"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.uk-vat-candidate-search": "Find published GB VAT candidates for a company; search evidence is not VAT validity",
+          "web.search": "Run a query against a web index and return ranked results (title, URL, snippet). Freshness, index coverage and whether page contents come back inline differ per offer."
+        },
+        "categorized": 1,
+        "category": "search",
+        "coverage_notice": null,
+        "described": 1,
+        "description": "Real-time web search for agents: ranked results with snippets and sources, an optional generated answer, and raw page content per hit.",
+        "documented_inputs": 1,
+        "endpoint_count": 1,
+        "endpoints": [
+          {
+            "description": "Web search built for agents: ranked results with title, URL, snippet and relevance score, optionally a generated answer, images, and the raw page content per result. Filter by topic (general, news, finance), by date range, or to a domain list.",
+            "endpoint_id": "22144f16-e658-49a7-94f8-2dc6edbf7e88",
+            "method": "POST",
+            "path": "/search",
+            "registration": {
+              "list_atomic": 10000,
+              "listing_type": "federated",
+              "query_params": null,
+              "request_body": {
+                "properties": {
+                  "end_date": {
+                    "description": "Only results published on or before this date (YYYY-MM-DD).",
+                    "example": "2026-05-28",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "exclude_domains": {
+                    "description": "Drop results from these domains.",
+                    "example": [
+                      "example.com"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "include_answer": {
+                    "default": false,
+                    "description": "Return a generated answer alongside the results.",
+                    "type": "boolean"
+                  },
+                  "include_domains": {
+                    "description": "Restrict the search to these domains.",
+                    "example": [
+                      "x402.org",
+                      "docs.cdp.coinbase.com"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "include_images": {
+                    "default": false,
+                    "description": "Return image results.",
+                    "type": "boolean"
+                  },
+                  "include_raw_content": {
+                    "default": false,
+                    "description": "Return the raw page content per result.",
+                    "type": "boolean"
+                  },
+                  "max_results": {
+                    "description": "Number of results: \"auto\", or an integer between 1 and 50.",
+                    "example": 5,
+                    "oneOf": [
+                      {
+                        "const": "auto"
+                      },
+                      {
+                        "maximum": 50,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "query": {
+                    "description": "The search query.",
+                    "example": "what is x402?",
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "search_depth": {
+                    "default": "advanced",
+                    "description": "The only tier the x402 gateway prices, and the one this price covers.",
+                    "enum": [
+                      "advanced"
+                    ],
+                    "type": "string"
+                  },
+                  "start_date": {
+                    "description": "Only results published on or after this date (YYYY-MM-DD).",
+                    "example": "2026-01-01",
+                    "format": "date",
+                    "type": "string"
+                  },
+                  "time_range": {
+                    "description": "Relative recency window, e.g. day, week, month, year.",
+                    "example": "month",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "general",
+                    "description": "Which index to search.",
+                    "enum": [
+                      "general",
+                      "news",
+                      "finance"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "query"
+                ],
+                "type": "object"
+              },
+              "usage_notice": null
+            },
+            "source_url": "https://docs.tavily.com/documentation/api-reference/endpoint/search"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 1,
+        "provider_slug": null,
+        "recent_failures": 0,
+        "recent_successes": 0,
+        "recent_unresolved": 0,
+        "tagged": 1,
+        "tags": [
+          "agents",
+          "content extraction",
+          "news search",
+          "search engine",
+          "web search"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Tavily",
+      "slug": "tavily"
+    }
+  ]
+}

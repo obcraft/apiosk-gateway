@@ -16,6 +16,8 @@ const TTL_SECONDS: i64 = 15 * 60;
 pub(crate) struct Snapshot {
     owner: uuid::Uuid,
     workspace: Option<uuid::Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    connection: Option<uuid::Uuid>,
     parsed_digest: String,
     expires: i64,
     catalog_version: String,
@@ -35,8 +37,15 @@ impl Snapshot {
     }
     pub(crate) fn issue_planned(signer: &Signer, person: &Principal, parsed: &ParsedRequest, response: &Value, planning_reply: Option<crate::parser::ChatReply>) -> Result<String> {
         ensure!(person.is_person(), "search snapshot requires an App person");
+        Self::issue_scoped(signer, person, parsed, response, planning_reply)
+    }
+    pub(crate) fn issue_connected(signer: &Signer, principal: &Principal, parsed: &ParsedRequest, response: &Value) -> Result<String> {
+        ensure!(principal.connection.is_some(), "connected search requires a connection");
+        Self::issue_scoped(signer, principal, parsed, response, None)
+    }
+    fn issue_scoped(signer: &Signer, person: &Principal, parsed: &ParsedRequest, response: &Value, planning_reply: Option<crate::parser::ChatReply>) -> Result<String> {
         let snapshot = Self {
-            owner: person.owner, workspace: person.workspace, parsed_digest: digest(parsed),
+            owner: person.owner, workspace: person.workspace, connection: person.connection, parsed_digest: digest(parsed),
             expires: chrono::Utc::now().timestamp() + TTL_SECONDS,
             // External directory searches have no execution catalog version.
             // They are signed too, but can only contribute discovery metadata.
@@ -56,14 +65,22 @@ impl Snapshot {
     /// Verify the signature and caller before consulting a saved receipt.
     /// Freshness is checked separately: old completed requests remain recoverable.
     pub(crate) fn open(signer: &Signer, person: &Principal, parsed: &ParsedRequest, token: &str) -> Result<Self> {
-        ensure!(person.is_person() && token.len() <= MAX_TOKEN_BYTES, "invalid search snapshot");
+        ensure!(person.is_person(), "invalid search snapshot");
+        Self::open_scoped(signer, person, parsed, token)
+    }
+    pub(crate) fn open_connected(signer: &Signer, principal: &Principal, parsed: &ParsedRequest, token: &str) -> Result<Self> {
+        ensure!(principal.connection.is_some(), "invalid connected search snapshot");
+        Self::open_scoped(signer, principal, parsed, token)
+    }
+    fn open_scoped(signer: &Signer, person: &Principal, parsed: &ParsedRequest, token: &str) -> Result<Self> {
+        ensure!(token.len() <= MAX_TOKEN_BYTES, "invalid search snapshot");
         let (payload, signature) = token.split_once('.').ok_or_else(|| anyhow::anyhow!("invalid search snapshot"))?;
         ensure!(signature.len() == 64, "invalid search signature");
         let payload = URL_SAFE_NO_PAD.decode(payload)?;
         ensure!(payload.len() <= MAX_BYTES, "search snapshot too large");
         signer.verify_search(&payload, signature)?;
         let snapshot: Self = serde_json::from_slice(&payload)?;
-        ensure!(snapshot.owner == person.owner && snapshot.workspace == person.workspace
+        ensure!(snapshot.owner == person.owner && snapshot.workspace == person.workspace && snapshot.connection == person.connection
             && snapshot.parsed_digest == digest(parsed), "search belongs to another request");
         Ok(snapshot)
     }
@@ -78,7 +95,7 @@ impl Snapshot {
             "timing":{"search_ms":0}})
     }
     pub(crate) fn with_discovery(mut self, discovery: Self) -> Result<Self> {
-        ensure!(self.owner == discovery.owner && self.workspace == discovery.workspace
+        ensure!(self.owner == discovery.owner && self.workspace == discovery.workspace && self.connection == discovery.connection
             && self.parsed_digest == discovery.parsed_digest, "discovery belongs to another request");
         ensure!(!self.catalog_version.is_empty() && discovery.catalog_version.is_empty()
             && discovery.planning_reply.is_none()
@@ -130,6 +147,22 @@ mod tests {
         let mut tampered=token.into_bytes();
         tampered[8]=if tampered[8]==b'A' {b'B'} else {b'A'};
         assert!(Snapshot::open(&signer,&person,&parsed,std::str::from_utf8(&tampered).unwrap()).is_err());
+    }
+    #[test]
+    fn connected_search_is_bound_to_connection_question_and_workspace() {
+        let (signer,mut person,parsed,response)=fixture();
+        person.connection=Some(Uuid::new_v4());
+        let token=Snapshot::issue_connected(&signer,&person,&parsed,&response).unwrap();
+        assert!(Snapshot::open_connected(&signer,&person,&parsed,&token).unwrap().current("catalog-a"));
+        assert!(Snapshot::open(&signer,&person,&parsed,&token).is_err());
+        let mut other=person.clone();other.connection=Some(Uuid::new_v4());
+        assert!(Snapshot::open_connected(&signer,&other,&parsed,&token).is_err());
+        other=person.clone();other.workspace=None;
+        assert!(Snapshot::open_connected(&signer,&other,&parsed,&token).is_err());
+        other=person.clone();other.connection=None;
+        assert!(Snapshot::open(&signer,&other,&parsed,&token).is_err());
+        let mut changed=parsed.clone();changed.meta.text_sha256="different question".into();
+        assert!(Snapshot::open_connected(&signer,&person,&changed,&token).is_err());
     }
     fn fixture() -> (Signer, Principal, ParsedRequest, Value) {
         let signer = Signer::new(vec![7; 32]).unwrap();

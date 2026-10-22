@@ -10,6 +10,8 @@ mod discovery;
 pub use discovery::{input_context, refresh_discovery};
 mod scope;
 pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requirements, ScopeRequirement};
+mod selected;
+pub(crate) use selected::compile_selected;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gap {
@@ -65,18 +67,30 @@ fn metadata(output: &str) -> bool {
 /// when every remaining field and supplied filter passes the normal compiler.
 /// Original requirements remain saved, returned and disclosed before approval.
 pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake) -> Option<Prepared> {
+    compile_scoped(question, task, catalog, original, None)
+}
+
+// Explicit connected selections have already been narrowed to signed source
+// options. Do not rediscover alternatives, and admit only their validated
+// entered values as additional literal evidence.
+fn compile_scoped(question: &str, task: &Task, catalog: &Catalog, original: &Intake, entered: Option<&selected::ExplicitValues>) -> Option<Prepared> {
     if scope_feedback(original, catalog).is_some() { return None; }
     let original_intake = original.clone();
     // An exact paused retry can reuse validated intake without parsing again.
     // Recover its empty matches too, while retaining the saved request evidence.
     let mut discovery_view = original.clone();
-    refresh_discovery(&mut discovery_view, catalog);
+    if entered.is_none() { refresh_discovery(&mut discovery_view, catalog); }
     let mut input_view = input_context(&discovery_view, catalog);
     let mut limitations = collections::constrain_recency(question, &mut input_view, catalog)?;
     let recency_limited = !limitations.is_empty();
     let original = &input_view;
-    let literals = super::capability_binding::literal_context(question, task, None);
-    let mut full = contract_planner::compile(question, &literals, task, catalog, original);
+    let mut literals = super::capability_binding::literal_context(question, task, None);
+    if let Some(entered) = entered { literals.push('\n'); literals.push_str(&entered.literals); }
+    let compile_part = |intake: &Intake| match entered {
+        Some(entered) => contract_planner::compile_selected_values(question, &literals, task, catalog, intake, &entered.values),
+        None => contract_planner::compile(question, &literals, task, catalog, intake),
+    };
+    let mut full = compile_part(original);
     if contract_planner::ready(question, &full, task, catalog, original) {
         let coverage = Coverage { original_intake, gaps: vec![], limitations };
         if let Some(intent) = &mut full.intent { intent.answer_operations.extend(coverage.notices()); }
@@ -135,7 +149,7 @@ pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake
                     part.matches[0].operations.retain(|operation| operation == capability);
                 }
                 part.selected_capabilities = part.matches[0].operations.clone();
-                let reply = contract_planner::compile(question, &literals, task, catalog, &part);
+                let reply = compile_part(&part);
                 contract_planner::ready(question, &reply, task, catalog, &part)
             });
             if let Some((supported, notice, pin)) = supported {
@@ -161,7 +175,7 @@ pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake
     let subjects: BTreeSet<_> = intake.parsed_request.capabilities.iter().filter_map(|cap| cap.subject_id.clone()).collect();
     intake.parsed_request.subjects.retain(|subject| subjects.contains(&subject.id));
     intake.selected_capabilities = intake.matches.iter().flat_map(|found| found.operations.iter().cloned()).collect();
-    let mut reply = contract_planner::compile(question, &literals, task, catalog, &intake);
+    let mut reply = compile_part(&intake);
     if !contract_planner::ready(question, &reply, task, catalog, &intake) { return None; }
     let coverage = Coverage { original_intake, gaps, limitations };
     if let Some(intent) = &mut reply.intent {

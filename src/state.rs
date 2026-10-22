@@ -229,6 +229,10 @@ pub struct Task {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub connected_coverage: Option<crate::parser::connected_planning::Coverage>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub connected_selection: Option<crate::engine::ConnectedSelection>,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub manual_approval_required: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_grounding: Option<crate::parser::source_grounding::Grounding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_selection: Option<crate::ask_v2::source_selection::Context>,
@@ -355,6 +359,8 @@ impl Task {
         object.remove("capability_intake");
         object.remove("connected_coverage");
         object.remove("source_selection");
+        object.remove("selected_sources");
+        object.remove("manual_approval_required");
         object.remove("intake_recovery");
         if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
             for turn in turns {
@@ -380,6 +386,12 @@ impl Task {
             view["connected_coverage"] = serde_json::to_value(coverage).unwrap_or_default();
             view["coverage_notices"] = serde_json::json!(coverage.notices());
         }
+        if let Some(selection) = &self.connected_selection {
+            view["source_selection"] = selection.view();
+            view["selected_sources"] = serde_json::json!(selection.selections);
+            view["manual_approval_required"] = serde_json::json!(true);
+        }
+        if self.manual_approval_required { view["manual_approval_required"] = serde_json::json!(true); }
         view
     }
     pub fn bounded(&self) -> bool {

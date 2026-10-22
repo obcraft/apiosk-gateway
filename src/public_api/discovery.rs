@@ -69,9 +69,16 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
     let mut searches = serde_json::Map::new();
     let mut apis = Vec::new();
     let mut errors = Vec::new();
+    let mut search_id = None;
+    let mut source_options = json!([]);
     for (origin, result) in [("apiosk", apiosk), ("coinbase", coinbase)] {
         match result {
             Ok(value) => {
+                if origin == "apiosk" && ctx.principal.connection.is_some() {
+                    search_id = Some(crate::search_snapshot::Snapshot::issue_connected(&state.engine.signer, &ctx.principal, parsed, &value)
+                        .map_err(|error| unavailable("source selection snapshot", &error))?);
+                    source_options = value["source_options"].clone();
+                }
                 for found in value["matches"].as_array().into_iter().flatten() {
                     for candidate in found[origin].as_array().into_iter().flatten() {
                         let mut api = candidate.clone();
@@ -97,9 +104,14 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         }
     }
     let status = if !errors.is_empty() { "partial" } else if apis.is_empty() { "needs_input" } else { "choices" };
-    Ok(Json(json!({"status":status,"question":question,"parsed_request":parsed,"model":interpretation.output.model,
+    let mut response = json!({"status":status,"question":question,"parsed_request":parsed,"model":interpretation.output.model,
         "attempts":interpretation.attempts,"timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_http_requests":crate::telemetry::model_http_requests()},"apis":apis,"searches":searches,
-        "errors":errors,"execution":{"method":"POST","path":"/v2/execute"}})).into_response())
+        "errors":errors,"execution":{"method":"POST","path":"/v2/execute"}});
+    if ctx.principal.connection.is_some() {
+        response["search_id"] = json!(search_id);
+        response["source_options"] = source_options;
+    }
+    Ok(Json(response).into_response())
 }
 
 #[derive(Deserialize)]

@@ -146,6 +146,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v1/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/ask", post(crate::public_api::ask))
+        .route("/v2/ask/prepare", post(crate::public_api::prepare_sources))
+        .route("/v2/ask/requote", post(crate::public_api::requote_sources))
         .route("/v2/ask/plan", post(crate::public_api::plan_ask))
         .route("/v2/ask/workflows", get(crate::public_api::ask_workflows))
         .route("/v2/asks/:id", get(crate::public_api::run_status))

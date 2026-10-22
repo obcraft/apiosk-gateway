@@ -39,6 +39,8 @@ use uuid::Uuid;
 
 mod discovery;
 pub use discovery::{ask, execute_selected};
+mod connected_selection;
+pub use connected_selection::{prepare as prepare_sources, requote as requote_sources};
 
 const DEFAULT_WAIT_SECONDS: u64 = 25;
 const MAX_WAIT_SECONDS: u64 = 55;

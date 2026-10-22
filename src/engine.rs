@@ -5,6 +5,8 @@ pub use compute::UpgradeRequest;
 mod endpoint_selection;
 mod source_selection;
 pub use source_selection::SourceSelectionRequest;
+mod connected_selection;
+pub use connected_selection::{ConnectedPrepareRequest, ConnectedSelection};
 mod requote;
 mod execute;
 pub(crate) use execute::{analysis_operations, answer_sources};
@@ -279,7 +281,7 @@ impl Engine {
         {
             return Ok(r);
         }
-        let result = self.requote_inner(p, id, &req).await;
+        let result = self.requote_inner(p, id, &req, false).await;
         Ok(self.complete(p, req.request_id, result).await)
     }
     async fn requote_refused(&self, p: &Principal, id: Uuid, request: Uuid, code: &str, message: &str) -> anyhow::Result<Response> {
@@ -287,13 +289,14 @@ impl Engine {
         response.errors.push(json!({"code": code, "message": message}));
         Ok(response)
     }
-    async fn requote_inner(&self, p: &Principal, id: Uuid, req: &RequoteRequest) -> anyhow::Result<Response> {
+    async fn requote_inner(&self, p: &Principal, id: Uuid, req: &RequoteRequest, manual: bool) -> anyhow::Result<Response> {
         self.signer.verify(p.owner, &req.state, true)?;
         let (revision, mut task, connection) = self.store.load_scoped(p, id).await?;
         anyhow::ensure!(connection == p.connection, "task belongs to another connection; use explicit task recovery");
         if req.state.revision != revision {
             return self.view(p, id, req.request_id, Some(Status::StateConflict)).await;
         }
+        if manual { task.manual_approval_required = true; }
         if let Some(mut plan) = task.proposal.clone().and_then(|p|serde_json::from_value::<Plan>(p).ok()).filter(|p|p.steps.is_empty() && p.compute.is_some()) {
             anyhow::ensure!(!task.cancelled && plan.quote_ref == req.quote_ref && plan.expires_at <= Utc::now()
                 && task.compute.as_ref().is_some_and(|run|run.status == "pending"), "This analysis quote cannot be refreshed");
@@ -487,7 +490,7 @@ impl Engine {
             task.connected_coverage.as_ref().map(|coverage| coverage.original_intake.clone())
                 .or_else(|| task.capability_intake.clone())
         };
-        if !app_chat { task.connected_coverage = None; }
+        if !app_chat { task.connected_coverage = None; task.connected_selection = None; task.manual_approval_required = false; }
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract,
@@ -1130,6 +1133,13 @@ impl Engine {
                 .bind(p.owner).bind(id).bind(billing_plan.as_ref().map(|plan|plan.quote_ref)).fetch_one(&self.store.pool).await?;
             r.context_view["source_selection"]["can_choose"]=json!(p.is_person() && connection.is_none()
                 && source_selection::eligible(&task) && !previously_approved && !worker_active);
+        }
+        if task.connected_selection.is_some() {
+            let previously_approved:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM authorizations WHERE owner_id=$1 AND task_id=$2)")
+                .bind(p.owner).bind(id).fetch_one(&self.store.pool).await?;
+            r.context_view["source_selection"]["can_choose"]=json!(connection == p.connection && connection.is_some()
+                && !task.cancelled && task.completed.is_empty() && task.active_results.is_empty()
+                && !previously_approved && !worker_active);
         }
         r.context_view["analysis_upgrade"] = self.compute_view(p, id, &task, billing_plan.as_ref(), &r.billing).await?;
         if task.compute.as_ref().is_some_and(|run|run.status == "running" || run.status == "preparing") && actions.iter().any(|a|matches!(a,Action::Compute{..})) { r.status = Status::Running; }

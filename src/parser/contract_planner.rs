@@ -38,7 +38,7 @@ pub(crate) fn compile(
     intake: &Intake,
 ) -> ChatReply {
     let started = std::time::Instant::now();
-    let reply = compile_request(question, literals, task, catalog, intake)
+    let reply = compile_request(question, literals, task, catalog, intake, None)
         .unwrap_or_else(|| missing_reply(intake, catalog));
     tracing::info!(
         trace = crate::telemetry::id(),
@@ -50,12 +50,24 @@ pub(crate) fn compile(
     reply
 }
 
+/// Only the connected source selector calls this after checking the signed
+/// option and each declared input schema. Model-created values continue to use
+/// the ordinary scalar-literal validation in `compile`.
+pub(crate) fn compile_selected_values(
+    question: &str, literals: &str, task: &Task, catalog: &Catalog, intake: &Intake,
+    explicit: &BTreeMap<(String, String), serde_json::Value>,
+) -> ChatReply {
+    compile_request(question, literals, task, catalog, intake, Some(explicit))
+        .unwrap_or_else(|| missing_reply(intake, catalog))
+}
+
 fn compile_request(
     question: &str,
     literals: &str,
     task: &Task,
     catalog: &Catalog,
     intake: &Intake,
+    explicit: Option<&BTreeMap<(String, String), serde_json::Value>>,
 ) -> Option<ChatReply> {
     let parsed = &intake.parsed_request;
     if parsed.meta.text_sha256 != hex::encode(sha2::Sha256::digest(question.as_bytes())) {
@@ -90,7 +102,7 @@ fn compile_request(
         part.parsed_request.subjects = subject.into_iter().cloned().collect();
         part.matches = vec![request_match(intake, index)?.clone()];
         part.selected_capabilities = part.matches[0].operations.clone();
-        let compiled = compile_requirement(question, literals, task, catalog, &part)?;
+        let compiled = compile_requirement(question, literals, task, catalog, &part, explicit)?;
         let incoming = compiled.subjects.into_iter().next()?;
         let id = cap.subject_id.as_deref().unwrap_or("request");
         let target = if let Some(&target) = subjects.get(id) {
@@ -140,11 +152,11 @@ fn compile_request(
         }
         let mut smaller = intent.clone();
         smaller.goals.remove(index);
-        if finalize(question, literals, task, catalog, intake, smaller.clone(), true).is_some() {
+        if finalize(question, literals, task, catalog, intake, smaller.clone(), true, explicit).is_some() {
             intent = smaller;
         }
     }
-    let (mut intent, bindings, _) = finalize(question, literals, task, catalog, intake, intent, true)?;
+    let (mut intent, bindings, _) = finalize(question, literals, task, catalog, intake, intent, true, explicit)?;
     intent
         .answer_operations
         .extend(source_grounding::answer_instructions(&bindings, intake));
@@ -160,6 +172,7 @@ fn compile_requirement(
     task: &Task,
     catalog: &Catalog,
     intake: &Intake,
+    explicit: Option<&BTreeMap<(String, String), serde_json::Value>>,
 ) -> Option<Intent> {
     let cap = intake.parsed_request.capabilities.first()?;
     let label = intake
@@ -214,7 +227,7 @@ fn compile_requirement(
             answer_operations: vec![],
             unresolved_references: vec![],
         };
-        if let Some((intent, _, ready)) = finalize(question, literals, task, catalog, intake, intent, false) {
+        if let Some((intent, _, ready)) = finalize(question, literals, task, catalog, intake, intent, false, explicit) {
             if ready {
                 return Some(intent);
             }
@@ -249,6 +262,7 @@ fn finalize(
     intake: &Intake,
     mut intent: Intent,
     complete_scope: bool,
+    explicit: Option<&BTreeMap<(String, String), serde_json::Value>>,
 ) -> Option<(Intent, Vec<source_grounding::Binding>, bool)> {
     bind_inputs(&mut intent, intake, catalog);
     capability_binding::bind_source_requirements(&mut intent, intake, catalog);
@@ -267,7 +281,7 @@ fn finalize(
             && value.as_str().is_some_and(|query| normalized(query) == normalized(question)))) {
         return None;
     }
-    intent.validate(literals, task, catalog).ok()?;
+    validate_selected_literals(&intent, literals, task, catalog, intake, explicit).ok()?;
     let mut preview = task.clone();
     preview.capability_intake = Some(intake.clone());
     preview.output_grounding = source_grounding::Grounding::new(intake, catalog, bindings.clone());
@@ -301,6 +315,28 @@ fn finalize(
         return None;
     }
     Some((intent, bindings, true))
+}
+
+fn validate_selected_literals(
+    intent: &Intent, literals: &str, task: &Task, catalog: &Catalog, intake: &Intake,
+    explicit: Option<&BTreeMap<(String, String), serde_json::Value>>,
+) -> anyhow::Result<()> {
+    let Some(explicit) = explicit else { return intent.validate(literals, task, catalog); };
+    let mut literal_view = intent.clone();
+    for subject in &mut literal_view.subjects {
+        let structured: Vec<_> = subject.values.iter().filter(|(_, value)| !value.is_string() && !value.is_number())
+            .map(|(field, value)| (field.clone(), value.clone())).collect();
+        for (field, value) in structured {
+            anyhow::ensure!(intake.parsed_request.subjects.iter().any(|parsed| parsed.label == subject.label
+                && explicit.get(&(parsed.id.clone(), field.clone())) == Some(&value)), "non-scalar value was not explicitly entered for this subject");
+            let schema = &catalog.vocabulary.get(&field).ok_or_else(|| anyhow::anyhow!("unknown input type"))?.value_schema;
+            catalog_core::facts::schema::validate(schema, &value)?;
+            subject.values.remove(&field);
+        }
+    }
+    // Keep every normal label, scalar, goal and constraint check. The original
+    // typed values still reach coverage validation, the resolver and execution.
+    literal_view.validate(literals, task, catalog)
 }
 
 fn selected_services<'a>(

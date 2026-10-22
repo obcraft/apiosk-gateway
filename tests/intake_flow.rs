@@ -27,6 +27,9 @@ const ORGANISATION_KEY: &str = "apk_org_live_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 /// takes only the registry id (as KVK's profile takes only a KVK number).
 const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 
+#[path = "intake_flow/connected_sources.rs"]
+mod connected_sources;
+
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
 struct Model {
@@ -204,7 +207,10 @@ struct FakeEdge {
 /// The existing balance executor is replaced only inside this fixture. This
 /// models its ledger/result contract, not a blockchain or production RPC.
 async fn fake_edge(State(edge): State<Arc<FakeEdge>>, headers: HeaderMap, Json(request): Json<Value>) -> (StatusCode, Json<Value>) {
-    let owner: Uuid = headers.get("authorization").unwrap().to_str().unwrap().strip_prefix("Bearer intake-").unwrap().parse().unwrap();
+    let bearer = headers.get("authorization").unwrap().to_str().unwrap();
+    let owner: Uuid = if bearer == "Bearer apk_access_local_fixture" {
+        "00000000-0000-4000-8000-000000000001".parse().unwrap()
+    } else { bearer.strip_prefix("Bearer intake-").unwrap().parse().unwrap() };
     assert_eq!(request["deterministic"], true);
     let selection: Uuid = request["selection_id"].as_str().unwrap().parse().unwrap();
     let key = request["idempotency_key"].as_str().unwrap();
@@ -266,7 +272,8 @@ impl Intake {
             }))
             .route("/auth/v1/user", get(user))
             .with_state(model.clone())
-            .merge(Router::new().route("/functions/v1/use-selection", post(fake_edge)).with_state(edge.clone()));
+            .merge(Router::new().route("/functions/v1/use-selection", post(fake_edge))
+                .route("/functions/v1/agent-gateway/v1/run", post(fake_edge)).with_state(edge.clone()));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
