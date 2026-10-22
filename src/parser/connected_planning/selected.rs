@@ -439,6 +439,68 @@ mod tests {
     }
 
     #[test]
+    fn selected_publication_window_cannot_stand_in_for_an_omitted_deadline() {
+        use sha2::Digest;
+        let (catalog, _, original, original_options, mut choice) = energy_selection_fixture();
+        choice.input.insert("company_intel.input.search".into(), json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(), json!("AF7"));
+        for question in [
+            "Find energy tenders closing in the last 7 days.",
+            "Find energy publications due in the last 7 days.",
+            "Find energy tenders published recently and due in the last 7 days.",
+            "Vind energieaanbestedingen met een deadline in de afgelopen 7 dagen.",
+            "Vind energieaanbestedingen die sluiten in de laatste 7 dagen.",
+            "Find energy tenders published in the last 30 days and closing in the last 7 days.",
+            "Find energy publications published in the last 14 days.",
+        ] {
+            for output in ["contracts", "tenderned.publication_page"] {
+                let mut intake=original.clone();
+                intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+                // Deliberately reproduce canonical omission: no closing input or
+                // description evidence is available except the original question.
+                intake.parsed_request.capabilities[0].description="Find energy procurement publications".into();
+                intake.parsed_request.capabilities[0].outputs=vec![output.into()];
+                let mut options=original_options.clone();
+                for option in &mut options { option.requirement=intake.parsed_request.capabilities[0].clone(); }
+                let error=compile_selected(question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).err().expect("deadline accepted as publication window").to_string();
+                if question.contains("14 days") { assert!(error.contains("publication window"), "{error}"); }
+                else { assert!(error.contains("closing date or deadline"), "{question}: {error}"); }
+            }
+        }
+    }
+
+    #[test]
+    fn explicitly_all_publications_can_use_a_native_window_without_a_keyword() {
+        use sha2::Digest;
+        let (catalog, _, original, original_options, mut choice)=energy_selection_fixture();
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(),json!("AF7"));
+        for question in ["Show all publications published in the last 7 days.","Toon alle publicaties gepubliceerd in de afgelopen 7 dagen."] {
+            let mut intake=original.clone();
+            intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+            intake.parsed_request.subjects[0].label=if question.starts_with("Toon") { "publicaties" } else { "publications" }.into();
+            intake.parsed_request.capabilities[0].name="Publications".into();
+            intake.parsed_request.capabilities[0].description="Retrieve all publications".into();
+            intake.parsed_request.capabilities[0].outputs=vec!["tenderned.publication_page".into()];
+            let mut options=original_options.clone();
+            for option in &mut options { option.requirement=intake.parsed_request.capabilities[0].clone(); }
+            let prepared=compile_selected(question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).unwrap();
+            let (task,plan)=plan(prepared,question,&catalog);
+            assert_eq!(plan.steps.len(),1);
+            let input=plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap();
+            assert_eq!(input["publicatieDatumPreset"],"AF7");
+            assert!(input.get("search").is_none());
+        }
+        for question in ["Show all energy publications published in the last 7 days.","Show all publications about energy published in the last 7 days."] {
+            let mut intake=original.clone();
+            intake.parsed_request.meta.text_sha256=hex::encode(sha2::Sha256::digest(question.as_bytes()));
+            let mut options=original_options.clone();
+            for option in &mut options { option.requirement=intake.parsed_request.capabilities[0].clone(); }
+            let error=compile_selected(question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).err().unwrap().to_string();
+            assert!(error.contains("company_intel.input.search"),"{error}");
+        }
+    }
+
+    #[test]
     fn selected_registry_keeps_the_original_missing_directors_and_ownership() {
         let (catalog, question, intake, options) = fixture(false);
         let choices = choose(&options); assert_eq!(choices.len(), 1);
