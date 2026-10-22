@@ -22,7 +22,7 @@ fn arrays(schema: &Value, names: &mut Vec<Vec<String>>) -> bool {
         .fold(collection, |found, (_, child)| arrays(child, names) || found)
 }
 
-fn newest_publications(service: &Service, catalog: &Catalog) -> bool {
+pub(super) fn newest_publications(service: &Service, catalog: &Catalog) -> bool {
     if !["size", "limit", "page_size"].iter().any(|field|
         service.fixed_params[*field].as_u64().is_some_and(|limit| (1..=1000).contains(&limit))) { return false; }
     let Some(endpoint) = catalog.known_sources.iter().find(|source| source.slug == service.api_slug)

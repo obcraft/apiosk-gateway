@@ -1,0 +1,793 @@
+{
+  "question": "Vind nieuwe energieaanbestedingen in Nederland en de EU, gepubliceerd in de afgelopen 7 dagen.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.94,
+        "description": "Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search recent energy procurement contracts",
+        "outputs": [
+          "contracts"
+        ],
+        "slug": "procurement.contracts.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T20:56:44.094695574+00:00",
+      "text_sha256": "633de4ecb3df2da7ccacb6c37e13016f7c1ed818afac7e1fdc6c29477f3a062b"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {},
+        "label": "nieuwe energieaanbestedingen",
+        "type": "aanbesteding"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "apiosk": [
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.nl-public-contracts",
+          "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "capability": "procurement.nl-public-contracts",
+            "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+            "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company_intel.input.search",
+                "required": false,
+                "schema": {
+                  "$comment": "{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\",\"search_term\",\"sector\",\"topic\"]}",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.cpvcodes",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.procedure",
+                "required": false,
+                "schema": {
+                  "enum": [
+                    "OPE",
+                    "NOP",
+                    "CCD",
+                    "OMB",
+                    "OZB",
+                    "OHP",
+                    "OH",
+                    "INP",
+                    "CA",
+                    "APM",
+                    "APE",
+                    "VUB"
+                  ],
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.typeopdracht",
+                "required": false,
+                "schema": {
+                  "enum": [
+                    "W",
+                    "L",
+                    "D"
+                  ],
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.sluitingsdatumtot",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.publicatiedatumtot",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.sluitingsdatumvanaf",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.publicatiedatumvanaf",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_intel.input.publicatiedatumpreset",
+                "required": false,
+                "schema": {
+                  "enum": [
+                    "AF7",
+                    "AF30"
+                  ],
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [],
+            "name": "TenderNed",
+            "outputs": [
+              {
+                "field": "tenderned.publication_page",
+                "schema": {
+                  "properties": {
+                    "content": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}",
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "totalElements": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "totalElements"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "54348",
+              "currency": "USDC",
+              "provider_atomic": "47259"
+            },
+            "source": {
+              "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+              "name": "TenderNed",
+              "slug": "tenderned",
+              "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": "s1",
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        },
+        {
+          "api_id": "63217e13-beeb-42c4-bbb5-df5270122f10",
+          "availability": "unverified",
+          "calls_30d": null,
+          "capability": "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13",
+          "description": "UK government contract / tender search and procurement intelligence from Contracts Finder and Find a Tender Service. Returns UK public-sector awards and opportunities with department, value, sector, and market snapshot, for business-development and procurement agents.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "63217e13-beeb-42c4-bbb5-df5270122f10",
+            "capability": "operation.govspendpulse.get-api-govspend-uk-contracts-63217e13",
+            "description": "UK government contract / tender search and procurement intelligence from Contracts Finder and Find a Tender Service. Returns UK public-sector awards and opportunities with department, value, sector, and market snapshot, for business-development and procurement agents.",
+            "endpoint_id": "63217e13-beeb-42c4-bbb5-df5270122f10",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "source_input.e63217e13beeb42c4bbb5df5270122f10.lang",
+                "required": false,
+                "schema": {
+                  "type": "string"
+                }
+              },
+              {
+                "field": "source_input.e63217e13beeb42c4bbb5df5270122f10.keyword",
+                "required": true,
+                "schema": {
+                  "description": "Search term — e.g. digital transformation, facilities management, cyber",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "source_input.e63217e13beeb42c4bbb5df5270122f10.keyword"
+            ],
+            "name": "GovSpendPulse",
+            "outputs": [
+              {
+                "field": "source_document.e63217e13beeb42c4bbb5df5270122f10.response",
+                "schema": {
+                  "required": [
+                    "document"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "92000",
+              "currency": "USDC",
+              "provider_atomic": "80000"
+            },
+            "source": {
+              "logo_url": "https://pulse.theaslangroupllc.com/favicon.svg",
+              "name": "GovSpendPulse",
+              "slug": "govspendpulse",
+              "url": "https://govspendpulse.theaslangroupllc.com/llms.txt",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "63217e13-beeb-42c4-bbb5-df5270122f10",
+          "logo_url": "https://pulse.theaslangroupllc.com/favicon.svg",
+          "method": "GET",
+          "name": "GovSpendPulse",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.092000 USD",
+          "source_slug": "govspendpulse",
+          "subject_id": "s1",
+          "url": "https://govspendpulse.theaslangroupllc.com/llms.txt"
+        },
+        {
+          "api_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company.sirenic-entreprise-siren-marches-publics-ue",
+          "description": "European public procurement contract awards won by a French company, from TED (Tenders Electronic Daily, EU Publications Office): government contracts and tenders — buyer, country, subject, notice-level amount, CPV codes, co-winners and official notice link. Identifier-based matching only (SIREN/SIRET incl. spaced variants). Coverage: eForms award notices since 2023-10-25, above EU thresholds; ~57",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+            "capability": "company.sirenic-entreprise-siren-marches-publics-ue",
+            "description": "European public procurement contract awards won by a French company, from TED (Tenders Electronic Daily, EU Publications Office): government contracts and tenders — buyer, country, subject, notice-level amount, CPV codes, co-winners and official notice link. Identifier-based matching only (SIREN/SIRET incl. spaced variants). Coverage: eForms award notices since 2023-10-25, above EU thresholds; ~57",
+            "endpoint_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company.registration.fr.siren",
+                "required": true,
+                "schema": {
+                  "pattern": "^[0-9]{9}$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "company.registration.fr.siren"
+            ],
+            "name": "Sirenic",
+            "outputs": [
+              {
+                "field": "company.registration.fr.siren",
+                "schema": {
+                  "pattern": "^[0-9]{9}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.sirenic.record.entreprise_siren_marches_publics_ue",
+                "schema": {
+                  "required": [
+                    "siren",
+                    "nombre_avis"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "23000",
+              "currency": "USDC",
+              "provider_atomic": "20000"
+            },
+            "source": {
+              "logo_url": "https://app.apiosk.com/brands/sirenic.png",
+              "name": "Sirenic",
+              "slug": "sirenic",
+              "url": "https://api.sirenic.eu/openapi.json",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+          "logo_url": "https://app.apiosk.com/brands/sirenic.png",
+          "method": "GET",
+          "name": "Sirenic",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.023000 USD",
+          "source_slug": "sirenic",
+          "subject_id": "s1",
+          "url": "https://api.sirenic.eu/openapi.json"
+        },
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.rsin-mentions",
+          "description": "Search TenderNed publication text using the RSIN. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "capability": "procurement.rsin-mentions",
+            "description": "Search TenderNed publication text using the RSIN. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+            "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company.nl.rsin",
+                "required": true,
+                "schema": {
+                  "pattern": "^[0-9]{9}$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "company.nl.rsin"
+            ],
+            "name": "TenderNed",
+            "outputs": [
+              {
+                "field": "tenderned.publication_page",
+                "schema": {
+                  "properties": {
+                    "content": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}",
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "totalElements": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "totalElements"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "54348",
+              "currency": "USDC",
+              "provider_atomic": "47259"
+            },
+            "source": {
+              "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+              "name": "TenderNed",
+              "slug": "tenderned",
+              "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": "s1",
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        },
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.company-name-mentions",
+          "description": "Search TenderNed publication text using the KVK registered company name. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "capability": "procurement.company-name-mentions",
+            "description": "Search TenderNed publication text using the KVK registered company name. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+            "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company.nl.registered_name",
+                "required": true,
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "company.nl.registered_name"
+            ],
+            "name": "TenderNed",
+            "outputs": [
+              {
+                "field": "tenderned.publication_page",
+                "schema": {
+                  "properties": {
+                    "content": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}",
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "totalElements": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "content",
+                    "totalElements"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "54348",
+              "currency": "USDC",
+              "provider_atomic": "47259"
+            },
+            "source": {
+              "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+              "name": "TenderNed",
+              "slug": "tenderned",
+              "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": "s1",
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        }
+      ],
+      "coinbase": [
+        {
+          "api_id": "bazaar:WyJodHRwczovL29wZW5kYXRhNDAyLmNvbS92MS9ubC9lbmVyZ3ktcHJpY2VzIiwiR0VUIiwiU2VhcmNoIHJlY2VudCBlbmVyZ3kgcHJvY3VyZW1lbnQgY29udHJhY3RzLiBGaW5kIGVuZXJneSBwcm9jdXJlbWVudCBjb250cmFjdHMgcHVibGlzaGVkIGluIHRoZSBsYXN0IDcgZGF5cyBpbiB0aGUgTmV0aGVybGFuZHMgYW5kIHRoZSBFVSJd",
+          "availability": "supported",
+          "calls_30d": 3,
+          "capability": "external.request",
+          "description": "Average consumer energy tariffs in the Netherlands per month from Statistics Netherlands (CBS table 85592NED): gas and electricity transport and supply tariffs, variable contract prices, dynamic electricity contracts, energy tax and tax reduction, including or excluding VAT. Use it for energy cost estimates and trend analysis. Averages, not prices of individual suppliers. CBS, CC BY 4.0.",
+          "endpoint": {
+            "api_id": "bazaar:WyJodHRwczovL29wZW5kYXRhNDAyLmNvbS92MS9ubC9lbmVyZ3ktcHJpY2VzIiwiR0VUIiwiU2VhcmNoIHJlY2VudCBlbmVyZ3kgcHJvY3VyZW1lbnQgY29udHJhY3RzLiBGaW5kIGVuZXJneSBwcm9jdXJlbWVudCBjb250cmFjdHMgcHVibGlzaGVkIGluIHRoZSBsYXN0IDcgZGF5cyBpbiB0aGUgTmV0aGVybGFuZHMgYW5kIHRoZSBFVSJd",
+            "capability": "external.request",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "query.months",
+                "location": "query",
+                "name": "months",
+                "required": false,
+                "schema": {
+                  "description": "Latest months (default 3, max 24).",
+                  "pattern": "^([1-9]|1[0-9]|2[0-4])$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "query.vat",
+                "location": "query",
+                "name": "vat",
+                "required": false,
+                "schema": {
+                  "description": "Including or excluding VAT (default incl).",
+                  "enum": [
+                    "incl",
+                    "excl"
+                  ],
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [],
+            "output_schema": null,
+            "outputs": null,
+            "price": {
+              "buyer_atomic": "1150",
+              "currency": "USDC",
+              "provider_atomic": "1000"
+            }
+          },
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "opendata402",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.001150 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://opendata402.com/v1/nl/energy-prices"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": 1,
+          "capability": null,
+          "description": "EU government tender / public procurement search across all 27 EU member states — live TED (Tenders Electronic Daily) data. Returns contract notices with value, contracting authority, CPV category, and deadline. Free EU data, for business-development and procurement agents.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "GovSpendPulse",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.092000 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://govspendpulse.theaslangroupllc.com/api/govspend/eu-tenders"
+        },
+        {
+          "api_id": "bazaar:WyJodHRwczovL2RhdGEuZ3JlZW5lcmlzLmlvL3YxL2V1L3RlbmRlcnMiLCJHRVQiLCJTZWFyY2ggcmVjZW50IGVuZXJneSBwcm9jdXJlbWVudCBjb250cmFjdHMuIEZpbmQgZW5lcmd5IHByb2N1cmVtZW50IGNvbnRyYWN0cyBwdWJsaXNoZWQgaW4gdGhlIGxhc3QgNyBkYXlzIGluIHRoZSBOZXRoZXJsYW5kcyBhbmQgdGhlIEVVIl0",
+          "availability": "supported",
+          "calls_30d": 5,
+          "capability": "external.request",
+          "description": "Fresh EU public procurement notices from TED (Tenders Electronic Daily, official Publications Office API, new notices daily). Query: ?cpv=48000000&country=FRA&days_back=7&limit=10 (cpv = 8-digit CPV code, country = 3-letter buyer country, all optional). Each notice: publication_number, publication_date, title, buyer_name, tender deadline, notice URL. 1h cache.",
+          "endpoint": {
+            "api_id": "bazaar:WyJodHRwczovL2RhdGEuZ3JlZW5lcmlzLmlvL3YxL2V1L3RlbmRlcnMiLCJHRVQiLCJTZWFyY2ggcmVjZW50IGVuZXJneSBwcm9jdXJlbWVudCBjb250cmFjdHMuIEZpbmQgZW5lcmd5IHByb2N1cmVtZW50IGNvbnRyYWN0cyBwdWJsaXNoZWQgaW4gdGhlIGxhc3QgNyBkYXlzIGluIHRoZSBOZXRoZXJsYW5kcyBhbmQgdGhlIEVVIl0",
+            "capability": "external.request",
+            "input_values": {
+              "query.days_back": 7,
+              "query.limit": 10
+            },
+            "inputs": [
+              {
+                "field": "query.country",
+                "location": "query",
+                "name": "country",
+                "required": false,
+                "schema": {
+                  "description": "3-letter buyer country code, e.g. FRA (optional)",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "query.cpv",
+                "location": "query",
+                "name": "cpv",
+                "required": false,
+                "schema": {
+                  "description": "8-digit CPV classification code (optional)",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "query.days_back",
+                "location": "query",
+                "name": "days_back",
+                "required": false,
+                "schema": {
+                  "default": 7,
+                  "description": "Look-back window in days, 1-30",
+                  "type": "integer"
+                }
+              },
+              {
+                "field": "query.limit",
+                "location": "query",
+                "name": "limit",
+                "required": false,
+                "schema": {
+                  "default": 10,
+                  "description": "Max notices returned, 1-25",
+                  "type": "integer"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [],
+            "output_schema": null,
+            "outputs": null,
+            "price": {
+              "buyer_atomic": "11500",
+              "currency": "USDC",
+              "provider_atomic": "10000"
+            }
+          },
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "eu-verify",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.011500 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://data.greeneris.io/v1/eu/tenders"
+        }
+      ],
+      "coinbase_status": "complete",
+      "operations": [
+        "company.sirenic-entreprise-siren-marches-publics-ue",
+        "procurement.company-name-mentions",
+        "procurement.nl-public-contracts",
+        "procurement.rsin-mentions"
+      ],
+      "query": "Search recent energy procurement contracts. Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+      "slug": "procurement.contracts.search",
+      "subject_id": "s1"
+    }
+  ],
+  "source_options": [
+    {
+      "reason": "Matches your question",
+      "requirement": {
+        "confidence": 0.94,
+        "description": "Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search recent energy procurement contracts",
+        "outputs": [
+          "contracts"
+        ],
+        "slug": "procurement.contracts.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "procurement.nl-public-contracts",
+        "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+        "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+        "method": "GET",
+        "name": "TenderNed",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "tenderned",
+        "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "missing_inputs": [
+        "company.registration.fr.siren"
+      ],
+      "reason": "Matches your question",
+      "requirement": {
+        "confidence": 0.94,
+        "description": "Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search recent energy procurement contracts",
+        "outputs": [
+          "contracts"
+        ],
+        "slug": "procurement.contracts.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.sirenic-entreprise-siren-marches-publics-ue",
+        "description": "European public procurement contract awards won by a French company, from TED (Tenders Electronic Daily, EU Publications Office): government contracts and tenders — buyer, country, subject, notice-level amount, CPV codes, co-winners and official notice link. Identifier-based matching only (SIREN/SIRET incl. spaced variants). Coverage: eForms award notices since 2023-10-25, above EU thresholds; ~57",
+        "endpoint_id": "dc4fdb99-fc02-551d-8e5b-56d30928832a",
+        "method": "GET",
+        "name": "Sirenic",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.023000 USD",
+        "source_slug": "sirenic",
+        "url": "https://api.sirenic.eu/openapi.json"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "missing_inputs": [
+        "company.nl.rsin"
+      ],
+      "reason": "Matches your question",
+      "requirement": {
+        "confidence": 0.94,
+        "description": "Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search recent energy procurement contracts",
+        "outputs": [
+          "contracts"
+        ],
+        "slug": "procurement.contracts.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "procurement.rsin-mentions",
+        "description": "Search TenderNed publication text using the RSIN. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+        "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+        "method": "GET",
+        "name": "TenderNed",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "tenderned",
+        "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "missing_inputs": [
+        "company.nl.registered_name"
+      ],
+      "reason": "Matches your question",
+      "requirement": {
+        "confidence": 0.94,
+        "description": "Find energy procurement contracts published in the last 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search recent energy procurement contracts",
+        "outputs": [
+          "contracts"
+        ],
+        "slug": "procurement.contracts.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "procurement.company-name-mentions",
+        "description": "Search TenderNed publication text using the KVK registered company name. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+        "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+        "method": "GET",
+        "name": "TenderNed",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "tenderned",
+        "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+      },
+      "subject_id": "s1"
+    }
+  ]
+}

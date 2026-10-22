@@ -178,9 +178,14 @@ pub(crate) fn compile_selected(
         part.matches = vec![Match { slug: requirement.slug.clone(), query: requirement.description.clone(), operations: BTreeSet::from([selected.capability.clone()]),
             apiosk: vec![option.source.clone()], coinbase: vec![], coinbase_status: "complete".into() }];
         part.parsed_request.capabilities = vec![requirement]; part.selected_capabilities = BTreeSet::from([selected.capability.clone()]);
+        // A native output name must not bypass the selected collection's
+        // publication-window proof when interpretation omitted its criteria.
+        if let Some(feedback) = super::selected_collection::feedback(question, catalog, &part, service) { anyhow::bail!(feedback); }
         let direct = compile_scoped(question, task, catalog, &part, Some(&explicit));
         let directly_proven = direct.is_some();
-        let prepared = direct.or_else(|| identity_verified_contribution(question, task, catalog, &part, service, &explicit)).with_context(|| {
+        let prepared = direct.or_else(|| identity_verified_contribution(question, task, catalog, &part, service, &explicit))
+            .or_else(|| super::selected_collection::contribution(question, task, catalog, &part, service, &explicit)).with_context(|| {
+            if let Some(feedback) = super::selected_collection::feedback(question, catalog, &part, service) { return feedback; }
             let missing: Vec<_> = service.contract.requires.iter().filter(|input| !input.optional).filter(|input|
                 catalog.vocabulary.get(&input.fact_type).is_none_or(|fact| input_values::documented_literal(&input.fact_type, &fact.value_schema, &subject).is_none()))
                 .map(|input| input.fact_type.as_str()).collect();
@@ -380,6 +385,57 @@ mod tests {
                 assert!(compile_selected(&question,&Task::default(),&catalog,&filtered,&choices,&constrained_options).is_err(), "discarded {filter}");
             }
         }
+    }
+
+    fn energy_selection_fixture() -> (Catalog, String, Intake, Vec<SourceOption>, SelectedSource) {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-catalog.json")).unwrap());
+        assert!(catalog.rejected.is_empty());
+        let saved: Value = serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-free.json")).unwrap();
+        let parsed_request = serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        let matches: Vec<Match> = serde_json::from_value(saved["matches"].clone()).unwrap();
+        let options = crate::ask_v2::source_options::connected_options(&parsed_request, &matches, &catalog);
+        let choice = options.iter().find(|option| option.source.capability.as_deref() == Some("procurement.nl-public-contracts")).unwrap();
+        let choice = SelectedSource { endpoint_id:choice.source.endpoint_id.as_deref().unwrap().parse().unwrap(), capability:choice.source.capability.clone().unwrap(), subject_id:choice.subject_id.clone(), input:choice.input_values.clone() };
+        let intake = Intake { parsed_request, matches, selected_capabilities:BTreeSet::new(), catalog_version:catalog.version.clone(),apiosk_sources_searched:1 };
+        (catalog, saved["question"].as_str().unwrap().to_owned(), intake, options, choice)
+    }
+
+    #[test]
+    fn actual_energy_selection_requires_its_criteria_then_prices_the_documented_filtered_page() {
+        let (catalog, question, intake, options, mut choice) = energy_selection_fixture();
+        assert!(choice.input.is_empty());
+        let error = compile_selected(&question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).err().unwrap().to_string();
+        assert!(error.contains("company_intel.input.search") && error.contains("AF7"), "{error}");
+        let mut native_intake=intake.clone();
+        native_intake.parsed_request.capabilities[0].outputs=vec!["tenderned.publication_page".into()];
+        let mut native_options=options.clone();
+        for option in &mut native_options { option.requirement.outputs=vec!["tenderned.publication_page".into()]; }
+        assert!(compile_selected(&question,&Task::default(),&catalog,&native_intake,&[choice.clone()],&native_options).is_err(), "native output bypassed missing criteria");
+        choice.input.insert("company_intel.input.search".into(),json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(),json!("AF7"));
+        let prepared = compile_selected(&question,&Task::default(),&catalog,&intake,&[choice],&options).unwrap();
+        assert_eq!(prepared.coverage.gaps.iter().map(|gap| gap.output.as_str()).collect::<Vec<_>>(),["contracts"]);
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("not complete coverage of all requested regions") && notice.contains("Netherlands") && notice.contains("EU")));
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake).unwrap(),serde_json::to_value(&intake).unwrap());
+        let (task,plan)=plan(prepared,&question,&catalog);
+        assert_eq!(plan.steps.len(),1);
+        assert_eq!(plan.cap_atomic,54348);
+        assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap(),json!({"search":"energie","publicatieDatumPreset":"AF7","page":0,"size":20,"sort":"publicatieDatum,desc"}));
+    }
+
+    #[test]
+    fn selected_collection_window_does_not_accept_wrong_window_or_drop_supplied_filters() {
+        let (catalog, question, intake, options, mut choice) = energy_selection_fixture();
+        choice.input.insert("company_intel.input.search".into(),json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(),json!("AF30"));
+        assert!(compile_selected(&question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).is_err());
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(),json!("AF7"));
+        let mut filtered=intake.clone();
+        filtered.parsed_request.subjects[0].identifiers.insert("status".into(),"open".into());
+        filtered.parsed_request.capabilities[0].inputs.push("status".into());
+        let mut options=options;
+        for option in &mut options { option.requirement.inputs.push("status".into()); }
+        assert!(compile_selected(&question,&Task::default(),&catalog,&filtered,&[choice],&options).is_err());
     }
 
     #[test]

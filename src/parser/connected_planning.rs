@@ -11,6 +11,7 @@ pub use discovery::{input_context, refresh_discovery};
 mod scope;
 pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requirements, ScopeRequirement};
 mod selected;
+mod selected_collection;
 pub(crate) use selected::compile_selected;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
