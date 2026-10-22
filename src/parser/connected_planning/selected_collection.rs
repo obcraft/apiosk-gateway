@@ -174,6 +174,18 @@ fn regional_contribution(native: &mut Intake, catalog: &Catalog, service: &Servi
     Some(gaps)
 }
 
+// Coverage is a property of the selected source, not of which output alias
+// happened to compile. A direct match must disclose the same bounded national
+// page as the fallback, including when interpretation omitted a region input.
+pub(super) fn scope_notice(question: &str, catalog: &Catalog, part: &Intake, service: &Service) -> Option<String> {
+    reviewed_fields(question, catalog, part, service)?;
+    if !publication_window(question) || feedback(question, catalog, part, service).is_some() { return None; }
+    let country = crate::ask_v2::search::fixed_endpoint_country(service, None)
+        .map(|country| format!(" Fixed source country: {country}; coverage outside {country} is not established."))
+        .unwrap_or_default();
+    Some(format!("{} returns one bounded page, newest first, with the explicitly bound requested filters and publication window. This is not complete coverage of all requested regions or notice types.{country} Requested scope: {question}. Source coverage: {}", service.name, service.description.as_deref().unwrap_or("See the selected source documentation.")))
+}
+
 pub(super) fn contribution(question: &str, task: &Task, catalog: &Catalog, part: &Intake, service: &Service, explicit: &ExplicitValues) -> Option<Prepared> {
     let (keyword, window, _) = reviewed_fields(question, catalog, part, service)?;
     if !publication_window(question) || feedback(question, catalog, part, service).is_some() { return None; }
@@ -188,6 +200,5 @@ pub(super) fn contribution(question: &str, task: &Task, catalog: &Catalog, part:
     native.matches[0].slug = cap.slug.clone();
     let mut prepared = compile_scoped(question, task, catalog, &native, Some(explicit))?;
     prepared.coverage.gaps.extend(regional_gaps);
-    prepared.coverage.limitations.push(format!("{} returns one bounded page, newest first, with the explicitly bound requested filters and publication window. This is not complete coverage of all requested regions or notice types. Requested scope: {}. Source coverage: {}", service.name, part.parsed_request.capabilities[0].description, service.description.as_deref().unwrap_or("See the selected source documentation.")));
     Some(prepared)
 }

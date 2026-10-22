@@ -9,6 +9,7 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const MAX_OPTIONS: usize = super::source_selection::MAX_SOURCES;
+const CONNECTED_RELATED_OPTIONS: usize = 24;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub(crate) struct SourceOption {
@@ -158,7 +159,8 @@ fn matched_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog)
 pub(crate) fn connected_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
     let mut result = Vec::new();
     let mut seen = BTreeSet::new();
-    for option in matched_options(parsed, matches, catalog).into_iter().chain(options(parsed, matches, catalog)) {
+    for option in matched_options(parsed, matches, catalog).into_iter()
+        .chain(options_with_limit(parsed, matches, catalog, CONNECTED_RELATED_OPTIONS)) {
         let identity = (option.source.endpoint_id.clone(), option.source.capability.clone(), option.subject_id.clone());
         if seen.insert(identity) { result.push(option); }
     }
@@ -168,6 +170,10 @@ pub(crate) fn connected_options(parsed: &ParsedRequest, matches: &[Match], catal
 /// Offer reviewed related records for the existing typed subjects. Original
 /// matches keep priority; everything else remains optional until selected.
 pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
+    options_with_limit(parsed, matches, catalog, MAX_OPTIONS)
+}
+
+fn options_with_limit(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog, limit: usize) -> Vec<SourceOption> {
     let mut result = matched_options(parsed, matches, catalog);
     let mut seen: BTreeSet<_> = result.iter().map(key).collect();
     for subject in &parsed.subjects {
@@ -230,7 +236,7 @@ pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catal
         result
     }
     let mut result = diverse(result);
-    result.truncate(MAX_OPTIONS);
+    result.truncate(limit);
     result
 }
 
@@ -481,6 +487,9 @@ mod tests {
         assert!(choices.iter().filter_map(|option| option.source.source_slug.as_deref()).collect::<BTreeSet<_>>().len() >= 5);
         assert!(choices.iter().filter(|option| option.source.source_slug.as_deref() == Some("many-company-records")).count() <= 2);
         assert!(choices.iter().all(|option| !matches!(option.source.capability.as_deref(), Some("area.boundary" | "company.browse"))));
+        let connected = connected_options(&request("Unseen Name", None), &[], &catalog);
+        assert_eq!(connected.len(), CONNECTED_RELATED_OPTIONS, "connected callers can review more related choices without changing the App limit");
+        assert!(connected.iter().filter_map(|option| option.source.source_slug.as_deref()).collect::<BTreeSet<_>>().len() >= 5);
     }
 
     #[tokio::test]

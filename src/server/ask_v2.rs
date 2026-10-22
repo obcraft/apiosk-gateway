@@ -771,6 +771,9 @@ async fn search_catalog_with_options(state: &ServerState, parsed_request: &Parse
             describe_endpoints(&mut matches, &catalog, sources.as_ref().map(|sources| sources.as_slice()));
             if connected { direct_source_inputs(&mut matches); }
             bind_inputs(&mut matches, parsed_request);
+            let source_options = if connected {
+                describe_connected_options(&source_options, parsed_request, &catalog, sources.as_ref().map(|sources| sources.as_slice()))
+            } else { serde_json::to_value(source_options).unwrap_or_else(|_| json!([])) };
             (
                 matches,
                 capability_intake::source_count(&catalog),
@@ -809,7 +812,7 @@ async fn search_catalog_with_options(state: &ServerState, parsed_request: &Parse
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             describe_external(&mut matches, state).await;
             bind_inputs(&mut matches, parsed_request);
-            (matches, 0, String::new(), Vec::new())
+            (matches, 0, String::new(), json!([]))
         }
     };
     let mut occurrences = BTreeMap::<String, usize>::new();
@@ -864,6 +867,24 @@ fn direct_source_inputs(matches: &mut Value) {
         .flat_map(|found| found["apiosk"].as_array_mut().into_iter().flatten()) {
         if candidate["endpoint"].is_object() { candidate["endpoint"]["lookup"] = Value::Null; }
     }
+}
+
+/// Related signed choices need the same native input review as primary matches.
+/// Keep their identity/requirement intact; descriptor metadata is presentation
+/// only and is excluded by the typed signed snapshot serializer.
+fn describe_connected_options(options: &[crate::ask_v2::source_options::SourceOption], parsed: &ParsedRequest,
+    catalog: &crate::catalog::Catalog, sources: Option<&[crate::sources::Source]>) -> Value {
+    Value::Array(options.iter().map(|option| {
+        let mut value = serde_json::to_value(option).unwrap_or_else(|_| json!({}));
+        let mut single = parsed.clone();
+        single.capabilities = vec![option.requirement.clone()];
+        let mut matched = json!([{"slug":option.requirement.slug,"apiosk":[option.source]}]);
+        describe_endpoints(&mut matched, catalog, sources);
+        direct_source_inputs(&mut matched);
+        bind_inputs(&mut matched, &single);
+        value["endpoint"] = matched[0]["apiosk"][0]["endpoint"].clone();
+        value
+    }).collect())
 }
 
 /// Reuse literal values under the same rules as the App's input review. A
@@ -1073,6 +1094,48 @@ mod tests {
         assert_eq!(connected["inputs"][0]["field"],"company_registry.openkvk_slug");
         assert_eq!(connected["input_values"],json!({}));
         assert_eq!(connected["missing_inputs"],json!(["company_registry.openkvk_slug"]),"connected basket asks for exactly the native input it accepts");
+    }
+
+    #[test]
+    fn connected_compound_company_search_exposes_related_native_sources_and_signed_choices() {
+        let snapshot = match std::env::var("CONNECTED_COMPOUND_CATALOG") {
+            Ok(path) => std::fs::read_to_string(path).unwrap(),
+            Err(_) => include_str!("../../tests/fixtures/connected-selection/compound-catalog.json").into(),
+        };
+        let catalog=crate::catalog::Catalog::build(serde_json::from_str(&snapshot).unwrap());
+        if std::env::var("CONNECTED_COMPOUND_CATALOG").is_err() {
+            assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        }
+        let capture:Value=serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/fcca-compound-free.json")).unwrap();
+        let parsed:ParsedRequest=serde_json::from_value(capture["parsed_request"].clone()).unwrap();
+        let original=serde_json::to_value(&parsed).unwrap();
+        let matches:Vec<Match>=serde_json::from_value(capture["matches"].clone()).unwrap();
+        assert!(matches.iter().flat_map(|found| &found.apiosk).filter(|candidate| candidate.availability=="supported")
+            .all(|candidate| candidate.source_slug.as_deref()==Some("apimarket-magicapi-crunchbase-bbcca0a6")), "actual executable primary match was only Crunchbase");
+        let options=crate::ask_v2::source_options::connected_options(&parsed,&matches,&catalog);
+        let exposed=describe_connected_options(&options,&parsed,&catalog,None);
+        assert!(exposed.as_array().unwrap().iter().all(|option| option["endpoint"]["inputs"].is_array() && option["endpoint"]["lookup"].is_null()));
+        for (endpoint, capability) in [
+            ("b050c654-284a-49e8-a7ca-0bfca565816e","company.registry-profile"),
+            ("46e9d53a-1942-442a-a310-5e1a6b7f8297","company_registry.search"),
+            ("7e58d830-1e94-41ff-9809-66552e9bc431","company_registry.search"),
+        ] {
+            let option=exposed.as_array().unwrap().iter().find(|option| option["source"]["endpoint_id"]==endpoint && option["source"]["capability"]==capability).expect(capability);
+            assert_eq!(option["subject_id"],"s1");
+            assert_eq!(option["endpoint"]["missing_inputs"],json!([]));
+            assert!(!option["endpoint"]["input_values"].as_object().unwrap().is_empty());
+            assert!(option["endpoint"]["price"].is_object());
+        }
+        let signer=crate::state::Signer::new(vec![7;32]).unwrap();
+        let principal=crate::auth::Principal{owner:Uuid::new_v4(),workspace:None,connection:Some(Uuid::new_v4())};
+        let response=json!({"matches":matches,"source_options":exposed,"catalog_version":catalog.version,"apiosk_sources_searched":catalog.known_sources.len()});
+        let token=crate::search_snapshot::Snapshot::issue_connected(&signer,&principal,&parsed,&response).unwrap();
+        let saved=crate::search_snapshot::Snapshot::open_connected(&signer,&principal,&parsed,&token).unwrap();
+        assert_eq!(saved.source_options().len(),options.len());
+        assert!(serde_json::to_value(saved.source_options()).unwrap().as_array().unwrap().iter().all(|option| option.get("endpoint").is_none()),"presentation schemas are not duplicated into the signed proof");
+        assert_eq!(serde_json::to_value(&parsed).unwrap(),original,"canonical requested coverage is unchanged");
+        assert!(crate::ask_v2::source_options::options(&parsed,&matches,&catalog).len()<=10,"ordinary App shortlist is unchanged");
+        println!("compound choice replay: {} signed options, {} token bytes, {} unrelated inadmissible catalog rows excluded",options.len(),token.len(),catalog.rejected.len());
     }
 
     #[test]

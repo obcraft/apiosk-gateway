@@ -183,7 +183,7 @@ pub(crate) fn compile_selected(
         if let Some(feedback) = super::selected_collection::feedback(question, catalog, &part, service) { anyhow::bail!(feedback); }
         let direct = compile_scoped(question, task, catalog, &part, Some(&explicit));
         let directly_proven = direct.is_some();
-        let prepared = direct.or_else(|| identity_verified_contribution(question, task, catalog, &part, service, &explicit))
+        let mut prepared = direct.or_else(|| identity_verified_contribution(question, task, catalog, &part, service, &explicit))
             .or_else(|| super::selected_collection::contribution(question, task, catalog, &part, service, &explicit)).with_context(|| {
             if let Some(feedback) = super::selected_collection::feedback(question, catalog, &part, service) { return feedback; }
             let missing: Vec<_> = service.contract.requires.iter().filter(|input| !input.optional).filter(|input|
@@ -192,6 +192,9 @@ pub(crate) fn compile_selected(
             if missing.is_empty() { format!("{} cannot preserve the requested filters and output scope. Choose another source or revise the inputs.", service.name) }
             else { format!("Enter {} for {} before reviewing the selected sources.", missing.join(", "), service.name) }
         })?;
+        if let Some(notice) = super::selected_collection::scope_notice(question, catalog, &part, service) {
+            if !prepared.coverage.limitations.contains(&notice) { prepared.coverage.limitations.push(notice); }
+        }
         if directly_proven && original.parsed_request.subjects.iter().filter(|candidate| candidate.label == subject.label).count() == 1 {
             // Original coverage can be proved by an individual selected root
             // even when another root adds its own provider-specific input.
@@ -536,6 +539,36 @@ mod tests {
         }
         let mut filtered=intake.clone(); filtered.parsed_request.subjects[0].identifiers.insert("status".into(),"open".into());
         assert!(compile_selected(question,&Task::default(),&catalog,&filtered,&[choice],&options).is_err(),"dropped another filter");
+    }
+
+    #[test]
+    fn direct_energy_output_retains_national_page_limits_when_region_was_omitted() {
+        let (catalog, question, mut intake, _, mut choice) = energy_selection_fixture();
+        intake.parsed_request.subjects[0].kind = "tender".into();
+        intake.parsed_request.subjects[0].identifiers.clear();
+        let cap = &mut intake.parsed_request.capabilities[0];
+        cap.slug = "procurement.tenderSearch".into();
+        cap.inputs.clear();
+        cap.outputs = vec!["tenders".into()];
+        cap.description = "Search for new energy procurement tenders published in the past 7 days in the Netherlands and the EU".into();
+        intake.matches[0].slug = cap.slug.clone();
+        let options = crate::ask_v2::source_options::connected_options(&intake.parsed_request, &intake.matches, &catalog);
+        choice.input.insert("company_intel.input.search".into(), json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(), json!("AF7"));
+        let prepared = compile_selected(&question, &Task::default(), &catalog, &intake, &[choice], &options).unwrap();
+        assert!(prepared.coverage.gaps.is_empty(), "the direct output remains proved; source limits are explicit notices");
+        let notice = prepared.coverage.limitations.iter().find(|notice| notice.contains("Fixed source country: NL")).unwrap();
+        assert!(notice.contains("one bounded page, newest first") && notice.contains("coverage outside NL is not established"));
+        assert!(notice.contains(&question), "retain the complete original NL and EU request");
+        assert!(prepared.reply.intent.as_ref().unwrap().answer_operations.contains(notice));
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake).unwrap(), serde_json::to_value(&intake).unwrap());
+        let stored: super::super::Coverage = serde_json::from_value(serde_json::to_value(&prepared.coverage).unwrap()).unwrap();
+        assert!(stored.limitations.contains(notice));
+        let (task, plan) = plan(prepared, &question, &catalog);
+        assert_eq!(plan.steps.len(), 1);
+        assert_eq!(plan.cap_atomic, 54348);
+        assert_eq!(plan.steps[0].service.inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary).unwrap(),
+            json!({"search":"energie","publicatieDatumPreset":"AF7","page":0,"size":20,"sort":"publicatieDatum,desc"}));
     }
 
     #[test]

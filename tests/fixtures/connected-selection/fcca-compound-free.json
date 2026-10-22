@@ -1,0 +1,706 @@
+{
+  "question": "Via Apiosk: Verzamel de bedrijfsgegevens, bestuurders en eigendomsstructuur van Financial Crime Compliance Associates; KVK-nummer: 91251982 voor een cliëntonderzoek. Vermeld de bronnen en geef aan welke informatie ontbreekt of nog gecontroleerd moet worden.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.9,
+        "description": "Retrieve business details, directors and ownership structure for the specified company, including source references and indication of missing or unchecked information.",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company profile",
+        "outputs": [
+          "business_details",
+          "directors",
+          "ownership_structure",
+          "sources",
+          "missing_information"
+        ],
+        "slug": "company.profile",
+        "source_hint": null,
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T21:32:46.492091632+00:00",
+      "text_sha256": "89263aee5c569c4687527c902ed6e4252248a9e0eeec81df2391482914d85eee"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "kvk_number": "91251982"
+        },
+        "label": "Financial Crime Compliance Associates",
+        "type": "company"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "apiosk": [
+        {
+          "api_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company.crunchbase-profile",
+          "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "capability": "company.crunchbase-profile",
+            "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+            "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company.crunchbase_entity_id",
+                "required": true,
+                "schema": {
+                  "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "company.crunchbase_entity_id"
+            ],
+            "name": "Crunchbase",
+            "outputs": [
+              {
+                "field": "company.crunchbase_profile_result",
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\"]}",
+                      "properties": {
+                        "cards": {
+                          "$comment": "{\"apiosk_output_aliases_v1\":[\"founders\",\"employees\",\"board_members\",\"advisors\",\"funding_rounds\",\"investors\"]}",
+                          "items": {
+                            "properties": {
+                              "card_id": {
+                                "type": "string"
+                              },
+                              "entities": {
+                                "items": {
+                                  "properties": {
+                                    "properties": {
+                                      "items": {
+                                        "properties": {
+                                          "field_id": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "value": {}
+                                        },
+                                        "type": "object"
+                                      },
+                                      "type": "array"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "type": [
+                                  "array",
+                                  "null"
+                                ]
+                              },
+                              "entity_def_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "has_more_entities": {
+                                "type": "boolean"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "entity_def_id": {
+                          "enum": [
+                            "organization",
+                            null
+                          ],
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "properties": {
+                          "$comment": "{\"apiosk_output_aliases_v1\":[\"name\",\"description\",\"website\",\"headquarters\",\"headcount\",\"employee_count\",\"funding_total\"]}",
+                          "items": {
+                            "properties": {
+                              "field_id": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "value": {}
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "request_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "properties",
+                        "cards"
+                      ],
+                      "type": "object"
+                    },
+                    "retrieved_at": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "enum": [
+                        "Crunchbase"
+                      ],
+                      "type": "string"
+                    },
+                    "tool": {
+                      "enum": [
+                        "cb_entity_autocomplete",
+                        "cb_search_query",
+                        "cb_entity_get",
+                        "cb_reference"
+                      ]
+                    },
+                    "transport": {
+                      "enum": [
+                        "official_mcp"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "transport",
+                    "tool",
+                    "data",
+                    "retrieved_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "54347",
+              "currency": "USDC",
+              "provider_atomic": "47258"
+            },
+            "source": {
+              "logo_url": "https://www.crunchbase.com/favicon.ico",
+              "name": "Crunchbase",
+              "slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "url": "https://data.crunchbase.com/docs/tool-reference",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+          "logo_url": "https://www.crunchbase.com/favicon.ico",
+          "method": "POST",
+          "name": "Crunchbase",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054347 USD",
+          "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+          "subject_id": "s1",
+          "url": "https://data.crunchbase.com/docs/tool-reference"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": null,
+          "capability": null,
+          "description": "French and European company data from official registers: company profiles, annual accounts, directors and ownership, legal alerts, procurement, establishments and business checks.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "logo_url": "https://app.apiosk.com/brands/sirenic.png",
+          "method": "",
+          "name": "Sirenic",
+          "network": null,
+          "origin": "apiosk",
+          "price": null,
+          "source_slug": "sirenic",
+          "subject_id": "s1",
+          "url": null
+        }
+      ],
+      "coinbase": [],
+      "coinbase_status": "complete",
+      "operations": [
+        "company.crunchbase-profile"
+      ],
+      "query": "Company profile. Retrieve business details, directors and ownership structure for the specified company, including source references and indication of missing or unchecked information. kvk number",
+      "slug": "company.profile",
+      "subject_id": "s1"
+    }
+  ],
+  "source_options": [
+    {
+      "missing_inputs": [
+        "company.crunchbase_entity_id"
+      ],
+      "reason": "Matches your question",
+      "requirement": {
+        "confidence": 0.9,
+        "description": "Retrieve business details, directors and ownership structure for the specified company, including source references and indication of missing or unchecked information.",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company profile",
+        "outputs": [
+          "business_details",
+          "directors",
+          "ownership_structure",
+          "sources",
+          "missing_information"
+        ],
+        "slug": "company.profile",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.crunchbase-profile",
+        "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+        "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+        "method": "POST",
+        "name": "Crunchbase",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054347 USD",
+        "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "url": "https://data.crunchbase.com/docs/tool-reference"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "crunchbase.entity_autocomplete_query": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+        "domain": "company",
+        "inputs": [
+          "crunchbase.entity_autocomplete_query"
+        ],
+        "missing": [],
+        "name": "Find official company identities",
+        "outputs": [
+          "company.crunchbase_official_search_result"
+        ],
+        "slug": "company.crunchbase-official-search",
+        "source_hint": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.crunchbase-official-search",
+        "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+        "endpoint_id": "6558d1c2-efdb-493a-939b-1aba3e88e520",
+        "method": "POST",
+        "name": "Crunchbase",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054347 USD",
+        "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "url": "https://data.crunchbase.com/docs/tool-reference"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates",
+        "company_registry.kvknummer": "91251982"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+        "domain": "company",
+        "inputs": [
+          "company.name",
+          "company_registry.kvknummer"
+        ],
+        "missing": [],
+        "name": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered compan",
+        "outputs": [
+          "company.name",
+          "company_registry.kvknummer"
+        ],
+        "slug": "company_registry.search",
+        "source_hint": "kvk-dutch-business-register",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company_registry.search",
+        "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+        "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+        "method": "GET",
+        "name": "KVK Business Register",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.021739 USD",
+        "source_slug": "kvk-dutch-business-register",
+        "url": "https://developers.kvk.nl/nl/documentation"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "missing": [],
+        "name": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered compan",
+        "outputs": [
+          "company.name",
+          "company_registry.kvknummer",
+          "company_registry.openkvk_slug"
+        ],
+        "slug": "company_registry.search",
+        "source_hint": "overheid-io",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company_registry.search",
+        "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+        "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+        "method": "GET",
+        "name": "Overheid.io Public Data",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.057500 USD",
+        "source_slug": "overheid-io",
+        "url": "https://overheid.io/documentatie/"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "missing": [],
+        "name": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags a",
+        "outputs": [
+          "company.country_code",
+          "company.name",
+          "company.registration.be.national_id",
+          "company.registration.cz.national_id",
+          "company.registration.dk.national_id",
+          "company.registration.ee.national_id",
+          "company.registration.es.national_id",
+          "company.registration.eu.identity",
+          "company.registration.eu.national_id",
+          "company.registration.fi.national_id",
+          "company.registration.gb.companies_house",
+          "company.registration.lv.national_id",
+          "company.registration.no.national_id",
+          "company.registration.pl.national_id",
+          "company.registration.se.national_id",
+          "company.registration.sk.national_id"
+        ],
+        "slug": "company.eu-registry-search",
+        "source_hint": "sirenic",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.eu-registry-search",
+        "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+        "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+        "method": "GET",
+        "name": "Sirenic",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.003450 USD",
+        "source_slug": "sirenic",
+        "url": "https://api.sirenic.eu/openapi.json"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "source_input.e22c6c82933545999a55d64ac65128077.query": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+        "domain": "company",
+        "inputs": [
+          "source_input.e22c6c82933545999a55d64ac65128077.query"
+        ],
+        "missing": [],
+        "name": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links",
+        "outputs": [
+          "company.glassdoor_search_results"
+        ],
+        "slug": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "source_hint": "openwebninja",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+        "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+        "method": "GET",
+        "name": "OpenWeb Ninja",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.003450 USD",
+        "source_slug": "openwebninja",
+        "url": "https://x402.openwebninja.com/llms.txt"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entity status. Returns matching LEIs and canonical legal-entity records rather than scraped firmographic guesses.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "missing": [],
+        "name": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entit",
+        "outputs": [
+          "company.gleif_record",
+          "company.name",
+          "company.registration.lei"
+        ],
+        "slug": "company.legal-entity-search",
+        "source_hint": "gleif",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.legal-entity-search",
+        "description": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entity status. Returns matching LEIs and canonical legal-entity records rather than scraped firmographic guesses.",
+        "endpoint_id": "b2738673-7f30-4c6c-a962-cb83fc71f7b0",
+        "method": "GET",
+        "name": "GLEIF",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "gleif",
+        "url": "https://www.gleif.org/en/lei-data/gleif-api"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "missing": [],
+        "name": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "outputs": [
+          "company.enriched_profile"
+        ],
+        "slug": "company.enrich-by-name",
+        "source_hint": "stableenrich",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.enrich-by-name",
+        "description": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "endpoint_id": "c6f67942-288f-4500-8418-3eede3a6eacd",
+        "method": "POST",
+        "name": "StableEnrich",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.069000 USD",
+        "source_slug": "stableenrich",
+        "url": "https://stableenrich.dev/openapi.json"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "source_input.ec5383313f36e495499f30c0be7d16aa6.company": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL. Answers \"Apple revenue last 8 quarters\", \"is NVDA net income growing\", \"MSFT EPS trend\". Revenue, net income, diluted EPS per quarter with computed YoY changes and the exact XBRL tag used — every number verbatim from data.sec.gov companyfacts, nothing modeled. Accepts ticker, company name, or CIK. No LLM, no key",
+        "domain": "general",
+        "inputs": [
+          "source_input.ec5383313f36e495499f30c0be7d16aa6.company"
+        ],
+        "missing": [],
+        "name": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL",
+        "outputs": [
+          "source_document.ec5383313f36e495499f30c0be7d16aa6.response"
+        ],
+        "slug": "operation.filingspulse.get-api-filings-quarterly-c5383313",
+        "source_hint": "filingspulse",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "operation.filingspulse.get-api-filings-quarterly-c5383313",
+        "description": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL. Answers \"Apple revenue last 8 quarters\", \"is NVDA net income growing\", \"MSFT EPS trend\". Revenue, net income, diluted EPS per quarter with computed YoY changes and the exact XBRL tag used — every number verbatim from data.sec.gov companyfacts, nothing modeled. Accepts ticker, company name, or CIK. No LLM, no key",
+        "endpoint_id": "c5383313-f36e-4954-99f3-0c0be7d16aa6",
+        "method": "GET",
+        "name": "FilingsPulse",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.023000 USD",
+        "source_slug": "filingspulse",
+        "url": "https://filingspulse.theaslangroupllc.com/llms.txt"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "missing": [],
+        "name": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "outputs": [
+          "company.watchlist_search_page"
+        ],
+        "slug": "company.watchlist-search",
+        "source_hint": "opensanctions",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.watchlist-search",
+        "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "endpoint_id": "acd906d7-1a9d-4ac7-b949-a163fe08c678",
+        "method": "GET",
+        "name": "OpenSanctions",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.097826 USD",
+        "source_slug": "opensanctions",
+        "url": "https://www.opensanctions.org/docs/api/"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "input_values": {
+        "company.crunchbase_query": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+        "domain": "company",
+        "inputs": [
+          "company.crunchbase_query"
+        ],
+        "missing": [],
+        "name": "Find companies on Crunchbase by name and return short company descriptions and profile links",
+        "outputs": [
+          "company.crunchbase_search_results"
+        ],
+        "slug": "company.crunchbase-search",
+        "source_hint": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "company.crunchbase-search",
+        "description": "Find companies on Crunchbase by name and return short company descriptions and profile links. A name can match several different companies; this is not a complete company profile.",
+        "endpoint_id": "8f4e21d7-6c40-57be-8c8e-a582f30327f8",
+        "method": "POST",
+        "name": "Crunchbase",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.100000 USD",
+        "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "url": "https://docs.api.market/api-product-docs/magicapi/crunchbase-api"
+      },
+      "subject_id": "s1"
+    }
+  ]
+}
