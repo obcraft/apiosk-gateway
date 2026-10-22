@@ -96,6 +96,51 @@ async fn connected_free_subjectless_collection_has_signed_choices_and_manual_fil
     let task:Uuid=quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
     assert_no_purchase(&intake,&person,task).await;
     assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),1,"selection does not reparse or purchase");
+
+    // A different real model response describes the same request as two
+    // locations with a generic domain and a domain-qualified collection output.
+    // Catalog discovery must recover its native choices without merging NL/EU.
+    let regional:Value=serde_json::from_str(include_str!("../fixtures/connected-selection/energy-generic-region-free.json")).unwrap();
+    intake.model.ask_v2_replies.lock().unwrap().push_back(regional["parsed_request"].clone());
+    let (status,found)=intake.send(&person.bearer,"/v2/ask",Some(json!({"question":question}))).await;
+    assert_eq!(status,StatusCode::OK,"{found}");
+    assert_eq!(found["attempts"],1,"a valid generic parse needs catalog evidence, not another model answer");
+    assert_eq!(found["parsed_request"]["subjects"],regional["parsed_request"]["subjects"]);
+    for cap in found["parsed_request"]["capabilities"].as_array().unwrap() {
+        assert_eq!(cap["domain"],"general"); assert_eq!(cap["outputs"],json!(["procurement_records"]));
+    }
+    let options=found["source_options"].as_array().unwrap();
+    let native=|option:&&Value|option["source"]["endpoint_id"]==endpoint.to_string()
+        &&option["source"]["capability"]=="procurement.nl-public-contracts";
+    let nl=options.iter().filter(native).find(|option|option["subject_id"]=="s1")
+        .expect("the domain-qualified documented collection must expose the native NL source");
+    assert!(!options.iter().filter(native).any(|option|option["subject_id"]=="s2"),"a source limited to NL must not be offered as an executable EU choice");
+    assert_eq!(nl["endpoint"]["input_values"],json!({}),"region labels are not keyword filters");
+    let selection=json!({"endpoint_id":endpoint,"capability":"procurement.nl-public-contracts","subject_id":"s1",
+        "input":{"company_intel.input.search":"energie","company_intel.input.publicatiedatumpreset":"AF7"}});
+    let request=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":found["parsed_request"],"search_id":found["search_id"],"selections":[selection.clone()]});
+    let mut empty=request.clone(); empty["request_id"]=json!(Uuid::new_v4()); empty["selections"][0]["input"]=json!({});
+    let before=task_count(&intake,&person).await;
+    let (_,refused)=intake.send(&person.bearer,"/v2/ask/prepare",Some(empty)).await;
+    assert!(refused["proposal"].is_null(),"the generic output alias cannot bypass required keyword/date scope: {refused}");
+    assert_eq!(task_count(&intake,&person).await,before);
+    let (status,quote)=intake.send(&person.bearer,"/v2/ask/prepare",Some(request.clone())).await;
+    assert_eq!(status,StatusCode::OK,"{quote}"); assert_eq!(quote["status"],"ready","{quote}");
+    assert_eq!(quote["proposal"]["max_total_atomic"],"54348");
+    assert_eq!(quote["proposal"]["steps"],json!(["procurement.nl-public-contracts"]));
+    let task:Uuid=quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let saved:Value=sqlx::query_scalar("SELECT document FROM tasks WHERE id=$1").bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(saved["connected_coverage"]["original_intake"]["parsed_request"]["subjects"],regional["parsed_request"]["subjects"]);
+    assert!(saved["connected_coverage"]["gaps"].as_array().unwrap().iter().any(|gap|gap["subject"]=="EU"),"the selected NL source must leave the independent EU requirement missing: {}",saved["connected_coverage"]);
+    assert!(quote["context_view"]["coverage_notices"].to_string().contains("EU"));
+    assert_no_purchase(&intake,&person,task).await;
+    let mut eu=request; eu["request_id"]=json!(Uuid::new_v4()); eu["selections"][0]["subject_id"]=json!("s2");
+    let before=task_count(&intake,&person).await;
+    let (_,refused)=intake.send(&person.bearer,"/v2/ask/prepare",Some(eu)).await;
+    assert!(refused["proposal"].is_null(),"an unoffered national source cannot establish an EU-only location: {refused}");
+    assert_eq!(task_count(&intake,&person).await,before);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),2,"all manual choices reuse the canonical interpretations");
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

@@ -8,6 +8,7 @@ use std::collections::BTreeSet;
 mod collections;
 mod discovery;
 pub use discovery::{anchor_collection_request, input_context, refresh_discovery};
+pub(crate) use discovery::qualified_collection_domain;
 mod scope;
 pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requirements, ScopeRequirement};
 mod selected;

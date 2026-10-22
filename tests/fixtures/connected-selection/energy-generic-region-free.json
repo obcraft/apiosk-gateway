@@ -1,0 +1,409 @@
+{
+  "question": "Vind nieuwe energieaanbestedingen in Nederland en de EU, gepubliceerd in de afgelopen 7 dagen.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.9,
+        "description": "Find new energy procurements published in the last 7 days",
+        "domain": "general",
+        "inputs": [],
+        "missing": [],
+        "name": "Search energy procurements",
+        "outputs": [
+          "procurement_records"
+        ],
+        "slug": "general.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 0.9,
+        "description": "Find new energy procurements published in the last 7 days",
+        "domain": "general",
+        "inputs": [],
+        "missing": [],
+        "name": "Search energy procurements",
+        "outputs": [
+          "procurement_records"
+        ],
+        "slug": "general.search",
+        "source_hint": null,
+        "subject_id": "s2"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T22:16:29.560279167+00:00",
+      "text_sha256": "633de4ecb3df2da7ccacb6c37e13016f7c1ed818afac7e1fdc6c29477f3a062b"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {},
+        "label": "Nederland",
+        "type": "location"
+      },
+      {
+        "id": "s2",
+        "identifiers": {},
+        "label": "EU",
+        "type": "location"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "apiosk": [],
+      "coinbase": [],
+      "coinbase_status": "unavailable",
+      "operations": [],
+      "query": "Search energy procurements. Find new energy procurements published in the last 7 days",
+      "slug": "general.search",
+      "subject_id": "s1"
+    },
+    {
+      "apiosk": [],
+      "coinbase": [],
+      "coinbase_status": "unavailable",
+      "operations": [],
+      "query": "Search energy procurements. Find new energy procurements published in the last 7 days",
+      "slug": "general.search",
+      "subject_id": "s2"
+    }
+  ],
+  "source_options": [
+    {
+      "endpoint": {
+        "answer_supported": true,
+        "api_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "capability": "location.bag-address-context",
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "endpoint_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "input_values": {},
+        "inputs": [
+          {
+            "field": "location.bag_object_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          }
+        ],
+        "lookup": null,
+        "missing_inputs": [
+          "location.bag_object_id"
+        ],
+        "name": "PDOK Maps & Addresses",
+        "outputs": [
+          {
+            "field": "location.address_label",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.apartment_right_designations",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "field": "location.bag_address_id",
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.bag_object_id",
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.district_code",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.municipality",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.municipality_code",
+            "schema": {
+              "pattern": "^[0-9]{4}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.neighbourhood",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.neighbourhood_code",
+            "schema": {
+              "pattern": "^BU[A-Za-z0-9]{8}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.parcel_designations",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          }
+        ],
+        "price": {
+          "buyer_atomic": "54348",
+          "currency": "USDC",
+          "provider_atomic": "47259"
+        },
+        "source": {
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/pdok-logo.png",
+          "name": "PDOK Maps & Addresses",
+          "slug": "pdok",
+          "url": "https://www.pdok.nl/ogc-apis",
+          "usage_notice": null
+        }
+      },
+      "missing_inputs": [
+        "location.bag_object_id"
+      ],
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "domain": "location",
+        "inputs": [
+          "location.bag_object_id"
+        ],
+        "missing": [
+          "location.bag_object_id"
+        ],
+        "name": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels",
+        "outputs": [
+          "location.address_label",
+          "location.apartment_right_designations",
+          "location.bag_address_id",
+          "location.bag_object_id",
+          "location.district_code",
+          "location.municipality",
+          "location.municipality_code",
+          "location.neighbourhood",
+          "location.neighbourhood_code",
+          "location.parcel_designations"
+        ],
+        "slug": "location.bag-address-context",
+        "source_hint": "pdok",
+        "subject_id": "s1"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "location.bag-address-context",
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "endpoint_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "method": "GET",
+        "name": "PDOK Maps & Addresses",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "pdok",
+        "url": "https://www.pdok.nl/ogc-apis"
+      },
+      "subject_id": "s1"
+    },
+    {
+      "endpoint": {
+        "answer_supported": true,
+        "api_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "capability": "location.bag-address-context",
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "endpoint_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "input_values": {},
+        "inputs": [
+          {
+            "field": "location.bag_object_id",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          }
+        ],
+        "lookup": null,
+        "missing_inputs": [
+          "location.bag_object_id"
+        ],
+        "name": "PDOK Maps & Addresses",
+        "outputs": [
+          {
+            "field": "location.address_label",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.apartment_right_designations",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "field": "location.bag_address_id",
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.bag_object_id",
+            "schema": {
+              "pattern": "^[0-9]{16}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.district_code",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.municipality",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.municipality_code",
+            "schema": {
+              "pattern": "^[0-9]{4}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.neighbourhood",
+            "schema": {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.neighbourhood_code",
+            "schema": {
+              "pattern": "^BU[A-Za-z0-9]{8}$",
+              "type": "string"
+            }
+          },
+          {
+            "field": "location.parcel_designations",
+            "schema": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          }
+        ],
+        "price": {
+          "buyer_atomic": "54348",
+          "currency": "USDC",
+          "provider_atomic": "47259"
+        },
+        "source": {
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/pdok-logo.png",
+          "name": "PDOK Maps & Addresses",
+          "slug": "pdok",
+          "url": "https://www.pdok.nl/ogc-apis",
+          "usage_notice": null
+        }
+      },
+      "missing_inputs": [
+        "location.bag_object_id"
+      ],
+      "reason": "Related records for this subject",
+      "requirement": {
+        "confidence": 1,
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "domain": "location",
+        "inputs": [
+          "location.bag_object_id"
+        ],
+        "missing": [
+          "location.bag_object_id"
+        ],
+        "name": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels",
+        "outputs": [
+          "location.address_label",
+          "location.apartment_right_designations",
+          "location.bag_address_id",
+          "location.bag_object_id",
+          "location.district_code",
+          "location.municipality",
+          "location.municipality_code",
+          "location.neighbourhood",
+          "location.neighbourhood_code",
+          "location.parcel_designations"
+        ],
+        "slug": "location.bag-address-context",
+        "source_hint": "pdok",
+        "subject_id": "s2"
+      },
+      "source": {
+        "availability": "supported",
+        "calls_30d": null,
+        "capability": "location.bag-address-context",
+        "description": "Resolve a BAG addressable-object ID to address, municipality, neighbourhood and linked parcels. No owner inference.",
+        "endpoint_id": "bc5c8920-041c-43f9-ba32-edf9b074ed38",
+        "method": "GET",
+        "name": "PDOK Maps & Addresses",
+        "network": null,
+        "origin": "apiosk",
+        "price": "0.054348 USD",
+        "source_slug": "pdok",
+        "url": "https://www.pdok.nl/ogc-apis"
+      },
+      "subject_id": "s2"
+    }
+  ],
+  "catalog_version": "46c878bfc12b6b991e4095ff61b722e2b6476ba968281a5dcc46e0dd120e5f67",
+  "apiosk_sources_searched": 46
+}

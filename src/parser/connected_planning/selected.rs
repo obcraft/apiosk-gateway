@@ -174,6 +174,9 @@ pub(crate) fn compile_selected(
             || selected.input.contains_key(field) || !explicit.values.contains_key(&(selected.subject_id.clone(), field.clone())));
         part.parsed_request.subjects = vec![subject.clone()];
         let mut requirement = option.requirement.clone(); requirement.source_hint = Some(service.api_slug.clone());
+        if matches!(requirement.domain.as_str(), "general" | "research") && super::discovery::proves(service, catalog, &requirement.outputs) {
+            if let Some(domain) = super::qualified_collection_domain(&requirement.outputs, catalog) { requirement.domain = domain; }
+        }
         for field in selected.input.keys() { if !requirement.inputs.contains(field) { requirement.inputs.push(field.clone()); } requirement.missing.retain(|missing| missing != field); }
         part.matches = vec![Match { slug: requirement.slug.clone(), query: requirement.description.clone(), operations: BTreeSet::from([selected.capability.clone()]),
             apiosk: vec![option.source.clone()], coinbase: vec![], coinbase_status: "complete".into() }];
@@ -650,6 +653,55 @@ mod tests {
         let mut parsed = raw.clone();
         assert!(!super::super::anchor_collection_request(&question, &mut parsed, &catalog), "an entity-keyed source cannot justify a subjectless anchor");
         assert_eq!(serde_json::to_value(parsed).unwrap(), serde_json::to_value(raw).unwrap());
+    }
+
+    #[test]
+    fn qualified_collection_with_literal_regions_recovers_the_national_choice_and_keeps_eu_missing() {
+        let (fixture_catalog, _, mut intake, _, mut choice) = energy_selection_fixture();
+        let catalog = match std::env::var("CONNECTED_GENERIC_REGION_CATALOG") {
+            Ok(path) => Catalog::build(serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()),
+            Err(_) => fixture_catalog,
+        };
+        intake.catalog_version = catalog.version.clone();
+        let saved: Value = serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-generic-region-free.json")).unwrap();
+        let question = saved["question"].as_str().unwrap();
+        intake.parsed_request = serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        intake.matches = serde_json::from_value(saved["matches"].clone()).unwrap();
+        let canonical = serde_json::to_value(&intake.parsed_request).unwrap();
+        if std::env::var("CONNECTED_GENERIC_REGION_CATALOG").is_ok() {
+            assert!(crate::ask_v2::source_options::options(&intake.parsed_request, &intake.matches, &catalog).iter().any(|option|
+                option.source.capability.as_deref() == Some("location.bag-address-context")), "ordinary App related choices remain unchanged");
+        }
+        assert!(super::super::refresh_discovery(&mut intake, &catalog));
+        assert_eq!(serde_json::to_value(&intake.parsed_request).unwrap(), canonical);
+        let options = crate::ask_v2::source_options::connected_options(&intake.parsed_request, &intake.matches, &catalog);
+        assert!(!options.iter().any(|option| option.source.capability.as_deref() == Some("location.bag-address-context")), "a geographic scope is not a request for address records");
+        let offered = options.iter().find(|option| option.subject_id == "s1" && option.source.capability.as_deref() == Some(choice.capability.as_str())).expect("national collection offered for Nederland");
+        assert!(!options.iter().any(|option| option.subject_id == "s2" && option.source.capability.as_deref() == Some(choice.capability.as_str())), "a fixed-NL source is not an executable EU-wide choice");
+        assert!(offered.input_values.is_empty(), "Nederland must not become a query or company name");
+        assert_eq!(offered.requirement.domain, "general");
+        choice.input.clear();
+        let error = compile_selected(question, &Task::default(), &catalog, &intake, &[choice.clone()], &options).err().unwrap().to_string();
+        assert!(error.contains("company_intel.input.search") && error.contains("AF7"), "{error}");
+        choice.input.insert("company_intel.input.search".into(), json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(), json!("AF7"));
+        let prepared = compile_selected(question, &Task::default(), &catalog, &intake, &[choice.clone()], &options).unwrap();
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake.parsed_request).unwrap(), canonical);
+        assert!(prepared.coverage.gaps.iter().any(|gap| gap.subject.as_deref() == Some("EU") && gap.output == "procurement_records"));
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("coverage outside NL is not established")));
+        assert!(prepared.reply.intent.as_ref().unwrap().answer_operations.iter().any(|notice| notice.contains("procurement records (EU)")));
+        let (task, plan) = plan(prepared, question, &catalog);
+        assert_eq!(plan.steps.len(), 1); assert_eq!(plan.cap_atomic, 54348);
+        assert_eq!(plan.steps[0].service.inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary).unwrap(),
+            json!({"search":"energie","publicatieDatumPreset":"AF7","page":0,"size":20,"sort":"publicatieDatum,desc"}));
+        for label in ["EU", "France", "Amsterdam"] {
+            let mut changed = intake.clone(); changed.parsed_request.subjects[0].label = label.into();
+            let error = compile_selected(question, &Task::default(), &catalog, &changed, &[choice.clone()], &options).err().expect("literal geographic scope widened to NL").to_string();
+            assert!(error.contains("geographic scope"), "{label}: {error}");
+        }
+        let mut extra = intake.clone(); extra.parsed_request.subjects[0].identifiers.insert("status".into(), "open".into());
+        assert!(compile_selected(question, &Task::default(), &catalog, &extra, &[choice], &options).is_err(), "another filter was dropped");
+        println!("generic regional collection replay: {} catalog services, {} offered choices, exact NL quote and retained EU gap", catalog.services.len(), options.len());
     }
 
     #[test]

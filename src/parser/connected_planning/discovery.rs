@@ -5,6 +5,29 @@ use crate::{capability_intake::{Intake, ParsedRequest, Subject}, catalog::{Catal
 use serde_json::Value;
 use std::collections::BTreeSet;
 
+fn collection(schema: &Value) -> bool {
+    schema["type"] == "array" && (schema["items"]["type"] == "object" || schema["items"]["properties"].is_object())
+        || schema["properties"].as_object().is_some_and(|fields| fields.values().any(collection))
+}
+
+fn collection_namespace(output: &str) -> Option<String> {
+    let normalized = output.to_lowercase().replace(['.', '-'], "_");
+    let (domain, category) = normalized.rsplit_once('_')?;
+    (!domain.is_empty() && matches!(category, "records" | "results" | "items" | "entries"))
+        .then(|| domain.to_owned())
+}
+
+/// A qualified collection label supplies only its reviewed catalog namespace,
+/// never an output guarantee or a rewritten geographic/entity subject.
+pub(crate) fn qualified_collection_domain(outputs: &[String], catalog: &Catalog) -> Option<String> {
+    let domains: BTreeSet<_> = outputs.iter().filter_map(|output| {
+        let domain = collection_namespace(output)?;
+        catalog.services.iter().any(|service| service.contract.capability_slug.split('.').next() == Some(domain.as_str())
+            && proves(service, catalog, std::slice::from_ref(output))).then_some(domain)
+    }).collect();
+    (domains.len() == 1).then(|| domains.into_iter().next().unwrap())
+}
+
 /// A subjectless collection request still needs a stable selection scope. This
 /// anchor is not a company, person, keyword or inferred identifier. Only a
 /// reviewed, already matched collection that needs no entity permits it.
@@ -17,10 +40,6 @@ pub fn anchor_collection_request(question: &str, parsed: &mut ParsedRequest, cat
     if cap.subject_id.is_some() || !cap.inputs.is_empty() || !cap.missing.is_empty() { return false; }
     let outputs: Vec<_> = cap.outputs.iter().filter(|output| !super::metadata(output)).collect();
     if outputs.is_empty() { return false; }
-    fn collection(schema: &Value) -> bool {
-        schema["type"] == "array" && (schema["items"]["type"] == "object" || schema["items"]["properties"].is_object())
-            || schema["properties"].as_object().is_some_and(|fields| fields.values().any(collection))
-    }
     // Search may omit answer-only rows, so its position is not the original
     // capability index. Probe this one retrieval while leaving the canonical
     // answer instructions unchanged.
@@ -62,9 +81,11 @@ fn collection_alias(schema: &Value, output: &str) -> bool {
 
 pub(super) fn proves(service: &Service, catalog: &Catalog, outputs: &[String]) -> bool {
     !service.unverified && service.contract.output_map.produces.keys().any(|fact|
-        catalog.vocabulary.get(fact).is_some_and(|definition| outputs.iter().any(|output|
+        catalog.vocabulary.get(fact).is_some_and(|definition| crate::ask_v2::output_schema::documented(&definition.value_schema) && outputs.iter().any(|output|
             !matches!(output.as_str(), "data" | "results" | "records" | "items" | "content" | "entries")
-                && collection_alias(&definition.value_schema, output))))
+                && (collection_alias(&definition.value_schema, output)
+                    || collection_namespace(output).as_deref() == service.contract.capability_slug.split('.').next()
+                        && collection(&definition.value_schema)))))
 }
 
 /// Recover only an empty connected-client match with an unambiguous namespace

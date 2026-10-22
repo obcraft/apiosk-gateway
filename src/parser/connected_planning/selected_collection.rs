@@ -106,6 +106,19 @@ fn reviewed_fields(question: &str, catalog: &Catalog, part: &Intake, service: &S
 }
 
 pub(super) fn feedback(question: &str, catalog: &Catalog, part: &Intake, service: &Service) -> Option<String> {
+    // A location label can be the collection's geographic scope rather than a
+    // search term. A fixed national source proves only that exact country;
+    // a city, EU, or another country must not silently become a national page.
+    if source_keyword(catalog, part, service).is_some() {
+        if let Some(fixed) = crate::ask_v2::search::fixed_endpoint_country(service, None) {
+            for subject in &part.parsed_request.subjects {
+                if matches!(subject.kind.as_str(), "location" | "place" | "region" | "country")
+                    && crate::ask_v2::search::exact_country(&subject.label).as_deref() != Some(fixed.as_str()) {
+                    return Some(format!("{} is limited to {fixed} and cannot establish the requested geographic scope {}. Choose a source that covers this scope; it will not be treated as {fixed}.", service.name, subject.label));
+                }
+            }
+        }
+    }
     // Mixed publication/deadline windows must be rejected before `days` narrows
     // to one window; otherwise a native output could bypass the fallback guard.
     let words = tokens(question);

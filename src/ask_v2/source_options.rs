@@ -159,8 +159,28 @@ fn matched_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog)
 pub(crate) fn connected_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
     let mut result = Vec::new();
     let mut seen = BTreeSet::new();
-    for option in matched_options(parsed, matches, catalog).into_iter()
+    let matched = matched_options(parsed, matches, catalog);
+    let matched_keys: BTreeSet<_> = matched.iter().map(key).collect();
+    for option in matched.into_iter()
         .chain(options_with_limit(parsed, matches, catalog, CONNECTED_RELATED_OPTIONS)) {
+        if let Some(subject) = parsed.subjects.iter().find(|subject| subject.id == option.subject_id
+            && matches!(subject.kind.as_str(), "location" | "place" | "region" | "country")) {
+            let requested: Vec<_> = parsed.capabilities.iter().filter(|cap| cap.subject_id.as_ref() == Some(&option.subject_id)
+                && !crate::capability_intake::answer_instruction(cap)).collect();
+            let domains: BTreeSet<_> = requested.iter().filter_map(|cap|
+                crate::parser::connected_planning::qualified_collection_domain(&cap.outputs, catalog)).collect();
+            // Keep an out-of-scope match visible as evidence, but do not sign a
+            // purchase choice that its fixed national contract cannot honor.
+            if !domains.is_empty() && catalog.services.iter().find(|service|
+                option.source.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str())
+                    && option.source.capability.as_deref() == Some(service.contract.capability_slug.as_str())
+                    && option.source.source_slug.as_deref() == Some(service.api_slug.as_str()))
+                .filter(|service| domains.contains(service.contract.capability_slug.split('.').next().unwrap_or("")))
+                .and_then(|service| super::search::fixed_endpoint_country(service, None))
+                .is_some_and(|country| super::search::exact_country(&subject.label).as_ref() != Some(&country)) { continue; }
+            if !matched_keys.contains(&key(&option)) && !domains.is_empty() && !domains.contains(&option.requirement.domain)
+                && !requested.iter().any(|cap| cap.domain == option.requirement.domain) { continue; }
+        }
         let identity = (option.source.endpoint_id.clone(), option.source.capability.clone(), option.subject_id.clone());
         if seen.insert(identity) { result.push(option); }
     }
