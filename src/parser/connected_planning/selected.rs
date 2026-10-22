@@ -45,6 +45,60 @@ fn overlay(subject: &mut Subject, field: &str, schema: &Value, value: &Value) ->
     Ok(())
 }
 
+// An explicitly selected source can contribute its own records even
+// when it cannot answer the requested profile. Only its documented result
+// identity may become a verification target; unrelated filters remain binding.
+fn identity_verified_contribution(
+    question: &str, task: &Task, catalog: &Catalog, part: &Intake,
+    service: &crate::catalog::Service, explicit: &ExplicitValues,
+) -> Option<Prepared> {
+    let identity = service.contract.identifies.as_ref()?;
+    if !service.contract.output_map.produces.contains_key(identity) { return None; }
+    let identity_schema = &catalog.vocabulary.get(identity)?.value_schema;
+    let subject = part.parsed_request.subjects.first()?;
+    let target = input_values::documented_literal(identity, identity_schema, subject)?;
+    catalog_core::facts::schema::validate(identity_schema, &target).ok()?;
+    let target_text = literal(&target).filter(|text| !text.trim().is_empty())?;
+    let fields: Vec<_> = service.contract.requires.iter().filter(|input| service.contract.input_map.contains_key(&input.fact_type))
+        .filter_map(|input| catalog.vocabulary.get(&input.fact_type).map(|fact| (input.fact_type.as_str(), &fact.value_schema))).collect();
+    let binds = |field: &str, schema: &Value, isolated: &Subject| input_values::documented_literal(field, schema, isolated)
+        .and_then(|value| literal(&value)).is_some_and(|value| !value.trim().is_empty());
+    let mut projected = subject.clone();
+    let mut admitted = BTreeSet::new();
+    let mut identity_keys = Vec::new();
+    for (key, _) in &subject.identifiers {
+        let mut isolated = subject.clone(); isolated.label.clear(); isolated.identifiers.retain(|other, _| other == key);
+        if fields.iter().any(|(field, schema)| binds(field, schema, &isolated)) { admitted.insert(key.clone()); }
+        else if input_values::documented_literal(identity, identity_schema, &isolated).as_ref() == Some(&target) {
+            identity_keys.push(key.clone()); admitted.insert(key.clone());
+        } else { return None; }
+    }
+    if identity_keys.is_empty() { return None; }
+    // Inputs mentioned independently of supplied identifiers are still scope.
+    // An absent or unknown input cannot be discarded by this interpretation.
+    if part.parsed_request.capabilities.iter().any(|cap| !cap.missing.is_empty() || cap.inputs.iter().any(|input|
+        !admitted.contains(input) && !fields.iter().any(|(field, _)| input == field) && input != identity)) { return None; }
+    for key in identity_keys { projected.identifiers.remove(&key); }
+    let bound_fields: Vec<_> = fields.iter().filter(|(field, schema)| binds(field, schema, &projected)).map(|(field, _)| (*field).to_owned()).collect();
+    if bound_fields.is_empty() { return None; }
+    let mut native = part.clone();
+    // Preserve collection ordering constraints before replacing output aliases.
+    let notices = super::collections::constrain_recency(question, &mut native, catalog)?;
+    native.parsed_request.subjects = vec![projected];
+    let cap = native.parsed_request.capabilities.first_mut()?;
+    cap.slug = service.contract.capability_slug.clone();
+    cap.inputs = bound_fields;
+    cap.outputs = service.contract.output_map.produces.keys().cloned().collect();
+    cap.missing.clear();
+    native.matches[0].slug = cap.slug.clone();
+    let mut prepared = compile_scoped(question, task, catalog, &native, Some(explicit))?;
+    prepared.coverage.limitations.extend(notices);
+    prepared.coverage.limitations.push(format!(
+        "{} returns source records. Verify the returned {} against {} before treating a record as the requested subject. This source does not by itself verify the originally requested profile or investigation.",
+        service.name, identity, target_text));
+    Some(prepared)
+}
+
 pub(crate) fn compile_selected(
     question: &str, task: &Task, catalog: &Catalog, original: &Intake,
     selections: &[SelectedSource], options: &[SourceOption],
@@ -108,23 +162,40 @@ pub(crate) fn compile_selected(
     coverage.original_intake = original.clone();
     let mut combined = scoped.clone(); combined.parsed_request.capabilities.clear(); combined.matches.clear(); combined.parsed_request.subjects.clear();
     let mut intent = Intent { subjects: vec![], goals: vec![], answer_operations: scoped.parsed_request.deliverable.operations.clone(), unresolved_references: vec![] };
-    let mut subject_indices = BTreeMap::new();
+    let mut subject_indices = BTreeMap::<String, usize>::new();
     for (selected, option, service) in selected_options {
         let mut part = scoped.clone();
-        let subject = scoped.parsed_request.subjects.iter().find(|subject| subject.id == selected.subject_id).unwrap().clone();
+        let mut subject = scoped.parsed_request.subjects.iter().find(|subject| subject.id == selected.subject_id).unwrap().clone();
+        let original_subject = original.parsed_request.subjects.iter().find(|subject| subject.id == selected.subject_id).unwrap();
+        // An explicitly entered input for another chosen root is proved by that
+        // root. Do not demand its provider identifier from this isolated call.
+        // Every original criterion stays here; the final union is checked again.
+        subject.identifiers.retain(|field, _| original_subject.identifiers.contains_key(field)
+            || selected.input.contains_key(field) || !explicit.values.contains_key(&(selected.subject_id.clone(), field.clone())));
         part.parsed_request.subjects = vec![subject.clone()];
         let mut requirement = option.requirement.clone(); requirement.source_hint = Some(service.api_slug.clone());
         for field in selected.input.keys() { if !requirement.inputs.contains(field) { requirement.inputs.push(field.clone()); } requirement.missing.retain(|missing| missing != field); }
         part.matches = vec![Match { slug: requirement.slug.clone(), query: requirement.description.clone(), operations: BTreeSet::from([selected.capability.clone()]),
             apiosk: vec![option.source.clone()], coinbase: vec![], coinbase_status: "complete".into() }];
         part.parsed_request.capabilities = vec![requirement]; part.selected_capabilities = BTreeSet::from([selected.capability.clone()]);
-        let prepared = compile_scoped(question, task, catalog, &part, Some(&explicit)).with_context(|| {
+        let direct = compile_scoped(question, task, catalog, &part, Some(&explicit));
+        let directly_proven = direct.is_some();
+        let prepared = direct.or_else(|| identity_verified_contribution(question, task, catalog, &part, service, &explicit)).with_context(|| {
             let missing: Vec<_> = service.contract.requires.iter().filter(|input| !input.optional).filter(|input|
                 catalog.vocabulary.get(&input.fact_type).is_none_or(|fact| input_values::documented_literal(&input.fact_type, &fact.value_schema, &subject).is_none()))
                 .map(|input| input.fact_type.as_str()).collect();
             if missing.is_empty() { format!("{} cannot preserve the requested filters and output scope. Choose another source or revise the inputs.", service.name) }
             else { format!("Enter {} for {} before reviewing the selected sources.", missing.join(", "), service.name) }
         })?;
+        if directly_proven && original.parsed_request.subjects.iter().filter(|candidate| candidate.label == subject.label).count() == 1 {
+            // Original coverage can be proved by an individual selected root
+            // even when another root adds its own provider-specific input.
+            coverage.gaps.retain(|gap| !(gap.subject.as_deref() == Some(subject.label.as_str())
+                && option.requirement.outputs.contains(&gap.output)
+                && original.parsed_request.capabilities.iter().any(|cap| cap.slug == option.requirement.slug && cap.subject_id == option.requirement.subject_id)
+                && !prepared.coverage.gaps.iter().any(|missing| missing.output == gap.output)));
+        }
+        let proven_subject = prepared.intake.parsed_request.subjects[0].clone();
         let part_intent = prepared.reply.intent.context("Selected source produced no executable request")?;
         ensure!(part_intent.subjects.len() == 1 && part_intent.goals.iter().any(|goal| goal.capability == selected.capability
             && goal.constraints.get("endpoint_id").and_then(Value::as_str) == Some(selected.endpoint_id.to_string().as_str())), "Selected source was replaced by another operation");
@@ -134,10 +205,13 @@ pub(crate) fn compile_selected(
         let index = if let Some(index) = subject_indices.get(&selected.subject_id).copied() {
             let existing: &mut crate::parser::Subject = &mut intent.subjects[index];
             for (field, value) in incoming.values { ensure!(existing.values.get(&field).is_none_or(|previous| previous == &value), "Selected sources have conflicting input bindings"); existing.values.insert(field, value); }
+            let parsed = &mut combined.parsed_request.subjects[index];
+            for (field, value) in proven_subject.identifiers { ensure!(parsed.identifiers.get(&field).is_none_or(|previous| previous == &value), "Selected sources have conflicting input criteria"); parsed.identifiers.insert(field, value); }
             index
         } else {
             let index = intent.subjects.len(); subject_indices.insert(selected.subject_id.clone(), index);
-            intent.subjects.push(incoming); combined.parsed_request.subjects.push(subject); index
+            intent.subjects.push(incoming);
+            combined.parsed_request.subjects.push(proven_subject); index
         };
         for mut goal in part_intent.goals { goal.subject = index; intent.goals.push(goal); }
         combined.parsed_request.capabilities.extend(prepared.intake.parsed_request.capabilities);
@@ -214,6 +288,98 @@ mod tests {
         let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &task, &intent) else { panic!("expected priced selected plan") };
         plan.validate_independent_inputs(&task, &catalog.vocabulary).unwrap();
         (task, plan)
+    }
+
+    fn live_fixture() -> (Catalog, String, Intake, Vec<SourceOption>) {
+        let catalog = Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/catalog.json")).unwrap());
+        assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+        let saved: Value = serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/fcca-free.json")).unwrap();
+        let parsed_request = serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        let matches: Vec<Match> = serde_json::from_value(saved["matches"].clone()).unwrap();
+        let options = crate::ask_v2::source_options::connected_options(&parsed_request, &matches, &catalog);
+        let intake = Intake { parsed_request, selected_capabilities: BTreeSet::new(), matches, apiosk_sources_searched: 2, catalog_version: catalog.version.clone() };
+        (catalog, saved["question"].as_str().unwrap().to_owned(), intake, options)
+    }
+
+    fn live_choice(options: &[SourceOption], endpoint: &str) -> SelectedSource {
+        let option = options.iter().find(|option| option.source.endpoint_id.as_deref() == Some(endpoint)).unwrap();
+        SelectedSource { endpoint_id:endpoint.parse().unwrap(), capability:option.source.capability.clone().unwrap(), subject_id:option.subject_id.clone(), input:option.input_values.clone() }
+    }
+
+    #[test]
+    fn actual_fcca_two_sources_keep_both_roots_price_and_original_gaps() {
+        let (catalog, question, intake, options) = live_fixture();
+        let mut choices = choose(&options);
+        choices.push(live_choice(&options, "7e58d830-1e94-41ff-9809-66552e9bc431"));
+        let prepared = compile_selected(&question, &Task::default(), &catalog, &intake, &choices, &options).unwrap();
+        assert_eq!(prepared.coverage.gaps.iter().map(|gap| gap.output.as_str()).collect::<Vec<_>>(), ["directors", "ownership_structure"]);
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("Verify the returned company_registry.kvknummer against 91251982")));
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake).unwrap(), serde_json::to_value(&intake).unwrap());
+        let (task, plan) = plan(prepared, &question, &catalog);
+        assert_eq!(plan.steps.len(), 2);
+        assert_eq!(plan.cap_atomic, plan.steps.iter().map(|step| step.service.total()).sum::<i64>());
+        let inputs: BTreeMap<_,_> = plan.steps.iter().map(|step| (step.service.endpoint_id.to_string(), step.service.inputs(&task, step.entity_ref, &catalog.vocabulary).unwrap())).collect();
+        assert_eq!(inputs["7e58d830-1e94-41ff-9809-66552e9bc431"], json!({"query":"Financial Crime Compliance Associates"}));
+        assert_eq!(inputs["b050c654-284a-49e8-a7ca-0bfca565816e"], json!({"kvkNummer":"91251982"}));
+        choices.reverse();
+        let reversed = compile_selected(&question, &Task::default(), &catalog, &intake, &choices, &options).unwrap();
+        assert_eq!(reversed.coverage.gaps.len(), 2);
+        let (_, reversed_plan) = self::plan(reversed, &question, &catalog);
+        assert_eq!(reversed_plan.cap_atomic, plan.cap_atomic);
+        assert_eq!(reversed_plan.steps.len(), 2);
+    }
+
+    #[test]
+    fn actual_fcca_search_alone_is_an_explicit_identity_check_with_original_gaps() {
+        let (catalog, question, intake, options) = live_fixture();
+        let choices = vec![live_choice(&options, "7e58d830-1e94-41ff-9809-66552e9bc431")];
+        let prepared = compile_selected(&question, &Task::default(), &catalog, &intake, &choices, &options).unwrap();
+        assert_eq!(prepared.coverage.gaps.iter().map(|gap| gap.output.as_str()).collect::<Vec<_>>(), ["company_details", "directors", "ownership_structure"]);
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("91251982") && notice.contains("Verify")));
+        let (task, plan) = plan(prepared, &question, &catalog);
+        assert_eq!(plan.steps.len(), 1);
+        assert_eq!(plan.steps[0].service.endpoint_id, choices[0].endpoint_id);
+        assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap(), json!({"query":"Financial Crime Compliance Associates"}));
+    }
+
+    #[test]
+    fn actual_fcca_lookup_requires_its_real_input_and_keeps_identity_verification() {
+        let (catalog, question, intake, options) = live_fixture();
+        let mut choices = choose(&options);
+        let lookup = live_choice(&options, "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd");
+        assert!(lookup.input.is_empty());
+        choices.push(lookup);
+        let error = compile_selected(&question, &Task::default(), &catalog, &intake, &choices, &options).err().unwrap().to_string();
+        assert!(error.contains("Enter company_registry.openkvk_slug"), "{error}");
+        // An explicitly entered fixture identifier, never inferred from the name.
+        choices[1].input.insert("company_registry.openkvk_slug".into(), json!("fixture-source-record-slug"));
+        let lookup_id = choices[1].endpoint_id;
+        for variant in [choices.clone(), choices.iter().cloned().rev().collect(), vec![choices[1].clone()]] {
+            let prepared = compile_selected(&question, &Task::default(), &catalog, &intake, &variant, &options).unwrap();
+            assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("Verify") && notice.contains("91251982")));
+            assert_eq!(prepared.coverage.gaps.len(), if variant.len() == 2 { 2 } else { 3 });
+            let (task, plan) = plan(prepared, &question, &catalog);
+            assert_eq!(plan.steps.len(), variant.len());
+            let lookup = plan.steps.iter().find(|step| step.service.endpoint_id == lookup_id).unwrap();
+            assert_eq!(lookup.service.inputs(&task, lookup.entity_ref, &catalog.vocabulary).unwrap(), json!({"id":"fixture-source-record-slug"}));
+        }
+    }
+
+    #[test]
+    fn source_identity_verification_cannot_drop_other_filters_or_unknown_inputs() {
+        let (catalog, question, intake, options) = live_fixture();
+        for filter in ["publication_after", "country", "status"] {
+            let mut filtered = intake.clone();
+            filtered.parsed_request.subjects[0].identifiers.insert(filter.into(), "explicit-filter".into());
+            filtered.parsed_request.capabilities[0].inputs.push(filter.into());
+            let mut constrained_options = options.clone();
+            for option in &mut constrained_options { if option.requirement.slug == "company.records.fetch" { option.requirement.inputs.push(filter.into()); } }
+            for choices in [vec![live_choice(&options,"7e58d830-1e94-41ff-9809-66552e9bc431")], {
+                let mut choices=choose(&options); choices.push(live_choice(&options,"7e58d830-1e94-41ff-9809-66552e9bc431")); choices
+            }] {
+                assert!(compile_selected(&question,&Task::default(),&catalog,&filtered,&choices,&constrained_options).is_err(), "discarded {filter}");
+            }
+        }
     }
 
     #[test]

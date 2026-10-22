@@ -127,9 +127,7 @@ fn key(option: &SourceOption) -> (String, Option<String>, Option<String>, Option
     (option.subject_id.clone(), option.source.source_slug.clone(), option.source.endpoint_id.clone(), option.source.capability.clone())
 }
 
-/// Offer reviewed related records for the existing typed subjects. Original
-/// matches keep priority; everything else remains optional until selected.
-pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
+fn matched_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
     let mut result = Vec::new();
     let mut seen = BTreeSet::new();
     let mut occurrences = BTreeMap::<&str, usize>::new();
@@ -151,6 +149,27 @@ pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catal
             if seen.insert(key(&option)) { result.push(option); }
         }
     }
+    result
+}
+
+/// A connected source picker must sign every executable choice displayed by
+/// discovery. The ten-source purchase limit bounds a selected basket, not the
+/// discovery list. Keep the established bounded related-source suggestions too.
+pub(crate) fn connected_options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
+    let mut result = Vec::new();
+    let mut seen = BTreeSet::new();
+    for option in matched_options(parsed, matches, catalog).into_iter().chain(options(parsed, matches, catalog)) {
+        let identity = (option.source.endpoint_id.clone(), option.source.capability.clone(), option.subject_id.clone());
+        if seen.insert(identity) { result.push(option); }
+    }
+    result
+}
+
+/// Offer reviewed related records for the existing typed subjects. Original
+/// matches keep priority; everything else remains optional until selected.
+pub(crate) fn options(parsed: &ParsedRequest, matches: &[Match], catalog: &Catalog) -> Vec<SourceOption> {
+    let mut result = matched_options(parsed, matches, catalog);
+    let mut seen: BTreeSet<_> = result.iter().map(key).collect();
     for subject in &parsed.subjects {
         if !parsed.capabilities.iter().any(|cap| cap.subject_id.as_ref() == Some(&subject.id)
             && !crate::capability_intake::answer_instruction(cap)) { continue; }
@@ -252,6 +271,81 @@ mod tests {
             "capabilities":[{"slug":"company.profile","name":"Company profile","description":"Registered company details", "domain":"company",
                 "inputs":["company_name"],"outputs":["profile"],"subject_id":"s1","source_hint":null,"confidence":1.0}],
             "deliverable":{"format":"chat","operations":["summarize"]},"meta":{"model":"recorded","parsed_at":"2026-10-11T00:00:00Z","text_sha256":"fixture"}})).unwrap()
+    }
+
+    #[test]
+    fn connected_picker_signs_every_displayed_choice_and_deduplicates_each_subject() {
+        let catalog = catalog();
+        let template = catalog.services.iter().find(|service| service.contract.capability_slug == "company.registry-profile").unwrap();
+        let services: Vec<_> = (0..12).map(|index| {
+            let mut service = template.clone();
+            service.id = uuid::Uuid::from_u128(500_000 + index);
+            service.endpoint_id = service.id;
+            service.contract.capability_slug = format!("company.profile-{index}");
+            service
+        }).collect();
+        let catalog = Catalog::build(Snapshot { services, vocabulary: catalog.vocabulary.into_values().collect(), known_sources: vec![] });
+        assert_eq!(catalog.services.len(),12);
+        let mut parsed = request("Financial Crime Compliance Associates",None);
+        parsed.subjects[0].identifiers.insert("kvk_number".into(),"91251982".into());
+        let mut other = parsed.subjects[0].clone(); other.id="s2".into(); parsed.subjects.push(other);
+        let cap = parsed.capabilities[0].clone();
+        let mut second_subject = cap.clone(); second_subject.subject_id=Some("s2".into());
+        parsed.capabilities=vec![cap.clone(),cap,second_subject];
+        let candidates: Vec<_> = catalog.services.iter().map(|service| Candidate {
+            origin:"apiosk".into(),name:service.name.clone(),description:"Company profile".into(),
+            source_slug:Some(service.api_slug.clone()),capability:Some(service.contract.capability_slug.clone()),
+            endpoint_id:Some(service.endpoint_id.to_string()),url:None,method:service.method.clone(),price:None,
+            network:None,calls_30d:None,availability:"supported".into(),
+        }).collect();
+        let matches: Vec<_> = parsed.capabilities.iter().map(|cap| Match {slug:cap.slug.clone(),query:cap.name.clone(),
+            operations:catalog.services.iter().map(|service|service.contract.capability_slug.clone()).collect(),
+            apiosk:candidates.clone(),coinbase:vec![],coinbase_status:"ready".into()}).collect();
+        let app = options(&parsed,&matches,&catalog);
+        assert_eq!(app.len(),MAX_OPTIONS,"the existing App shortlist stays bounded");
+        let connected = connected_options(&parsed,&matches,&catalog);
+        assert_eq!(connected.len(),24,"all twelve displayed choices remain selectable for each subject");
+        for subject in ["s1","s2"] { for service in &catalog.services {
+            assert_eq!(connected.iter().filter(|option| option.subject_id==subject
+                && option.source.endpoint_id.as_deref()==Some(service.endpoint_id.to_string().as_str())
+                && option.source.capability.as_deref()==Some(service.contract.capability_slug.as_str())).count(),1);
+        }}
+        let signer=crate::state::Signer::new(vec![7;32]).unwrap();
+        let principal=crate::auth::Principal{owner:uuid::Uuid::new_v4(),workspace:None,connection:Some(uuid::Uuid::new_v4())};
+        let response=json!({"matches":matches,"source_options":connected,"catalog_version":catalog.version,"apiosk_sources_searched":1});
+        let token=crate::search_snapshot::Snapshot::issue_connected(&signer,&principal,&parsed,&response).unwrap();
+        let opened=crate::search_snapshot::Snapshot::open_connected(&signer,&principal,&parsed,&token).unwrap();
+        assert_eq!(opened.source_options().len(),24,"the full choice list survives bounded signed snapshot transport");
+    }
+
+    #[test]
+    fn recorded_fcca_discovery_keeps_the_displayed_overheid_lookup_selectable() {
+        let capture: Value=serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/fcca-free.json")).unwrap();
+        let parsed: ParsedRequest=serde_json::from_value(capture["parsed_request"].clone()).unwrap();
+        let matches: Vec<Match>=serde_json::from_value(capture["matches"].clone()).unwrap();
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/catalog.json")).unwrap());
+        let endpoint="e7b4647f-f2aa-481e-b613-9ffbf4cad6fd";
+        assert!(!capture["source_options"].as_array().unwrap().iter().any(|option|option["source"]["endpoint_id"]==endpoint),"recorded truncated list omitted the displayed lookup");
+        let choices=connected_options(&parsed,&matches,&catalog);
+        let lookup: Vec<_>=choices.iter().filter(|option|option.subject_id=="s1"
+            && option.source.endpoint_id.as_deref()==Some(endpoint)
+            && option.source.capability.as_deref()==Some("company_registry.lookup")).collect();
+        assert_eq!(lookup.len(),1);
+        assert!(lookup[0].missing_inputs.iter().any(|field|field=="company_registry.openkvk_slug"),"native slug stays required rather than inventing a name lookup");
+        for source in matches.iter().flat_map(|found|&found.apiosk).filter(|source|source.availability=="supported") {
+            if catalog.services.iter().any(|service| Some(service.endpoint_id.to_string())==source.endpoint_id
+                && Some(service.contract.capability_slug.clone())==source.capability) {
+                assert!(choices.iter().any(|option|option.source.endpoint_id==source.endpoint_id && option.source.capability==source.capability));
+            }
+        }
+        let signer=crate::state::Signer::new(vec![7;32]).unwrap();
+        let principal=crate::auth::Principal{owner:uuid::Uuid::new_v4(),workspace:None,connection:Some(uuid::Uuid::new_v4())};
+        let response=json!({"matches":matches,"source_options":choices,"catalog_version":catalog.version,"apiosk_sources_searched":2});
+        let token=crate::search_snapshot::Snapshot::issue_connected(&signer,&principal,&parsed,&response).unwrap();
+        assert!(token.len()<32*1024,"the exact recorded selection snapshot remains well within its existing bounded transport");
+        let opened=crate::search_snapshot::Snapshot::open_connected(&signer,&principal,&parsed,&token).unwrap();
+        assert!(opened.source_options().iter().any(|option|option.source.endpoint_id.as_deref()==Some(endpoint)));
+        assert_eq!(parsed.capabilities.len(),4,"original requested coverage is retained separately");
     }
 
     #[test]

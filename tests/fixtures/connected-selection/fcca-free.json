@@ -1,0 +1,1495 @@
+{
+  "question": "Via Apiosk: Verzamel de bedrijfsgegevens, bestuurders en eigendomsstructuur van Financial Crime Compliance Associates; KVK-nummer: 91251982 voor een cliëntonderzoek. Vermeld de bronnen en geef aan welke informatie ontbreekt of nog gecontroleerd moet worden.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 1,
+        "description": "Retrieve basic company details",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company records",
+        "outputs": [
+          "company_details"
+        ],
+        "slug": "company.records.fetch",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 1,
+        "description": "Retrieve list of directors and their roles",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company directors",
+        "outputs": [
+          "directors"
+        ],
+        "slug": "company.directors.fetch",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 1,
+        "description": "Retrieve ownership structure and shareholders",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company ownership structure",
+        "outputs": [
+          "ownership_structure"
+        ],
+        "slug": "company.ownership.fetch",
+        "source_hint": null,
+        "subject_id": "s1"
+      },
+      {
+        "confidence": 0.95,
+        "description": "Distinguish official retrieved source data from AI-generated analysis",
+        "domain": "research",
+        "inputs": [],
+        "missing": [],
+        "name": "Source provenance",
+        "outputs": [
+          "official_sources",
+          "ai_analysis"
+        ],
+        "slug": "research.sources.provenance",
+        "source_hint": null,
+        "subject_id": null
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T20:20:32.584902051+00:00",
+      "text_sha256": "89263aee5c569c4687527c902ed6e4252248a9e0eeec81df2391482914d85eee"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "kvk_number": "91251982"
+        },
+        "label": "Financial Crime Compliance Associates",
+        "type": "company"
+      }
+    ]
+  },
+  "matches": [
+    {
+      "apiosk": [
+        {
+          "api_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company_registry.lookup",
+          "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "input_values": {
+              "company_registry.kvknummer": "91251982"
+            },
+            "inputs": [
+              {
+                "field": "company_registry.kvknummer",
+                "required": true,
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": {
+              "field": "company.name",
+              "resolves": [
+                "company_registry.kvknummer"
+              ],
+              "schema": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "missing_inputs": [],
+            "name": "KVK Business Register",
+            "outputs": [
+              {
+                "field": "company.name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.main_establishment_addresses",
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              {
+                "field": "company.nl.main_establishment_id",
+                "schema": {
+                  "pattern": "^[0-9]{12}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.registered_name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.rsin",
+                "schema": {
+                  "pattern": "^[0-9]{9}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.sbi_activities",
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              {
+                "field": "company.profile",
+                "schema": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+                  "properties": {
+                    "employee_count": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "founded_on": {
+                      "type": "string"
+                    },
+                    "legal_form": {
+                      "type": "string"
+                    },
+                    "legal_name": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sbi_codes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "trade_names": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "legal_name"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "field": "company_registry.kvknummer",
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "web.company_website_query",
+                "schema": {
+                  "maxLength": 1000,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "76087",
+              "currency": "USDC",
+              "provider_atomic": "66162"
+            },
+            "source": {
+              "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/kvk-logo.png",
+              "name": "KVK Business Register",
+              "slug": "kvk-dutch-business-register",
+              "url": "https://developers.kvk.nl/nl/documentation",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/kvk-logo.png",
+          "method": "GET",
+          "name": "KVK Business Register",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.076087 USD",
+          "source_slug": "kvk-dutch-business-register",
+          "subject_id": "s1",
+          "url": "https://developers.kvk.nl/nl/documentation"
+        },
+        {
+          "api_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company.registry-profile",
+          "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "input_values": {
+              "company_registry.kvknummer": "91251982"
+            },
+            "inputs": [
+              {
+                "field": "company_registry.kvknummer",
+                "required": true,
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": {
+              "field": "company.name",
+              "resolves": [
+                "company_registry.kvknummer"
+              ],
+              "schema": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "missing_inputs": [],
+            "name": "KVK Business Register",
+            "outputs": [
+              {
+                "field": "company.name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.main_establishment_addresses",
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              {
+                "field": "company.nl.main_establishment_id",
+                "schema": {
+                  "pattern": "^[0-9]{12}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.registered_name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.rsin",
+                "schema": {
+                  "pattern": "^[0-9]{9}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.nl.sbi_activities",
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              {
+                "field": "company.profile",
+                "schema": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+                  "properties": {
+                    "employee_count": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "founded_on": {
+                      "type": "string"
+                    },
+                    "legal_form": {
+                      "type": "string"
+                    },
+                    "legal_name": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sbi_codes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "trade_names": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "legal_name"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "field": "company_registry.kvknummer",
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "web.company_website_query",
+                "schema": {
+                  "maxLength": 1000,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "76087",
+              "currency": "USDC",
+              "provider_atomic": "66162"
+            },
+            "source": {
+              "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/kvk-logo.png",
+              "name": "KVK Business Register",
+              "slug": "kvk-dutch-business-register",
+              "url": "https://developers.kvk.nl/nl/documentation",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/kvk-logo.png",
+          "method": "GET",
+          "name": "KVK Business Register",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.076087 USD",
+          "source_slug": "kvk-dutch-business-register",
+          "subject_id": "s1",
+          "url": "https://developers.kvk.nl/nl/documentation"
+        },
+        {
+          "api_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company_registry.search",
+          "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+            "input_values": {
+              "company.name": "Financial Crime Compliance Associates"
+            },
+            "inputs": [
+              {
+                "field": "company.name",
+                "required": true,
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [],
+            "name": "Overheid.io Public Data",
+            "outputs": [
+              {
+                "field": "company.name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_registry.kvknummer",
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_registry.openkvk_slug",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "57500",
+              "currency": "USDC",
+              "provider_atomic": "50000"
+            },
+            "source": {
+              "logo_url": "https://overheid.io/apple-touch-icon.png",
+              "name": "Overheid.io Public Data",
+              "slug": "overheid-io",
+              "url": "https://overheid.io/documentatie/",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+          "logo_url": "https://overheid.io/apple-touch-icon.png",
+          "method": "GET",
+          "name": "Overheid.io Public Data",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.057500 USD",
+          "source_slug": "overheid-io",
+          "subject_id": "s1",
+          "url": "https://overheid.io/documentatie/"
+        },
+        {
+          "api_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company_registry.lookup",
+          "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+            "input_values": {
+              "company.name": "Financial Crime Compliance Associates"
+            },
+            "inputs": [
+              {
+                "field": "company_registry.openkvk_slug",
+                "required": true,
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": {
+              "field": "company.name",
+              "resolves": [
+                "company_registry.openkvk_slug"
+              ],
+              "schema": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "missing_inputs": [],
+            "name": "Overheid.io Public Data",
+            "outputs": [
+              {
+                "field": "address.postal",
+                "schema": {
+                  "properties": {
+                    "city": {
+                      "type": "string"
+                    },
+                    "country": {
+                      "pattern": "^[A-Z]{2}$",
+                      "type": "string"
+                    },
+                    "house_number": {
+                      "type": "string"
+                    },
+                    "postcode": {
+                      "pattern": "^[0-9]{4}\\s?[A-Za-z]{2}$",
+                      "type": "string"
+                    },
+                    "street": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "postcode"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "field": "company.active",
+                "schema": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "field": "company.activities",
+                "schema": {
+                  "items": {
+                    "properties": {
+                      "code": {
+                        "type": "string"
+                      },
+                      "hoofdactiviteit": {
+                        "type": "boolean"
+                      },
+                      "omschrijving": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              {
+                "field": "company.name",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company.profile",
+                "schema": {
+                  "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+                  "properties": {
+                    "employee_count": {
+                      "minimum": 0,
+                      "type": "number"
+                    },
+                    "founded_on": {
+                      "type": "string"
+                    },
+                    "legal_form": {
+                      "type": "string"
+                    },
+                    "legal_name": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "sbi_codes": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "trade_names": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "legal_name"
+                  ],
+                  "type": "object"
+                }
+              },
+              {
+                "field": "company_registry.branch_number",
+                "schema": {
+                  "pattern": "^[0-9]{12}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_registry.kvknummer",
+                "schema": {
+                  "pattern": "^[0-9]{8}$",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "company_registry.openkvk_slug",
+                "schema": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              {
+                "field": "geo.location",
+                "schema": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "lat": {
+                      "maximum": 90,
+                      "minimum": -90,
+                      "type": "number"
+                    },
+                    "lon": {
+                      "maximum": 180,
+                      "minimum": -180,
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "lat",
+                    "lon"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "86250",
+              "currency": "USDC",
+              "provider_atomic": "75000"
+            },
+            "source": {
+              "logo_url": "https://overheid.io/apple-touch-icon.png",
+              "name": "Overheid.io Public Data",
+              "slug": "overheid-io",
+              "url": "https://overheid.io/documentatie/",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+          "logo_url": "https://overheid.io/apple-touch-icon.png",
+          "method": "GET",
+          "name": "Overheid.io Public Data",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.086250 USD",
+          "source_slug": "overheid-io",
+          "subject_id": "s1",
+          "url": "https://overheid.io/documentatie/"
+        },
+        {
+          "api_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "company.crunchbase-profile",
+          "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+          "endpoint": {
+            "answer_supported": true,
+            "api_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "capability": "company.crunchbase-profile",
+            "description": "Fetch company profile, founders, employees, board members, funding rounds and investors. Retrieve one identified organization, its description, website, headquarters, headcount, founders, employee profiles, board members and advisors, funding rounds, raised amounts and investors. Returns the available public relationship cards in one company-profile call; no separate people or funding search is ne",
+            "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+            "input_values": {},
+            "inputs": [
+              {
+                "field": "company.crunchbase_entity_id",
+                "required": true,
+                "schema": {
+                  "description": "Real UUID or permalink returned by Crunchbase or explicitly supplied in a profile URL. Never fabricate.",
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9_-]+$",
+                  "type": "string"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [
+              "company.crunchbase_entity_id"
+            ],
+            "name": "Crunchbase",
+            "outputs": [
+              {
+                "field": "company.crunchbase_profile_result",
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\"]}",
+                      "properties": {
+                        "cards": {
+                          "$comment": "{\"apiosk_output_aliases_v1\":[\"founders\",\"employees\",\"board_members\",\"advisors\",\"funding_rounds\",\"investors\"]}",
+                          "items": {
+                            "properties": {
+                              "card_id": {
+                                "type": "string"
+                              },
+                              "entities": {
+                                "items": {
+                                  "properties": {
+                                    "properties": {
+                                      "items": {
+                                        "properties": {
+                                          "field_id": {
+                                            "type": "string"
+                                          },
+                                          "label": {
+                                            "type": [
+                                              "string",
+                                              "null"
+                                            ]
+                                          },
+                                          "value": {}
+                                        },
+                                        "type": "object"
+                                      },
+                                      "type": "array"
+                                    }
+                                  },
+                                  "type": "object"
+                                },
+                                "type": [
+                                  "array",
+                                  "null"
+                                ]
+                              },
+                              "entity_def_id": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "has_more_entities": {
+                                "type": "boolean"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "entity_def_id": {
+                          "enum": [
+                            "organization",
+                            null
+                          ],
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "properties": {
+                          "$comment": "{\"apiosk_output_aliases_v1\":[\"name\",\"description\",\"website\",\"headquarters\",\"headcount\",\"employee_count\",\"funding_total\"]}",
+                          "items": {
+                            "properties": {
+                              "field_id": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "value": {}
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "request_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "properties",
+                        "cards"
+                      ],
+                      "type": "object"
+                    },
+                    "retrieved_at": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "enum": [
+                        "Crunchbase"
+                      ],
+                      "type": "string"
+                    },
+                    "tool": {
+                      "enum": [
+                        "cb_entity_autocomplete",
+                        "cb_search_query",
+                        "cb_entity_get",
+                        "cb_reference"
+                      ]
+                    },
+                    "transport": {
+                      "enum": [
+                        "official_mcp"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "transport",
+                    "tool",
+                    "data",
+                    "retrieved_at"
+                  ],
+                  "type": "object"
+                }
+              }
+            ],
+            "price": {
+              "buyer_atomic": "54347",
+              "currency": "USDC",
+              "provider_atomic": "47258"
+            },
+            "source": {
+              "logo_url": "https://www.crunchbase.com/favicon.ico",
+              "name": "Crunchbase",
+              "slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+              "url": "https://data.crunchbase.com/docs/tool-reference",
+              "usage_notice": null
+            }
+          },
+          "endpoint_id": "9651025a-3f42-4d86-aa83-b0a9c05e28c4",
+          "logo_url": "https://www.crunchbase.com/favicon.ico",
+          "method": "POST",
+          "name": "Crunchbase",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054347 USD",
+          "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+          "subject_id": "s1",
+          "url": "https://data.crunchbase.com/docs/tool-reference"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": null,
+          "capability": null,
+          "description": "Check a domain's launch basics: DNS resolution, HTTPS reachability, MX, SPF, DMARC, CAA, and optional DKIM selectors.",
+          "endpoint": null,
+          "endpoint_id": "3d467420-9503-4ec5-8e34-8cf26d7ba248",
+          "logo_url": "https://agentbodega.store/favicon.svg",
+          "method": "POST",
+          "name": "AgentBodega",
+          "network": null,
+          "origin": "apiosk",
+          "price": null,
+          "source_slug": "agentbodega",
+          "subject_id": "s1",
+          "url": "https://agentbodega.store/openapi.json"
+        }
+      ],
+      "coinbase": [],
+      "coinbase_status": "complete",
+      "operations": [
+        "company.crunchbase-profile",
+        "company.registry-profile",
+        "company_registry.lookup",
+        "company_registry.search"
+      ],
+      "query": "Company records. Retrieve basic company details. kvk number",
+      "slug": "company.records.fetch",
+      "subject_id": "s1"
+    },
+    {
+      "apiosk": [],
+      "coinbase": [
+        {
+          "availability": "discovery_only",
+          "calls_30d": 1,
+          "capability": null,
+          "description": "Company check (KYB): registry status, VAT number validation (VIES), LEI and directors of a company by name, SIREN or VAT number",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "POST",
+          "name": "17711 Company Registry Check",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.010350 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://api.17711.xyz/registry/company-check-service/v1/company-check/verify_company"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": 2,
+          "capability": null,
+          "description": "Latvian company officers and directors from the official Uzņēmumu reģistrs open data (CC0, daily): board members, chairs, liquidators and other representatives with name, role, governing body, representation rights and registration date; corporate officers carry their own number. For KYB. GDPR: never the Latvian personal code, birth month+year only when published. 11-digit number. Legal persons only: IK, sole traders and unrecognised forms get 404, not billed.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "Sirenic",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.011500 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://api.sirenic.eu/v1/eu/entreprise/LV/:regnr/dirigeants"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": 1,
+          "capability": null,
+          "description": "Cypriot company officers from the DRCOR open data (data.gov.cy, CC BY 4.0, monthly national snapshot): every mandate published for the company — directors, alternate directors, company secretaries, assistant and deputy secretaries, authorised persons of overseas companies — with the register's Greek role label and a closed-list family. Name and role only: the source publishes no birth date, address, nationality or appointment date. Legal persons only (HE, AE).",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "Sirenic",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.011500 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://api.sirenic.eu/v1/eu/entreprise/CY/:id/dirigeants"
+        }
+      ],
+      "coinbase_status": "complete",
+      "operations": [],
+      "query": "Company directors. Retrieve list of directors and their roles. kvk number",
+      "slug": "company.directors.fetch",
+      "subject_id": "s1"
+    },
+    {
+      "apiosk": [
+        {
+          "availability": "discovery_only",
+          "calls_30d": null,
+          "capability": null,
+          "description": "French and European company data from official registers: company profiles, annual accounts, directors and ownership, legal alerts, procurement, establishments and business checks.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "logo_url": "https://app.apiosk.com/brands/sirenic.png",
+          "method": "",
+          "name": "Sirenic",
+          "network": null,
+          "origin": "apiosk",
+          "price": null,
+          "source_slug": "sirenic",
+          "subject_id": "s1",
+          "url": null
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": null,
+          "capability": null,
+          "description": "Automotive intelligence API powered by NHTSA and EPA official data plus live market synthesis. 11 endpoints: safety recall lookup by VIN, reliability and complaint analysis, step-by-step DIY repair guides, vehicle comparison, market value with sell/hold recommendation, 5-year total cost of ownership, EV break-even, dealer negotiation scripts, pre-purchase inspection checklists, parts pricing, and car-financing/APR intelligence (global: US/UK/DE/CA/AU/IN). Pay-per-query via x402 micropayments on Base.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "logo_url": "https://pulse.theaslangroupllc.com/favicon.svg",
+          "method": "",
+          "name": "AutoPulse",
+          "network": null,
+          "origin": "apiosk",
+          "price": null,
+          "source_slug": "autopulse",
+          "subject_id": "s1",
+          "url": null
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": null,
+          "capability": null,
+          "description": "Pay-per-call x402 service at agent.pocket.network, listed in the Coinbase Bazaar. An agent-only messaging network. Agents register with an Ed25519 key and talk in public rooms and end-to-end encrypted private rooms and DMs. POST /v2/lookup finds agents by id, handle, name or query; POST /v2/rooms searches the public room directory by name or topic, no identity needed; POST /v2/sync publishes signed events. Auth rides in the body. Pay per request in USDC; no account, no API key.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "logo_url": "https://res.cloudinary.com/bdb-prod/image/upload/c_fill,ar_1:1,w_256,h_256,f_auto,q_auto/v1789841442/bazaar-icons/3cd57aad9bac9307.png",
+          "method": "",
+          "name": "Pocket Network",
+          "network": null,
+          "origin": "apiosk",
+          "price": null,
+          "source_slug": "cbz-agent-pocket-network",
+          "subject_id": "s1",
+          "url": null
+        }
+      ],
+      "coinbase": [
+        {
+          "availability": "discovery_only",
+          "calls_30d": 3,
+          "capability": null,
+          "description": "Estonian company members and shareholders from the official e-Business Register share register (RIK, CC BY 4.0, daily photo): holding percentage, nominal value and currency as published, ownership type, registration date; AS shareholders and founders recorded off-card; share pledges; capital. Corporate holders are named with their registrikood or foreign code and country; natural persons are COUNTED, never named (GDPR). Group links for KYB. Legal persons only. 8-digit registrikood.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "Sirenic",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.023000 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://api.sirenic.eu/v1/eu/entreprise/EE/:registrikood/associes"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": 1,
+          "capability": null,
+          "description": "Beneficial ownership stakes above 5% from SEC Schedules 13D and 13G, by subject ticker or filer CIK: holder, shares held, percent of class, stake type (activist or passive), voting power and filing date, with optional amendment history. Use when an agent asks who owns more than 5% of a company, or what a fund holds. Non-Professional use; Professional use needs a plan at financialdatasets.ai.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "api.financialdatasets.ai",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.023000 USD",
+          "source_slug": null,
+          "subject_id": "s1",
+          "url": "https://api.financialdatasets.ai/beneficial-ownership"
+        }
+      ],
+      "coinbase_status": "complete",
+      "operations": [],
+      "query": "Company ownership structure. Retrieve ownership structure and shareholders. kvk number",
+      "slug": "company.ownership.fetch",
+      "subject_id": "s1"
+    },
+    {
+      "answer_only": true,
+      "apiosk": [],
+      "coinbase": [],
+      "coinbase_status": "ready",
+      "operations": [],
+      "query": "Source provenance. Distinguish official retrieved source data from AI-generated analysis",
+      "slug": "research.sources.provenance",
+      "subject_id": null
+    }
+  ],
+  "source_options": [
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "KVK Business Register",
+        "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+        "source_slug": "kvk-dutch-business-register",
+        "capability": "company_registry.lookup",
+        "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+        "url": "https://developers.kvk.nl/nl/documentation",
+        "method": "GET",
+        "price": "0.076087 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.records.fetch",
+        "name": "Company records",
+        "description": "Retrieve basic company details",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "outputs": [
+          "company_details"
+        ],
+        "subject_id": "s1",
+        "source_hint": null,
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company_registry.kvknummer": "91251982"
+      },
+      "reason": "Matches your question"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "Overheid.io Public Data",
+        "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+        "source_slug": "overheid-io",
+        "capability": "company_registry.search",
+        "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+        "url": "https://overheid.io/documentatie/",
+        "method": "GET",
+        "price": "0.057500 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.records.fetch",
+        "name": "Company records",
+        "description": "Retrieve basic company details",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "outputs": [
+          "company_details"
+        ],
+        "subject_id": "s1",
+        "source_hint": null,
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Matches your question"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "Crunchbase",
+        "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+        "source_slug": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "capability": "company.crunchbase-official-search",
+        "endpoint_id": "6558d1c2-efdb-493a-939b-1aba3e88e520",
+        "url": "https://data.crunchbase.com/docs/tool-reference",
+        "method": "POST",
+        "price": "0.054347 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.crunchbase-official-search",
+        "name": "Find official company identities",
+        "description": "Find official company identities. Search official Crunchbase names and resolve company, people, location or category identifiers. Returns profile URLs and descriptions; resolve ambiguous matches before fetching a profile.",
+        "domain": "company",
+        "inputs": [
+          "crunchbase.entity_autocomplete_query"
+        ],
+        "outputs": [
+          "company.crunchbase_official_search_result"
+        ],
+        "subject_id": "s1",
+        "source_hint": "apimarket-magicapi-crunchbase-bbcca0a6",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "crunchbase.entity_autocomplete_query": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "GLEIF",
+        "description": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entity status. Returns matching LEIs and canonical legal-entity records rather than scraped firmographic guesses.",
+        "source_slug": "gleif",
+        "capability": "company.legal-entity-search",
+        "endpoint_id": "b2738673-7f30-4c6c-a962-cb83fc71f7b0",
+        "url": "https://www.gleif.org/en/lei-data/gleif-api",
+        "method": "GET",
+        "price": "0.054348 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.legal-entity-search",
+        "name": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entit",
+        "description": "Search the global GLEIF Legal Entity Identifier dataset for a company or other legal entity by name, optionally narrowed by country or entity status. Returns matching LEIs and canonical legal-entity records rather than scraped firmographic guesses.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "outputs": [
+          "company.gleif_record",
+          "company.name",
+          "company.registration.lei"
+        ],
+        "subject_id": "s1",
+        "source_hint": "gleif",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "OpenSanctions",
+        "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "source_slug": "opensanctions",
+        "capability": "company.watchlist-search",
+        "endpoint_id": "acd906d7-1a9d-4ac7-b949-a163fe08c678",
+        "url": "https://www.opensanctions.org/docs/api/",
+        "method": "GET",
+        "price": "0.097826 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.watchlist-search",
+        "name": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "description": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "outputs": [
+          "company.watchlist_search_page"
+        ],
+        "subject_id": "s1",
+        "source_hint": "opensanctions",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "Sirenic",
+        "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+        "source_slug": "sirenic",
+        "capability": "company.eu-registry-search",
+        "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+        "url": "https://api.sirenic.eu/openapi.json",
+        "method": "GET",
+        "price": "0.003450 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.eu-registry-search",
+        "name": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags a",
+        "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "outputs": [
+          "company.country_code",
+          "company.name",
+          "company.registration.be.national_id",
+          "company.registration.cz.national_id",
+          "company.registration.dk.national_id",
+          "company.registration.ee.national_id",
+          "company.registration.es.national_id",
+          "company.registration.eu.identity",
+          "company.registration.eu.national_id",
+          "company.registration.fi.national_id",
+          "company.registration.gb.companies_house",
+          "company.registration.lv.national_id",
+          "company.registration.no.national_id",
+          "company.registration.pl.national_id",
+          "company.registration.se.national_id",
+          "company.registration.sk.national_id"
+        ],
+        "subject_id": "s1",
+        "source_hint": "sirenic",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "OpenWeb Ninja",
+        "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+        "source_slug": "openwebninja",
+        "capability": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "endpoint_id": "22c6c829-3354-5999-a55d-64ac65128077",
+        "url": "https://x402.openwebninja.com/llms.txt",
+        "method": "GET",
+        "price": "0.003450 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "operation.openwebninja.get-realtime-glassdoor-data-company-search-22c6c829",
+        "name": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links",
+        "description": "Search Glassdoor employers by company name, returning employee ratings, review counts, company descriptions and profile links. Results describe employers, not individual branch locations.",
+        "domain": "company",
+        "inputs": [
+          "source_input.e22c6c82933545999a55d64ac65128077.query"
+        ],
+        "outputs": [
+          "company.glassdoor_search_results"
+        ],
+        "subject_id": "s1",
+        "source_hint": "openwebninja",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "source_input.e22c6c82933545999a55d64ac65128077.query": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "StableEnrich",
+        "description": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "source_slug": "stableenrich",
+        "capability": "company.enrich-by-name",
+        "endpoint_id": "c6f67942-288f-4500-8418-3eede3a6eacd",
+        "url": "https://stableenrich.dev/openapi.json",
+        "method": "POST",
+        "price": "0.069000 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.enrich-by-name",
+        "name": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "description": "Get a best-match CompanyEnrich profile by company name; verify its returned name and domain before reusing it.",
+        "domain": "company",
+        "inputs": [
+          "company.name"
+        ],
+        "outputs": [
+          "company.enriched_profile"
+        ],
+        "subject_id": "s1",
+        "source_hint": "stableenrich",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company.name": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "FilingsPulse",
+        "description": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL. Answers \"Apple revenue last 8 quarters\", \"is NVDA net income growing\", \"MSFT EPS trend\". Revenue, net income, diluted EPS per quarter with computed YoY changes and the exact XBRL tag used — every number verbatim from data.sec.gov companyfacts, nothing modeled. Accepts ticker, company name, or CIK. No LLM, no key",
+        "source_slug": "filingspulse",
+        "capability": "operation.filingspulse.get-api-filings-quarterly-c5383313",
+        "endpoint_id": "c5383313-f36e-4954-99f3-0c0be7d16aa6",
+        "url": "https://filingspulse.theaslangroupllc.com/llms.txt",
+        "method": "GET",
+        "price": "0.023000 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "operation.filingspulse.get-api-filings-quarterly-c5383313",
+        "name": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL",
+        "description": "Eight quarters of a US public company's reported fundamentals, straight from SEC XBRL. Answers \"Apple revenue last 8 quarters\", \"is NVDA net income growing\", \"MSFT EPS trend\". Revenue, net income, diluted EPS per quarter with computed YoY changes and the exact XBRL tag used — every number verbatim from data.sec.gov companyfacts, nothing modeled. Accepts ticker, company name, or CIK. No LLM, no key",
+        "domain": "general",
+        "inputs": [
+          "source_input.ec5383313f36e495499f30c0be7d16aa6.company"
+        ],
+        "outputs": [
+          "source_document.ec5383313f36e495499f30c0be7d16aa6.response"
+        ],
+        "subject_id": "s1",
+        "source_hint": "filingspulse",
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "source_input.ec5383313f36e495499f30c0be7d16aa6.company": "Financial Crime Compliance Associates"
+      },
+      "reason": "Related records for this subject"
+    },
+    {
+      "source": {
+        "origin": "apiosk",
+        "name": "KVK Business Register",
+        "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+        "source_slug": "kvk-dutch-business-register",
+        "capability": "company.registry-profile",
+        "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+        "url": "https://developers.kvk.nl/nl/documentation",
+        "method": "GET",
+        "price": "0.076087 USD",
+        "network": null,
+        "calls_30d": null,
+        "availability": "supported"
+      },
+      "subject_id": "s1",
+      "requirement": {
+        "slug": "company.records.fetch",
+        "name": "Company records",
+        "description": "Retrieve basic company details",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "outputs": [
+          "company_details"
+        ],
+        "subject_id": "s1",
+        "source_hint": null,
+        "confidence": 1,
+        "missing": []
+      },
+      "input_values": {
+        "company_registry.kvknummer": "91251982"
+      },
+      "reason": "Matches your question"
+    }
+  ]
+}

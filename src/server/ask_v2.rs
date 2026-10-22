@@ -733,6 +733,14 @@ pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedR
 }
 
 pub(crate) async fn search_catalog_with_matches(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin, prepared: Option<&[Match]>) -> Result<Value, Response> {
+    search_catalog_with_options(state, parsed_request, origin, prepared, false).await
+}
+
+pub(crate) async fn search_connected_catalog_with_matches(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin, prepared: Option<&[Match]>) -> Result<Value, Response> {
+    search_catalog_with_options(state, parsed_request, origin, prepared, true).await
+}
+
+async fn search_catalog_with_options(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin, prepared: Option<&[Match]>, connected: bool) -> Result<Value, Response> {
     let started = Instant::now();
     // The interpretation contract already supplies English capability names
     // and descriptions. Search consumes that JSON without another model pass.
@@ -751,7 +759,8 @@ pub(crate) async fn search_catalog_with_matches(state: &ServerState, parsed_requ
                 }
             };
             let matches = prepared.map(<[Match]>::to_vec).unwrap_or_else(||crate::ask_v2::search::search(parsed_request, &catalog));
-            let source_options = crate::ask_v2::source_options::options(parsed_request, &matches, &catalog);
+            let source_options = if connected { crate::ask_v2::source_options::connected_options(parsed_request, &matches, &catalog) }
+                else { crate::ask_v2::source_options::options(parsed_request, &matches, &catalog) };
             let mut matches = serde_json::to_value(matches).unwrap_or_else(|_| json!([]));
             // Branding is cached separately from contracts. A slow directory
             // refresh must not hold up capability matches indefinitely.
@@ -760,6 +769,7 @@ pub(crate) async fn search_catalog_with_matches(state: &ServerState, parsed_requ
                 brand_matches(&mut matches, sources);
             }
             describe_endpoints(&mut matches, &catalog, sources.as_ref().map(|sources| sources.as_slice()));
+            if connected { direct_source_inputs(&mut matches); }
             bind_inputs(&mut matches, parsed_request);
             (
                 matches,
@@ -843,6 +853,16 @@ fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, so
             candidate["api_id"] = json!(id);
             candidate["endpoint"] = endpoint_descriptor(catalog, service, source);
         }
+    }
+}
+
+/// A manual connected basket quotes independent selected sources. Unlike the
+/// App's endpoint preparation flow, it cannot substitute a prerequisite lookup
+/// for the selected operation's required input. Show the actual missing field.
+fn direct_source_inputs(matches: &mut Value) {
+    for candidate in matches.as_array_mut().into_iter().flatten()
+        .flat_map(|found| found["apiosk"].as_array_mut().into_iter().flatten()) {
+        if candidate["endpoint"].is_object() { candidate["endpoint"]["lookup"] = Value::Null; }
     }
 }
 
@@ -1033,6 +1053,28 @@ mod tests {
         std::fs::write(dir.join("live-parse-replay.json"),serde_json::to_vec_pretty(&reports).unwrap()).unwrap();
         println!("Replayed {} saved live App records without network or purchases",reports.len());
     }
+    #[test]
+    fn connected_source_picker_requires_native_lookup_inputs_without_changing_app_lookup_review() {
+        let catalog=crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/catalog.json")).unwrap());
+        let capture:Value=serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/fcca-free.json")).unwrap();
+        let parsed:ParsedRequest=serde_json::from_value(capture["parsed_request"].clone()).unwrap();
+        let mut app=capture["matches"].clone();
+        describe_endpoints(&mut app,&catalog,None);
+        let mut connected=app.clone();
+        direct_source_inputs(&mut connected);
+        bind_inputs(&mut app,&parsed);bind_inputs(&mut connected,&parsed);
+        let lookup=|matches:&Value| matches[0]["apiosk"].as_array().unwrap().iter()
+            .find(|candidate|candidate["endpoint_id"]=="e7b4647f-f2aa-481e-b613-9ffbf4cad6fd").unwrap()["endpoint"].clone();
+        let app=lookup(&app);let connected=lookup(&connected);
+        assert_eq!(app["lookup"]["field"],"company.name");
+        assert_eq!(app["input_values"]["company.name"],"Financial Crime Compliance Associates");
+        assert_eq!(app["missing_inputs"],json!([]),"App keeps its reviewed prerequisite lookup flow");
+        assert!(connected["lookup"].is_null());
+        assert_eq!(connected["inputs"][0]["field"],"company_registry.openkvk_slug");
+        assert_eq!(connected["input_values"],json!({}));
+        assert_eq!(connected["missing_inputs"],json!(["company_registry.openkvk_slug"]),"connected basket asks for exactly the native input it accepts");
+    }
+
     #[test]
     fn each_discovered_operation_binds_only_its_own_subject() {
         let parsed = capability_intake::normalize(&json!({"language":"nl","subjects":[

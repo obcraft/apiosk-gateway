@@ -56,12 +56,14 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
                     let refreshed = crate::parser::connected_planning::refresh_discovery(&mut intake, &catalog);
                     let input_context = crate::parser::connected_planning::input_context(&intake, &catalog);
                     if refreshed {
-                        return ask_v2::search_catalog_with_matches(state, &input_context.parsed_request, Origin::Apiosk, Some(&intake.matches)).await;
+                        return ask_v2::search_connected_catalog_with_matches(state, &input_context.parsed_request, Origin::Apiosk, Some(&intake.matches)).await;
                     }
-                    return ask_v2::search_catalog(state, &input_context.parsed_request, Origin::Apiosk).await;
+                    return ask_v2::search_connected_catalog_with_matches(state, &input_context.parsed_request, Origin::Apiosk, None).await;
                 }
             }
-            ask_v2::search_catalog(state, parsed, Origin::Apiosk).await
+            if ctx.principal.connection.is_some() {
+                ask_v2::search_connected_catalog_with_matches(state, parsed, Origin::Apiosk, None).await
+            } else { ask_v2::search_catalog(state, parsed, Origin::Apiosk).await }
         },
         ask_v2::search_catalog(state, parsed, Origin::Coinbase),
     );

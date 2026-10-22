@@ -1,0 +1,1014 @@
+{
+  "services": [
+    {
+      "api_slug": "kvk-dutch-business-register",
+      "contract": {
+        "capability_slug": "company_registry.lookup",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbiActiviteiten[*].sbiCode"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.handelsnamen[*].naam"
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "web.company_website_query": {
+              "adapter": "record.website-query",
+              "key": "{\"name\":\"/naam\",\"identifier\":\"/kvkNummer\",\"registry\":\"KVK\",\"pattern\":\"^[0-9]{8}$\"}"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 9
+      },
+      "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "217c9faf-60e3-4f0c-a402-04dadffcf9cf",
+      "jurisdiction": "NL",
+      "list_atomic": 66162,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "KVK Business Register",
+      "optional_outputs": [
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.sbi_activities",
+        "company.profile",
+        "web.company_website_query"
+      ],
+      "pagination": {},
+      "path": "/api/v1/basisprofielen",
+      "preconditions": {},
+      "sample_payload": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "overheid-io",
+      "contract": {
+        "capability_slug": "company_registry.search",
+        "cardinality": "many",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company.name": {
+            "in": "query",
+            "name": "query"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$._embedded.bedrijf[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvknummer"
+            },
+            "company_registry.openkvk_slug": {
+              "path": "$.slug"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+      "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+      "fixed_params": {},
+      "freshness_seconds": 86400,
+      "id": "81748e89-9e52-42fc-95db-44fea0f48ea9",
+      "jurisdiction": "NL",
+      "list_atomic": 50000,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Overheid.io Public Data",
+      "optional_outputs": [],
+      "pagination": {
+        "kind": "hal",
+        "next": "$._links.next.href"
+      },
+      "path": "/v3/openkvk",
+      "preconditions": {},
+      "sample_payload": {
+        "_embedded": {
+          "bedrijf": [
+            {
+              "kvknummer": "66076986",
+              "naam": "Gastouder Mollie",
+              "slug": "hoofdvestiging-gastouder-mollie-66076986-34733841"
+            }
+          ]
+        },
+        "pageCount": 58,
+        "size": 1,
+        "totalItemCount": 58
+      },
+      "source_url": "https://overheid.io/documentatie/",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "overheid-io",
+      "contract": {
+        "capability_slug": "company_registry.lookup",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.openkvk_slug": {
+            "in": "path",
+            "name": "id"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "address.postal": {
+              "fields": {
+                "city": {
+                  "path": "$.bezoeklocatie.plaats"
+                },
+                "house_number": {
+                  "path": "$.bezoeklocatie.huisnummer"
+                },
+                "postcode": {
+                  "path": "$.bezoeklocatie.postcode"
+                },
+                "street": {
+                  "path": "$.bezoeklocatie.straat"
+                }
+              }
+            },
+            "company.active": {
+              "path": "$.actief"
+            },
+            "company.activities": {
+              "collect": true,
+              "path": "$.activiteiten[*]"
+            },
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_form": {
+                  "path": "$.rechtsvormOmschrijving"
+                },
+                "legal_name": {
+                  "path": "$.naam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbi[*]"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.huidigeHandelsNamen[*]"
+                }
+              }
+            },
+            "company_registry.branch_number": {
+              "path": "$.vestigingsnummer"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvknummer"
+            },
+            "company_registry.openkvk_slug": {
+              "path": "$.slug"
+            },
+            "geo.location": {
+              "fields": {
+                "lat": {
+                  "path": "$.locatie.lat"
+                },
+                "lon": {
+                  "path": "$.locatie.lon"
+                }
+              }
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.openkvk_slug",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+      "endpoint_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+      "fixed_params": {},
+      "freshness_seconds": 86400,
+      "id": "c7e42d13-b3cd-4230-b6db-fac4585cb2b9",
+      "jurisdiction": "NL",
+      "list_atomic": 75000,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "Overheid.io Public Data",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/v3/openkvk/{id}",
+      "preconditions": {},
+      "sample_payload": {
+        "huidigeHandelsNamen": [
+          "Gastouder Mollie"
+        ],
+        "kvknummer": "66076986",
+        "naam": "Gastouder Mollie",
+        "rechtsvormOmschrijving": "Eenmanszaak",
+        "sbi": [
+          "88911"
+        ],
+        "slug": "hoofdvestiging-gastouder-mollie-66076986-34733841"
+      },
+      "source_url": "https://overheid.io/documentatie/",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "kvk-dutch-business-register",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbiActiviteiten[*].sbiCode"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.handelsnamen[*].naam"
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "web.company_website_query": {
+              "adapter": "record.website-query",
+              "key": "{\"name\":\"/naam\",\"identifier\":\"/kvkNummer\",\"registry\":\"KVK\",\"pattern\":\"^[0-9]{8}$\"}"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 9
+      },
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "dc655508-e529-4c2f-905e-1b6d69b80e4c",
+      "jurisdiction": "NL",
+      "list_atomic": 66162,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "KVK Business Register",
+      "optional_outputs": [
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.sbi_activities",
+        "company.profile",
+        "web.company_website_query"
+      ],
+      "pagination": {},
+      "path": "/api/v1/basisprofielen",
+      "preconditions": {},
+      "sample_payload": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "unverified": false,
+      "usage_notice": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "address.postal",
+      "value_schema": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "pattern": "^[A-Z]{2}$",
+            "type": "string"
+          },
+          "house_number": {
+            "type": "string"
+          },
+          "postcode": {
+            "pattern": "^[0-9]{4}\\s?[A-Za-z]{2}$",
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "postcode"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company_registry.branch_number",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "pattern": "^[0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.openkvk_slug",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.active",
+      "value_schema": {
+        "type": "boolean"
+      }
+    },
+    {
+      "slug": "company.activities",
+      "value_schema": {
+        "items": {
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "hoofdactiviteit": {
+              "type": "boolean"
+            },
+            "omschrijving": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "pattern": "^[0-9]{9}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+        "properties": {
+          "employee_count": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sbi_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trade_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "legal_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "geo.location",
+      "value_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "lat": {
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "lon": {
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lon"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "web.company_website_query",
+      "value_schema": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.branch-profile": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Du",
+          "company.financial-statements": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaa",
+          "company.registered-names": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which ",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company_registry.lookup": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "company_registry.search": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers."
+        },
+        "categorized": 5,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 5,
+        "description": "Official Dutch company register (Handelsregister) from KVK, the Netherlands Chamber of Commerce: search companies by name, resolve a KVK number (kvk-nummer), and look up the basic profile (basisprofiel), branch profile (vestigingsprofiel), registered and trade names (statutaire naam, handelsnamen), filed annual accounts (jaarrekeningen) and open company data — the employee count (how many people work at a company, headcount, staff, werknemers), where the company is based (registered address, office location, vestiging), SBI activities, RSIN, legal form (rechtsvorm) and insolvency status.",
+        "documented_inputs": 5,
+        "endpoint_count": 5,
+        "endpoints": [
+          {
+            "description": "Official registration record for one Dutch company by KVK number — the basisprofiel. Answers most company questions in a single call: the employee count — how many people work at the company, headcount, staff, company size (werknemers: voltijd, deeltijd, totaal) — and where the company is based: its registered visiting and postal address, city, office location and main branch (hoofdvestiging), plus the statutory name (statutaire naam) and trade names (handelsnamen), SBI business activities, RSIN, legal form (rechtsvorm), formal registration date, registered website and the number of branches (vestigingen). Use one call to answer several fields at once rather than one call per field. Needs an 8-digit kvkNummer, a company name is resolved to one automatically via KVK Search.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "method": "GET",
+            "path": "/api/v1/basisprofielen",
+            "registration": {
+              "list_atomic": 66162,
+              "listing_type": "api",
+              "query_params": {
+                "geoData": {
+                  "description": "Include geodata (GPS latitude/longitude, Rijksdriehoek coordinates, BAG object ids) on addresses. Default false.",
+                  "required": false,
+                  "type": "boolean"
+                },
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 1,
+        "recent_successes": 56,
+        "recent_unresolved": 0,
+        "tagged": 5,
+        "tags": [
+          "address search",
+          "annual accounts",
+          "basisprofiel",
+          "branch profile",
+          "business lookup",
+          "company names",
+          "company profile",
+          "company search",
+          "dutch business register",
+          "establishment",
+          "financial statements",
+          "handelsnamen",
+          "handelsregister",
+          "handelsregister zoeken",
+          "jaarrekening",
+          "kvk",
+          "kvk search",
+          "location data",
+          "naamgeving",
+          "open data",
+          "statutaire naam",
+          "trade names",
+          "vestigingsprofiel",
+          "xbrl"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "KVK Business Register",
+      "slug": "kvk-dutch-business-register"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "building.registry-lookup": "Retrieve an official BAG address and building record including postcode, street, municipality, province, WGS84 and RD coordinates, building identifiers, year, area, status and use purpose.",
+          "building.registry-search": "Search BAG address records by postcode, house number, street or place and resolve the stable BAG address identifier.",
+          "company_registry.box-search": "Find official company-register records inside an explicit WGS84 top-left and bottom-right bounding box.",
+          "company_registry.lookup": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "company_registry.nearby-search": "Find official company-register records within a radius in metres around an existing company record.",
+          "company_registry.radius-search": "Find official company-register records within a radius in metres around a WGS84 latitude and longitude.",
+          "company_registry.search": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+          "vehicle.registry-lookup": "Retrieve the complete RDW record for one Dutch licence plate, including fuel, emissions, axles, body, APK, BPM, mass and dimensions.",
+          "vehicle.registry-search": "Search RDW vehicle-registration data by Dutch licence plate, make or wildcard query and return matching vehicle summaries."
+        },
+        "categorized": 10,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 10,
+        "description": "Search Dutch company, vehicle-registration and BAG address data through one managed source.",
+        "documented_inputs": 10,
+        "endpoint_count": 10,
+        "endpoints": [
+          {
+            "description": "Search and filter OpenKvK V3 company records. Returns a paginated JSON HAL list that is refreshed daily for new registrations and dissolutions.",
+            "endpoint_id": "7e58d830-1e94-41ff-9809-66552e9bc431",
+            "method": "GET",
+            "path": "/v3/openkvk",
+            "registration": {
+              "list_atomic": 50000,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "exists": {
+                    "description": "Require this field to exist.",
+                    "required": false,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "fields[]": {
+                    "description": "Additional result field; may be repeated by raw callers.",
+                    "required": false,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "filters[bezoeklocatie.postcode]": {
+                    "description": "Exact Dutch postcode filter.",
+                    "required": false,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "page": {
+                    "description": "Page number; default 1.",
+                    "required": false,
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  },
+                  "query": {
+                    "description": "Company name, KvK number or wildcard search value.",
+                    "required": false,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "queryfields": {
+                    "description": "Fields searched by query, for example huidigeHandelsNamen or kvknummer.",
+                    "required": false,
+                    "type": "string",
+                    "x-parameter-location": "query"
+                  },
+                  "size": {
+                    "description": "Results per page; default 100.",
+                    "required": false,
+                    "type": "integer",
+                    "x-parameter-location": "query"
+                  }
+                },
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://overheid.io/documentatie/"
+          },
+          {
+            "description": "Retrieve all available details for one OpenKvK company record by its slug, including names, registration, address, activities, legal form and location.",
+            "endpoint_id": "e7b4647f-f2aa-481e-b613-9ffbf4cad6fd",
+            "method": "GET",
+            "path": "/v3/openkvk/{id}",
+            "registration": {
+              "list_atomic": 75000,
+              "listing_type": "api",
+              "query_params": {
+                "properties": {
+                  "id": {
+                    "description": "OpenKvK slug returned by search or suggest.",
+                    "required": true,
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "type": "object"
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://overheid.io/documentatie/"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 1,
+        "recent_unresolved": 0,
+        "tagged": 10,
+        "tags": [
+          "address",
+          "address details",
+          "adres",
+          "adresgegevens",
+          "apk",
+          "around company",
+          "assen",
+          "auto",
+          "autocomplete",
+          "bag",
+          "bedrijf",
+          "bedrijfsgegevens",
+          "bedrijfsnaam",
+          "bedrijven in de buurt",
+          "bedrijven in gebied",
+          "bedrijven rond bedrijf",
+          "bounding box",
+          "bouwjaar",
+          "bpm",
+          "brandstof",
+          "building",
+          "business search",
+          "car",
+          "carrosserie",
+          "company",
+          "company name",
+          "company profile",
+          "company search",
+          "coordinates",
+          "gebouw",
+          "gebruiksdoel",
+          "geojson"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "Overheid.io Public Data",
+      "slug": "overheid-io"
+    }
+  ]
+}
