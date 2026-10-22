@@ -35,7 +35,29 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
     let interpretation = client.interpret_with_context(question, question, question, &[]).await.map_err(|e| unavailable("Ask interpretation", &e))?;
     let parsed = &interpretation.parsed_request;
     let (apiosk, coinbase) = tokio::join!(
-        ask_v2::search_catalog(state, parsed, Origin::Apiosk),
+        async {
+            // Connected callers retain the canonical parse, but a generic
+            // model category must not hide an exact documented output. The
+            // normal App search keeps its existing matching behavior.
+            if ctx.principal.connection.is_some() {
+                if let Ok(catalog) = state.engine.catalog.get().await {
+                    let matches = crate::ask_v2::search::search(parsed, &catalog);
+                    let mut intake = crate::capability_intake::Intake {
+                        parsed_request: parsed.clone(),
+                        selected_capabilities: matches.iter().flat_map(|found| found.operations.iter().cloned()).collect(),
+                        matches, catalog_version: catalog.version.clone(),
+                        apiosk_sources_searched: crate::capability_intake::source_count(&catalog),
+                    };
+                    let refreshed = crate::parser::connected_planning::refresh_discovery(&mut intake, &catalog);
+                    let input_context = crate::parser::connected_planning::input_context(&intake, &catalog);
+                    if refreshed {
+                        return ask_v2::search_catalog_with_matches(state, &input_context.parsed_request, Origin::Apiosk, Some(&intake.matches)).await;
+                    }
+                    return ask_v2::search_catalog(state, &input_context.parsed_request, Origin::Apiosk).await;
+                }
+            }
+            ask_v2::search_catalog(state, parsed, Origin::Apiosk).await
+        },
         ask_v2::search_catalog(state, parsed, Origin::Coinbase),
     );
     // An origin outage must never masquerade as a successful empty search.

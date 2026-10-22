@@ -21,6 +21,7 @@ fn main() -> anyhow::Result<()> {
         "apiosk_sources_searched":captured["apiosk_sources_searched"],
     }))?;
     intake.selected_capabilities = intake.matches.iter().flat_map(|found| found.operations.iter().cloned()).collect();
+    connected_planning::refresh_discovery(&mut intake, &catalog);
     let prepared = connected_planning::compile(&question, &Task::default(), &catalog, &intake)
         .ok_or_else(|| anyhow::anyhow!("captured request has no deterministic connected plan"))?;
     let mut task = Task { capability_intake: Some(prepared.intake), ..Task::default() };

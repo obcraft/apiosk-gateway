@@ -1,0 +1,22 @@
+{
+  "capabilities": [{
+    "confidence": 1,
+    "description": "Search for new tenders in the energy sector",
+    "domain": "general",
+    "inputs": ["sector"],
+    "missing": [],
+    "name": "Search tenders",
+    "outputs": ["tenders"],
+    "slug": "general.search",
+    "source_hint": null,
+    "subject_id": "s1"
+  }],
+  "deliverable": {"format": "chat", "operations": []},
+  "language": "nl",
+  "meta": {
+    "model": "openai/gpt-oss-120b",
+    "parsed_at": "2026-10-22T18:37:20.896615363+00:00",
+    "text_sha256": "a3d34085d633b03a61ba6ecc5359b8eaa6409fac00be397b9c751b83fc7285ec"
+  },
+  "subjects": [{"id": "s1", "identifiers": {"name": "energiesector"}, "label": "energiesector", "type": "sector"}]
+}

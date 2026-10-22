@@ -1,7 +1,7 @@
 //! Equivalent collection labels are grounded in the admitted source schema.
 //! A temporal adjective is accepted only with documented newest-first order;
 //! it never becomes an invented publication window or an open-tender claim.
-use crate::catalog::{Catalog, Service};
+use crate::{capability_intake::Intake, catalog::{Catalog, Service}};
 use serde_json::Value;
 
 fn words(value: &str) -> Vec<String> {
@@ -35,6 +35,55 @@ fn newest_publications(service: &Service, catalog: &Catalog) -> bool {
         text.contains("publication date") && text.contains("newest first")
             && schema["enum"].as_array().is_some_and(|allowed| allowed.contains(value))
     })
+}
+
+fn recency_output(output: &str, descriptions: &[&str]) -> Option<String> {
+    let category = words(output);
+    let head = category.first()?;
+    let modifier = |word: &str| matches!(word, "new" | "recent" | "latest" | "newest" | "nieuwe" | "nieuwste" | "recente");
+    if modifier(head) { return Some(output.to_owned()); }
+    // Keep the modifier attached to the requested collection. An unrelated
+    // new company or a place name must not qualify every array in a request.
+    descriptions.iter().any(|description| {
+        let tokens: Vec<_> = description.split(|ch: char| !ch.is_alphanumeric()).filter(|word| !word.is_empty()).map(str::to_lowercase).collect();
+        tokens.windows(2).any(|pair| modifier(&pair[0]) && words(&pair[1]).first() == Some(head))
+    }).then(|| format!("new_{output}"))
+}
+
+/// Scope source alternatives before the fast compiler can accept an unsorted
+/// contract alias for a request whose collection explicitly carries recency.
+pub(super) fn constrain_recency(question: &str, intake: &mut Intake, catalog: &Catalog) -> Option<Vec<String>> {
+    let mut constrained = false;
+    for index in 0..intake.parsed_request.capabilities.len() {
+        let cap = &intake.parsed_request.capabilities[index];
+        if crate::capability_intake::answer_instruction(cap) { continue; }
+        let found = super::super::explicit_request::request_match(intake, index)?;
+        let services: Vec<_> = catalog.services.iter().filter(|service| found.apiosk.iter().any(|candidate|
+            candidate.availability == "supported" && candidate.capability.as_deref() == Some(service.contract.capability_slug.as_str())
+                && candidate.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str()))).collect();
+        let temporal: Vec<_> = cap.outputs.iter().filter_map(|output| {
+            let temporal = recency_output(output, &[&cap.name, &cap.description, question])?;
+            // A collection needs its own declared shape/alias. This does not
+            // turn a scalar or an opaque narrative into a newest-record call.
+            services.iter().any(|service| !options("", output, &cap.domain, service, catalog).is_empty())
+                .then_some(temporal)
+        }).collect();
+        if temporal.is_empty() { continue; }
+        let supported: Vec<_> = services.into_iter().filter(|service| temporal.iter().all(|output|
+            !options(question, output, &cap.domain, service, catalog).is_empty())).collect();
+        if supported.is_empty() { return None; }
+        let occurrence = intake.parsed_request.capabilities[..index].iter().filter(|prior| prior.slug == cap.slug).count();
+        let target = intake.matches.iter_mut().filter(|matched| matched.slug == cap.slug).nth(occurrence)?;
+        target.apiosk.retain(|candidate| supported.iter().any(|service|
+            candidate.capability.as_deref() == Some(service.contract.capability_slug.as_str())
+                && candidate.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str())));
+        target.operations.retain(|operation| supported.iter().any(|service| &service.contract.capability_slug == operation));
+        constrained = true;
+    }
+    if constrained {
+        intake.selected_capabilities = intake.matches.iter().flat_map(|found| found.operations.iter().cloned()).collect();
+        Some(vec!["The selected collection source returns one bounded page ordered by publication date, newest first. No publication window was supplied; inspect the returned dates. This does not establish that every notice is new or still open.".into()])
+    } else { Some(vec![]) }
 }
 
 pub(super) fn options(question: &str, output: &str, domain: &str, service: &Service, catalog: &Catalog) -> Vec<(String, Option<String>)> {

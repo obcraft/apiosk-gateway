@@ -6,6 +6,8 @@ use crate::{capability_intake::Intake, catalog::Catalog, state::Task};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 mod collections;
+mod discovery;
+pub use discovery::{input_context, refresh_discovery};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gap {
@@ -61,16 +63,22 @@ fn metadata(output: &str) -> bool {
 /// when every remaining field and supplied filter passes the normal compiler.
 /// Original requirements remain saved, returned and disclosed before approval.
 pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake) -> Option<Prepared> {
+    let original_intake = original.clone();
+    let mut input_view = input_context(original, catalog);
+    let mut limitations = collections::constrain_recency(question, &mut input_view, catalog)?;
+    let recency_limited = !limitations.is_empty();
+    let original = &input_view;
     let literals = super::capability_binding::literal_context(question, task, None);
-    let full = contract_planner::compile(question, &literals, task, catalog, original);
+    let mut full = contract_planner::compile(question, &literals, task, catalog, original);
     if contract_planner::ready(question, &full, task, catalog, original) {
-        return Some(Prepared { reply: full, intake: original.clone(), coverage: Coverage { original_intake: original.clone(), gaps: vec![], limitations: vec![] } });
+        let coverage = Coverage { original_intake, gaps: vec![], limitations };
+        if let Some(intent) = &mut full.intent { intent.answer_operations.extend(coverage.notices()); }
+        return Some(Prepared { reply: full, intake: original.clone(), coverage });
     }
     let mut intake = original.clone();
     intake.parsed_request.capabilities.clear();
     intake.matches.clear();
     let mut gaps = Vec::new();
-    let mut limitations = Vec::new();
     let mut changed = false;
     for (index, cap) in original.parsed_request.capabilities.iter().enumerate() {
         if plan_coverage::answer_instruction(cap) { continue; }
@@ -124,7 +132,7 @@ pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake
                 contract_planner::ready(question, &reply, task, catalog, &part)
             });
             if let Some((supported, notice, pin)) = supported {
-                if let Some(notice) = notice { if !limitations.contains(&notice) { limitations.push(notice); } }
+                if let Some(notice) = notice { if !recency_limited && !limitations.contains(&notice) { limitations.push(notice); } }
                 if let Some((capability, endpoint)) = pin {
                     kept_match.apiosk.retain(|candidate| candidate.capability.as_ref() == Some(&capability)
                         && candidate.endpoint_id.as_ref() == Some(&endpoint));
@@ -148,7 +156,7 @@ pub fn compile(question: &str, task: &Task, catalog: &Catalog, original: &Intake
     intake.selected_capabilities = intake.matches.iter().flat_map(|found| found.operations.iter().cloned()).collect();
     let mut reply = contract_planner::compile(question, &literals, task, catalog, &intake);
     if !contract_planner::ready(question, &reply, task, catalog, &intake) { return None; }
-    let coverage = Coverage { original_intake: original.clone(), gaps, limitations };
+    let coverage = Coverage { original_intake, gaps, limitations };
     if let Some(intent) = &mut reply.intent {
         intent.answer_operations.extend(coverage.notices());
         intent.answer_operations.push("Cite the actual sources and explicitly identify missing or unverified requested information.".into());

@@ -1299,7 +1299,8 @@ impl Parser {
     /// does: the Ask v2 capability parse, then the deterministic source search.
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
-        let intake = self.ask_intake_selected(question, None, task, catalog, earlier).await?;
+        let mut intake = self.ask_intake_selected(question, None, task, catalog, earlier).await?;
+        connected_planning::refresh_discovery(&mut intake, catalog);
         Ok(self.complete_origin_search(intake, catalog).await)
     }
 

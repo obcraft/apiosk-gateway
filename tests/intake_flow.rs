@@ -1519,6 +1519,87 @@ async fn connected_company_quote_preserves_missing_coverage_through_status_and_r
     assert!(intake.edge.calls.lock().unwrap().is_empty());
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain() {
+    let intake = Intake::start().await;
+    let person = Person { owner: "00000000-0000-4000-8000-000000000001".parse().unwrap(), bearer: "apk_access_local_fixture".into() };
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/connected-planning/catalog.json")).unwrap();
+    for fact in fixture["vocabulary"].as_array().unwrap() {
+        sqlx::query("INSERT INTO fact_types(slug,status,value_schema) VALUES($1,'active',$2) ON CONFLICT(slug) DO NOTHING")
+            .bind(fact["slug"].as_str().unwrap()).bind(&fact["value_schema"]).execute(&intake.pool).await.unwrap();
+    }
+    let source = fixture["services"].as_array().unwrap().iter().find(|source|source["api_slug"]=="tenderned").unwrap();
+    let api: Uuid = source["id"].as_str().unwrap().parse().unwrap();
+    let endpoint: Uuid = source["endpoint_id"].as_str().unwrap().parse().unwrap();
+    sqlx::query("INSERT INTO apis(id,slug,name,listing_type,status,active,is_verified,discoverable,description) VALUES($1,'tenderned','TenderNed','api','active',true,true,true,$2)")
+        .bind(api).bind(source["description"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO api_endpoints(id,api_id,method,path,price,active,description) VALUES($1,$2,'GET','/v2/publicaties',0.047259,true,$3)")
+        .bind(endpoint).bind(api).bind(source["description"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    let contract = &source["contract"];
+    sqlx::query("INSERT INTO capabilities(slug,status) VALUES('procurement.nl-public-contracts','active') ON CONFLICT DO NOTHING").execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) VALUES($1,$2,'procurement.nl-public-contracts',1,'active',$3,$4,$5,NULL,'one',1,'{}','{}','{}',3600,$6,now(),'read','per_call')")
+        .bind(Uuid::new_v4()).bind(endpoint).bind(&contract["requires"]).bind(&contract["input_map"])
+        .bind(&contract["output_map"]).bind(&source["sample_payload"]).execute(&intake.pool).await.unwrap();
+    let question = "Zoek aanbestedingen voor de energiesector";
+    let parsed = json!({"language":"nl","subjects":[{"id":"s1","label":"energiesector","type":"sector","identifiers":{"name":"energiesector"}}],
+        "capabilities":[{"slug":"general.search","name":"Search","description":"Search for tenders in the energy sector.","domain":"general","inputs":["sector"],"outputs":["tenders"],"subject_id":"s1","source_hint":null,"confidence":0.95}],
+        "deliverable":{"format":"chat","operations":["list"]}});
+    intake.model.ask_v2_replies.lock().unwrap().push_back(parsed.clone());
+    let before = task_count(&intake, &person).await;
+    let (status, found) = intake.send(&person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    let tender = found["apis"].as_array().unwrap().iter().find(|candidate|candidate["endpoint_id"]==endpoint.to_string())
+        .expect("a generic model category must not hide the admitted tender source");
+    assert_eq!(tender["availability"], "supported");
+    assert_eq!(tender["requested_capability"], "general.search");
+    assert_eq!(tender["input_values"]["company_intel.input.search"], "energiesector");
+    assert_eq!(tender["missing_inputs"], json!([]));
+    assert_eq!(found["parsed_request"]["subjects"][0]["label"], "energiesector");
+    assert_eq!(found["parsed_request"]["subjects"][0]["identifiers"], json!({"name":"energiesector"}), "source input annotations cannot rewrite the canonical parse");
+    assert_eq!(found["parsed_request"]["capabilities"][0]["outputs"], json!(["tenders"]));
+    assert_eq!(found["parsed_request"]["capabilities"][0]["domain"], "general");
+    assert_eq!(task_count(&intake, &person).await, before, "free discovery creates no task");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 1);
+    assert!(intake.model.chats().is_empty(), "discovery never invokes the planner");
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    let app_person = Person::new();
+    let (status, app_search) = intake.send(&app_person.bearer, "/v2/ask-v2/search", Some(json!({
+        "origin":"apiosk","parsed_request":found["parsed_request"]
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{app_search}");
+    assert!(!app_search["matches"].as_array().unwrap().iter().flat_map(|found|found["apiosk"].as_array().unwrap())
+        .any(|candidate|candidate["endpoint_id"]==endpoint.to_string()), "the frozen App search is unchanged");
+
+    let mut scoped_parse = parsed.clone();
+    scoped_parse["capabilities"][0]["domain"] = json!("procurement");
+    scoped_parse["capabilities"][0]["slug"] = json!("procurement.search");
+    intake.model.ask_v2_replies.lock().unwrap().push_back(scoped_parse);
+    let (status, scoped) = intake.send(&person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::OK, "{scoped}");
+    let scoped_tender = scoped["apis"].as_array().unwrap().iter().find(|candidate|candidate["endpoint_id"]==endpoint.to_string())
+        .expect("normal source discovery must still bind the documented sector input");
+    assert_eq!(scoped_tender["input_values"]["company_intel.input.search"], "energiesector");
+    assert_eq!(scoped_tender["missing_inputs"], json!([]));
+    assert_eq!(scoped["parsed_request"]["subjects"][0]["identifiers"], json!({"name":"energiesector"}));
+    assert_eq!(scoped["parsed_request"]["capabilities"][0]["domain"], "procurement");
+    assert_eq!(task_count(&intake, &person).await, before);
+
+    intake.model.ask_v2_replies.lock().unwrap().push_back(parsed);
+    let (status, quote) = intake.send(&person.bearer, "/v2/discover", Some(json!({
+        "request_id":Uuid::new_v4(),"question":question,"state":null
+    }))).await;
+    assert_eq!(status, StatusCode::OK, "{quote}");
+    assert_eq!(quote["status"], "ready", "{quote}");
+    assert_eq!(quote["proposal"]["steps"], json!(["procurement.nl-public-contracts"]));
+    let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let saved: Value = sqlx::query_scalar("SELECT document->'intent' FROM tasks WHERE id=$1")
+        .bind(task).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(saved["subjects"][0]["values"]["company_intel.input.search"], "energiesector", "the supplied sector must survive discovery and pricing");
+    assert_no_purchase(&intake, &person, task).await;
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+}
+
 /// Both interpretation stages before planning must survive malformed model
 /// output without losing the submitted text or creating an executable task.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
