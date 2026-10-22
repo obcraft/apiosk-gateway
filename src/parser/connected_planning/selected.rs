@@ -221,6 +221,13 @@ pub(crate) fn compile_selected(
         for mut goal in part_intent.goals { goal.subject = index; intent.goals.push(goal); }
         combined.parsed_request.capabilities.extend(prepared.intake.parsed_request.capabilities);
         combined.matches.extend(prepared.intake.matches);
+        // Aggregate original output coverage is authoritative: another chosen
+        // root may cover this root's missing field. Carry only additional scope
+        // obligations (such as the explicitly deferred regional coverage).
+        for gap in prepared.coverage.gaps.into_iter().filter(|gap| !option.requirement.outputs.contains(&gap.output)
+            && !original.parsed_request.capabilities.iter().any(|cap| cap.outputs.contains(&gap.output))) {
+            if !coverage.gaps.iter().any(|existing| existing.subject == gap.subject && existing.output == gap.output) { coverage.gaps.push(gap); }
+        }
         for notice in prepared.coverage.limitations { if !coverage.limitations.contains(&notice) { coverage.limitations.push(notice); } }
     }
     combined.selected_capabilities = combined.matches.iter().flat_map(|found| found.operations.iter().cloned()).collect();
@@ -498,6 +505,66 @@ mod tests {
             let error=compile_selected(question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).err().unwrap().to_string();
             assert!(error.contains("company_intel.input.search"),"{error}");
         }
+    }
+
+    #[test]
+    fn fresh_energy_region_is_a_saved_partial_coverage_gap_with_exact_source_filters() {
+        let (catalog, _, mut intake, _, mut choice)=energy_selection_fixture();
+        let saved:Value=serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-region-free.json")).unwrap();
+        let question=saved["question"].as_str().unwrap();
+        intake.parsed_request=serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        intake.matches=serde_json::from_value(saved["matches"].clone()).unwrap();
+        let options=crate::ask_v2::source_options::connected_options(&intake.parsed_request,&intake.matches,&catalog);
+        choice.input.insert("company_intel.input.search".into(),json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(),json!("AF7"));
+        let prepared=compile_selected(question,&Task::default(),&catalog,&intake,&[choice.clone()],&options).unwrap();
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake).unwrap(),serde_json::to_value(&intake).unwrap());
+        assert!(prepared.coverage.gaps.iter().any(|gap| gap.output=="tenders"));
+        let regional="Full regional coverage: Nederland en de EU (selected source is limited to NL)";
+        assert!(prepared.coverage.gaps.iter().any(|gap| gap.output==regional));
+        assert!(prepared.reply.intent.as_ref().unwrap().answer_operations.iter().any(|notice| notice.contains(regional)));
+        let serialized=serde_json::to_value(&prepared.coverage).unwrap();
+        let saved_coverage:super::super::Coverage=serde_json::from_value(serialized).unwrap();
+        assert!(saved_coverage.gaps.iter().any(|gap| gap.output==regional));
+        let (task,plan)=plan(prepared,question,&catalog);
+        assert_eq!(plan.steps.len(),1);
+        assert_eq!(plan.cap_atomic,54348);
+        assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap(),json!({"search":"energie","publicatieDatumPreset":"AF7","page":0,"size":20,"sort":"publicatieDatum,desc"}));
+        for region in ["France","Unknown region","Amsterdam en Nederland","Nederland excluding Amsterdam","EU"] {
+            let mut changed=intake.clone(); changed.parsed_request.subjects[0].identifiers.insert("region".into(),region.into());
+            assert!(compile_selected(question,&Task::default(),&catalog,&changed,&[choice.clone()],&options).is_err(),"widened {region}");
+        }
+        let mut filtered=intake.clone(); filtered.parsed_request.subjects[0].identifiers.insert("status".into(),"open".into());
+        assert!(compile_selected(question,&Task::default(),&catalog,&filtered,&[choice],&options).is_err(),"dropped another filter");
+    }
+
+    #[test]
+    fn complementary_selected_roots_do_not_restore_each_others_original_output_gaps() {
+        let (_,question,mut intake,mut options)=fixture(false);
+        let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../../tests/fixtures/connected-planning/catalog.json")).unwrap();
+        let mut directors=snapshot.services.iter().find(|service| service.contract.capability_slug=="company.registry-profile").unwrap().clone();
+        directors.id=uuid::Uuid::new_v4(); directors.endpoint_id=uuid::Uuid::new_v4();
+        directors.contract.capability_slug="company.directors".into();
+        directors.contract.output_map.produces=serde_json::from_value(json!({"company.directors":{"path":"$.directors"}})).unwrap();
+        directors.contract.identifies=None;
+        directors.optional_outputs.clear();
+        directors.sample_payload=Some(json!({"directors":[{"name":"Fixture Director"}]}));
+        directors.description=Some("Retrieve the company directors".into());
+        snapshot.vocabulary.push(catalog_core::facts::contract::FactType { slug:"company.directors".into(),value_schema:json!({"type":"array","items":{"type":"object","properties":{"name":{"type":"string"}}}}) });
+        snapshot.services.push(directors.clone());
+        let catalog=Catalog::build(snapshot); assert!(catalog.rejected.is_empty(),"{:?}",catalog.rejected);
+        intake.catalog_version=catalog.version.clone();
+        let mut option=options.iter().find(|option| option.source.capability.as_deref()==Some("company.registry-profile")).unwrap().clone();
+        option.source.capability=Some(directors.contract.capability_slug.clone());
+        option.source.endpoint_id=Some(directors.endpoint_id.to_string());
+        intake.matches[0].apiosk.push(option.source.clone()); intake.matches[0].operations.insert(directors.contract.capability_slug.clone());
+        let mut choices=choose(&options);
+        choices.push(SelectedSource { endpoint_id:directors.endpoint_id,capability:directors.contract.capability_slug.clone(),subject_id:option.subject_id.clone(),input:option.input_values.clone() });
+        options.push(option);
+        let prepared=compile_selected(&question,&Task::default(),&catalog,&intake,&choices,&options).unwrap();
+        assert_eq!(prepared.coverage.gaps.iter().map(|gap| gap.output.as_str()).collect::<Vec<_>>(),["ownership_structure"]);
+        let (_,plan)=plan(prepared,&question,&catalog);
+        assert_eq!(plan.steps.len(),2);
     }
 
     #[test]
