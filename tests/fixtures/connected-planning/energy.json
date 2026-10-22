@@ -1,0 +1,43 @@
+{
+  "question": "Via Apiosk: Zoek nieuwe aanbestedingen in de energiesector.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.9,
+        "description": "Search for new procurement tenders in the energy sector",
+        "domain": "procurement",
+        "inputs": [
+          "sector"
+        ],
+        "missing": [],
+        "name": "Search new tenders",
+        "outputs": [
+          "tenders"
+        ],
+        "slug": "procurement.tenders.search",
+        "source_hint": null,
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T18:13:19.783677252+00:00",
+      "text_sha256": "a3d34085d633b03a61ba6ecc5359b8eaa6409fac00be397b9c751b83fc7285ec"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "sector": "energiesector"
+        },
+        "label": "energiesector",
+        "type": "sector"
+      }
+    ]
+  }
+}

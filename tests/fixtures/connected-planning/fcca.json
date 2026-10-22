@@ -1,0 +1,49 @@
+{
+  "question": "Verzamel de bedrijfsgegevens, bestuurders en eigendomsstructuur van Financial Crime Compliance Associates; KVK-nummer: 91251982 voor een cliëntonderzoek. Vermeld de bronnen en geef aan welke informatie ontbreekt of nog gecontroleerd moet worden.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.97,
+        "description": "Retrieve business details, directors and ownership structure for the specified company",
+        "domain": "company",
+        "inputs": [
+          "kvk_number"
+        ],
+        "missing": [],
+        "name": "Company profile",
+        "outputs": [
+          "company_details",
+          "directors",
+          "ownership_structure",
+          "sources",
+          "missing_information"
+        ],
+        "slug": "company.profile",
+        "source_hint": null,
+        "subject_id": "s1"
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": [
+        "list"
+      ]
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T18:10:19.230654+00:00",
+      "text_sha256": "475245b8b79b871e49379399e3d0c77fd757e4d3da2e478a0e98b7b23a607f46"
+    },
+    "subjects": [
+      {
+        "id": "s1",
+        "identifiers": {
+          "kvk_number": "91251982"
+        },
+        "label": "Financial Crime Compliance Associates",
+        "type": "company"
+      }
+    ]
+  }
+}

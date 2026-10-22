@@ -466,6 +466,7 @@ impl Engine {
         // then interpreted by the same one Ask parse as a new question.
         let new_topic = if req.state.is_some() && !task.conversation.is_empty()
             && forced.is_none() && selection.is_none() && !has_displayed_search && !workflow_input
+            && (app_chat || !task.intake_recovery.as_ref().is_some_and(|saved| saved.matches(req)))
             && self.parser.ask_v2().is_some() {
             anyhow::ensure!(!self.worker_active(id).await?, "Wait for the current answer to finish");
             let (new_topic, response) = self.route_conversation(p,req,id,revision,&mut task).await?;
@@ -482,7 +483,11 @@ impl Engine {
         task.workflow = workflow.clone().or_else(|| (app_chat && !direct).then(|| pending_workflow.clone()).flatten());
         // A connected follow-up may continue what the last turn found; the
         // intake itself is rebuilt below, as for every non-App question.
-        let earlier_intake = if app_chat || new_topic { None } else { task.capability_intake.clone() };
+        let earlier_intake = if app_chat || new_topic { None } else {
+            task.connected_coverage.as_ref().map(|coverage| coverage.original_intake.clone())
+                .or_else(|| task.capability_intake.clone())
+        };
+        if !app_chat { task.connected_coverage = None; }
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract,
@@ -508,6 +513,11 @@ impl Engine {
                     Err(error) => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Parsing, turn_recorded:false }, error).await,
                 }
             }
+        } else if !app_chat && resuming && recovery.as_ref().zip(earlier_intake.as_ref())
+            .is_some_and(|(saved, intake)| saved.reusable(intake, &catalog.version)) {
+            // A connected caller can resume the exact unpaid question from
+            // its validated discovery; never reuse a price or authorization.
+            earlier_intake.clone()
         } else { None };
         let selected_workflow = req.context_delta.workflow_slug.as_deref();
         let recovering_workflow = selected_workflow.is_some() && recovery.as_ref()
@@ -591,8 +601,15 @@ impl Engine {
             let compiled=task.source_selection.as_ref().map(|context|context.compile(&catalog)).transpose()?.flatten();
             // The deterministic compiler first; the semantic planner only for
             // wording the contracts' exact fields cannot bind.
-            let reply = if let Some(reply)=compiled {Ok(reply)} else if let Some(intake) = &task.capability_intake {
-                self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, intake).await
+            let reply = if let Some(reply)=compiled {Ok(reply)} else if let Some(intake) = task.capability_intake.clone() {
+                if let Some(prepared) = (!app_chat && model_selection.is_none()).then(||
+                    crate::parser::connected_planning::compile(&req.question, &parsing_task, &catalog, &intake)).flatten() {
+                    task.connected_coverage = Some(prepared.coverage);
+                    task.capability_intake = Some(prepared.intake);
+                    Ok(prepared.reply)
+                } else {
+                    self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, &intake).await
+                }
             } else if app_chat || self.parser.ask_v2().is_none() {
                 // Without an Ask v2 model (local fixtures) the full-catalog
                 // interpreter remains the only reader.
@@ -602,17 +619,27 @@ impl Engine {
                 // search, never from a model pass over the whole catalog.
                 match self.parser.ask_intake(&req.question, &parsing_task, &catalog, earlier_intake.as_ref()).await {
                     Ok(intake) => {
-                        let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, &intake).await;
-                        task.capability_intake = Some(intake);
-                        reply
+                        if let Some(prepared) = model_selection.is_none().then(||
+                            crate::parser::connected_planning::compile(&req.question, &parsing_task, &catalog, &intake)).flatten() {
+                            task.connected_coverage = Some(prepared.coverage);
+                            task.capability_intake = Some(prepared.intake);
+                            Ok(prepared.reply)
+                        } else {
+                            let reply = self.parser.chat_from_capabilities(&req.question, model_selection.as_ref(), &parsing_task, &catalog, &intake).await;
+                            task.capability_intake = Some(intake);
+                            reply
+                        }
                     }
-                    Err(error) => Err(error),
+                    Err(error) if invoice_fallback.is_some() => Err(error),
+                    Err(error) => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake {
+                        id, revision, request:req, stage:crate::state::IntakeStage::Parsing, turn_recorded:false,
+                    }, error).await,
                 }
             };
             let mut reply = match (reply, &invoice_fallback) {
                 (Ok(reply), _) => reply,
                 (Err(_), Some(fallback)) => crate::parser::ChatReply { output_bindings: vec![], message: crate::supplier_check::routing_message(&req.question), discover: true, intent: Some(fallback.clone()), decline_reason: None },
-                (Err(error), None) if app_chat => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Planning, turn_recorded:false }, error).await,
+                (Err(error), None) if app_chat || self.parser.ask_v2().is_some() => return self.pause_intake(p, &mut task, intake_recovery::InterruptedIntake { id, revision, request:req, stage:crate::state::IntakeStage::Planning, turn_recorded:false }, error).await,
                 (Err(error), None) => return Err(error),
             };
             if let Some(fallback) = invoice_fallback.as_ref().filter(|_| !reply.discover || reply.intent.is_none()) {
@@ -1027,7 +1054,11 @@ impl Engine {
         if worker_active && r.status == Status::Ready { r.status = Status::Running; }
         if task.intent.as_ref().is_some_and(|intent| intent["goals"].as_array().is_some_and(|goals|
             goals.iter().any(|g| g["capability"] == crate::uk_supplier::screening_cap(0)))) {
-            r.context_view["coverage_notices"] = crate::uk_supplier::limitations();
+            let mut notices = r.context_view["coverage_notices"].as_array().cloned().unwrap_or_default();
+            for notice in crate::uk_supplier::limitations().as_array().into_iter().flatten() {
+                if !notices.contains(notice) { notices.push(notice.clone()); }
+            }
+            r.context_view["coverage_notices"] = json!(notices);
         }
         if let Some(grounding) = &task.output_grounding {
             let mut notices = r.context_view["coverage_notices"].as_array().cloned().unwrap_or_default();

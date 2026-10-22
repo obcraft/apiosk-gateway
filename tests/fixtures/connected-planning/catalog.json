@@ -1,0 +1,1799 @@
+{
+  "services": [
+    {
+      "api_slug": "tenderned",
+      "contract": {
+        "capability_slug": "procurement.nl-public-contracts",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "company_intel.input.cpvcodes": {
+            "in": "query",
+            "name": "cpvCodes"
+          },
+          "company_intel.input.procedure": {
+            "in": "query",
+            "name": "procedure"
+          },
+          "company_intel.input.publicatiedatumpreset": {
+            "in": "query",
+            "name": "publicatieDatumPreset"
+          },
+          "company_intel.input.publicatiedatumtot": {
+            "in": "query",
+            "name": "publicatieDatumTot"
+          },
+          "company_intel.input.publicatiedatumvanaf": {
+            "in": "query",
+            "name": "publicatieDatumVanaf"
+          },
+          "company_intel.input.search": {
+            "in": "query",
+            "name": "search"
+          },
+          "company_intel.input.sluitingsdatumtot": {
+            "in": "query",
+            "name": "sluitingsDatumTot"
+          },
+          "company_intel.input.sluitingsdatumvanaf": {
+            "in": "query",
+            "name": "sluitingsDatumVanaf"
+          },
+          "company_intel.input.typeopdracht": {
+            "in": "query",
+            "name": "typeOpdracht"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "tenderned.publication_page": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_intel.input.search",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.cpvcodes",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.procedure",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.typeopdracht",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.sluitingsdatumtot",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumtot",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.sluitingsdatumvanaf",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumvanaf",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumpreset",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "fixed_params": {
+        "page": 0,
+        "size": 20,
+        "sort": "publicatieDatum,desc"
+      },
+      "freshness_seconds": 3600,
+      "id": "14cd2fdd-5836-4517-998a-018e3c27a241",
+      "jurisdiction": null,
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "TenderNed",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/v2/publicaties",
+      "preconditions": {},
+      "sample_payload": {
+        "content": [
+          {
+            "aanbestedingNaam": "Raamovereenkomst Elektrotechnische en Procesautomatisering werkzaamheden  iWA2.0/ iPA2.0 2026",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614031,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441462",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De Raamovereenkomst Elektrotechnische en Procesautomatisering werkzaamheden iWA2.0/iPA2.0 2026-2030 is voornamelijk gebaseerd op de programma\u2019s iWA2.0 en iPA2.0. De, niet uitputtende, werkzaamheden zijn onderverdeeld in:\n\u2022 Werkzaamheden aan de objecten stuwen en gemalen, krooshekreiniger, meetpunten en dergelijke objecten in het watersysteem. Deze objecten behoren tot het programma iWA2.0\n\u2022 Werkzaamheden aan de objecten rioolgemalen en rioolwaterzuiveringsinstallaties (rwzi\u2019s) in de waterketen. Deze objecten behoren tot het programma iPA2.0;\n\u2022 Buiten de programma\u2019s iWA2.0 en iPA2.0 kunnen werkzaamheden op de (de)centrale locaties/kantoren van WSRL deel uitmaken van deze Raamovereenkomst. De werkzaamheden moeten wel in relatie staan met de werkzaamheden zoals in deze Aanbestedingsleidraad benoemd;\n\u2022 Detachering van personeel in geval van capaciteitsbehoefte bij WSRL.\n\nVoor deze objecten dienen er voornamelijk elektrotechnische installatiewerkzaamheden uitgevoerd te worden. Meestal worden de engineeringswerkzaamheden door WSRL zelf uitgevoerd. In sommige gevallen kan de engineering door Opdrachtnemer onderdeel uitmaken van de Nadere opdracht.\n\nWSRL hanteert voor het gehele programma iWA2.0 en iPA2.0 de volgende doelstellingen:\n\u2022 Het vervangen van de procesautomatisering eens per 12,5 jaar van de objecten waarbij enkel op elektrotechnisch en procesautomatisering vlak vervanging dient plaats te vinden;\n\u2022 Bij het vervangen van de procesautomatisering gelijktijdig het vervangen van de elektrotechnische componenten, welke niet meer voldoen aan de normen of aan vervanging toe zijn, inclusief de benodigde documentatie van de objecten;\n\u2022 Het technisch en functioneel op orde houden van de centrale hoofdposten watersysteem en waterketen.\n\u00a0\nHet doel van deze aanbesteding is tweeledig:\n1. Het sluiten van een Raamovereenkomst(en) met \u00e9\u00e9n of meerdere ondernemingen voor Elektrotechnische installaties & Procesautomatisering werkzaamheden iWA2.0/ iPA2.0 2026-2030; \n2. Het verstrekken van \u00e9\u00e9n Opdracht (een Nadere opdracht vanuit vakgebied B) voor werkzaamheden aan gemaal Middelkoop.",
+            "opdrachtgeverNaam": "Waterschap Rivierenland",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441462",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "https://s2c.mercell.com/today/200534",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Leveren Bomen en Planten",
+            "aantalDagenTotSluitingsDatum": 7,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 603626,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441454",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Betreft het leveren aanbrengen en onderhouden van Bomen (Perceel 1)\nen het leveren van Planten (Perceel 2)",
+            "opdrachtgeverNaam": "Gemeente Nieuwegein",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441454",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-01T11:30:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "2026-0709 ROK Stadsbank",
+            "aantalDagenTotSluitingsDatum": 26,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": true,
+            "kenmerk": 607741,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441444",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De opdracht betreft het op afroep beschikbaar stellen en inzetten van gekwalificeerde professionals voor de uitvoering en ondersteuning van de gemeentelijke schuldhulpverlening.\nDe raamovereenkomst biedt de gemeente de mogelijkheid om gedurende de looptijd van de overeenkomst tijdelijk aanvullende capaciteit en/of specifieke deskundigheid in te zetten wanneer de reguliere personele capaciteit onvoldoende is of wanneer specifieke expertise noodzakelijk is.",
+            "opdrachtgeverNaam": "Gemeente Leiden",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441444",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-20T10:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "VBE",
+              "omschrijving": "Vroegtijdige be\u00ebindiging"
+            }
+          },
+          {
+            "aanbestedingNaam": "Water- en Oeverplanten stromend 2027-2032",
+            "aantalDagenTotSluitingsDatum": 67,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 610736,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441438",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Doel van deze Europese aanbesteding is zekerstelling/continu\u00efteit van de monitoring van de Water- en oeverplanten stromend in de 2027 tot en met 2032.",
+            "opdrachtgeverNaam": "Rijkswaterstaat Centrale Informatievoorziening",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441438",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-30T12:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Marktconsultatie ICT Hardware",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614340,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441436",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "OBK",
+              "omschrijving": "Onbekend"
+            },
+            "opdrachtBeschrijving": "SOVON onderzoekt de optie om een nieuw ICT Hardware contract af te sluiten met \u00e9\u00e9n leverancier op basis van adviesprijs minus korting voor zowel non-Apple devices als Apple devices.\n\nDoor middel van deze marktconsultatie wil SOVON informatie krijgen uit de markt over de moge-lijkheden en onmogelijkheden van deze prijsstrategie.\n\nMeer informatie vind u in het document Marktconsultatie ICT Hardware.",
+            "opdrachtgeverNaam": "Sovon",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441436",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Nieuwe inrichting Enterprise Resource Planning (ERP)",
+            "aantalDagenTotSluitingsDatum": 13,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 595718,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441435",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Deze aanbesteding volgt op een eerder uitgevoerde marktconsultatie en heeft als doel om de meest geschikte partij te vinden die een nieuwe inrichting van SAP S/4 HANA kan uitvoeren op basis van de in 2016 op rechtmatige wijze verkregen licenties.  \n\nDe opdracht bestaat uit drie onderdelen:\n- Implementatie\n- Doorontwikkeling\n- Beheer en onderhoud",
+            "opdrachtgeverNaam": "Universitair Medisch Centrum Groningen (UMCG)",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441435",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-07T17:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Raamovereenkomst Onderhoud waterkeringen 2027 - 2032",
+            "aantalDagenTotSluitingsDatum": 42,
+            "digitaal": false,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614375,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441430",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Voorwerp van de opdracht\nDe aanbesteding heeft tot doel een raamovereenkomst af te sluiten voor het verrichten van onderhoud aan de waterkeringen binnen het verzorgingsgebied van WSHD middels een RAW-raamovereenkomst. Deze dienst is te classificeren met de \n\nEr wordt \u00e9\u00e9n (1) RAW-raamovereenkomst gesloten met \u00e9\u00e9n (1) opdrachtnemers. Het uitgangspunt is dat WSHD de regie voert op de uitvoering van het onderhoud van de waterkeringen en de hieruit voortkomende onderhoudswerkzaamheden door middel van nader te verstrekken deelopdrachten onder de raamovereenkomst.\u00a0\n\nInhoud van de opdracht\nMet het onderhouden van de waterkeringen wordt in ieder geval voldaan aan de doelstellingen van WSHD te weten:\nHet waarborgen van de veiligheid van de waterkeringen;\nDe dijken en duinen voldoende sterk zijn en voldoen aan de wettelijke normen;\nDe kans op een overstroming alsmede de gevolgen daarvan worden beperkt;\nHet toevoegen van maatschappelijke meerwaarde;\nHet duurzaam en ecologisch uitvoeren van de waterveiligheidstaak alsmede het terugdringen van CO2-uitstoot bij het beheer en onderhoud;\u00a0\nHet verbeteren van de inrichting en uitvoering van de zorgplicht.\u00a0\n\nDe onderhoudswerkzaamheden binnen de scope van de opdracht omvatten hoofdzakelijk regulier onderhoud op primaire (ongeveer 3.000 kilometer) en regionale waterkeringen (ongeveer 3.000 kilometer), maar zijn niet beperkt tot het:\nHet aanbrengen van bestortingen;\nHet herstellen van zetwerk;\nHet bestrijden van onkruid;\nHet uitvoeren van grondwerk;\nHet vervangen van en onderhouden van drainagesystemen;\u00a0\nHet vervangen van en onderhouden van afrasteringen;\nHet vervangen van oeververdediging;\nHet verwijderen van opschot en ruigten;\nHet schoonmaken van strandopgangen en onderhoud aan strandpalen.\nWSHD stelt haar gebiedsinformatie ter beschikking via ArcGIS Online, waarin onder andere alle assets gelegen in het werkgebied zijn opgenomen.",
+            "opdrachtgeverNaam": "Waterschap Hollandse Delta",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441430",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-05T14:00:11",
+            "tsenderLink": "https://s2c.mercell.com/today/196464",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Grootschalige warmtescans uitvoering straatbeeld",
+            "digitaal": false,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614319,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441429",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "In 2026 worden tussen de 2.000 en 2.500 warmtescans gemaakt in de kernen Wolvega, Noordwolde en Oldeholtpade, bij adressen die door de gemeente worden aangeleverd.",
+            "opdrachtgeverNaam": "Gemeente Weststellingwerf",
+            "procedure": {
+              "code": "OZB",
+              "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441429",
+            "publicatiecode": {
+              "code": "EF25",
+              "omschrijving": "Aankondiging in geval van vrijwillige transparantie vooraf - algemene richtlijn"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Speeltoestellen en valondergronden t.b.v Gemeenten Gennep, Roermond, Venray en Weert",
+            "aantalDagenTotSluitingsDatum": 35,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 606626,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441423",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Voor u ligt het Beschrijvend Document voor de Aanbesteding voor de verwerving van speeltoestellen en valondergronden, die Inkoopcentrum Zuid als Aanbestedende dienst, als penvoerder uitvoert in naam van de gemeenten Gennep, Venray, Weert en Roermond. Met elke gemeente zal er een aparte gelijkluidende overeenkomst gesloten worden. Het doel van deze Aanbesteding is om voor perceel 1 vier (4) Inschrijvers en voor perceel 2 \u00e9\u00e9n (1) Inschrijver te contrateren en per Contractant een Raamovereenkomst te sluiten",
+            "opdrachtgeverNaam": "InkoopcentrumZuid u.a.",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441423",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-29T12:00:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Individuele Begeleiding en Dagbesteding Heemstede-Bloemendaal",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614351,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441421",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "BKN",
+              "omschrijving": "Bekend"
+            },
+            "opdrachtBeschrijving": "De gemeenten willen een goed beeld krijgen van wat er mogelijk is en wat er leeft in de markt. Zo helpt het om de eisen en eigenschappen van de gevraagde dienstverlening zo te formuleren dat de markt op een goede wijze kan aanbieden. Daarnaast gebruiken we de ontvangen informatie voor het bepalen van de best passende aanbestedingsprocedure.",
+            "opdrachtgeverNaam": "Gemeente Heemstede",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441421",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatumMarktconsultatie": "2026-10-21",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Vegen van Wegen - Gemeente Deurne",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 613797,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441001",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De overeenkomst bestaat uit het vegen van wegen in de gemeente Deurne. De overeenkomst wordt aangegaan voor een periode van minimaal 2 jaar en maximaal 6 jaar. De beoogde ingangsdatum van de overeenkomst is 1 januari 2027.\n\nDe werkzaamheden moeten worden uitgevoerd binnen de gemeentegrenzen van Deurne en vallen\nalleen onder haar verantwoordelijkheid. Deze opdracht wordt dan ook niet samengevoegd. Daarnaast betreft het werkzaamheden enkel in het kader van het reinigen van de wegen, dus ook op het gebied van de aard van de werkzaamheden wordt de opdracht niet samengevoegd.\nDe omvang van de opdracht is dusdanig dat het volledige werk voor een MKB bedrijf goed uitvoerbaar is. Om deze reden is het niet noodzakelijk om het werk op te delen in percelen.",
+            "opdrachtgeverNaam": "Gemeente Deurne",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441001",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "https://s2c.mercell.com/today/199043",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Schoonmaak ten behoeve van 1Stroom (gemeenten Duiven en Westervoort)",
+            "aantalDagenTotSluitingsDatum": 4,
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 606949,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441408",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Deze aanbesteding heeft als doel om een schoonmaakleverancier te contracteren voor schoonmaak van de gebouwen die in bezit zijn van - of verhuurd worden door de gemeenten Duiven en Westervoort en die de beoogde kwaliteit levert tegen een marktconforme prijs. Opdrachtgever beoogt verder met deze aanbesteding een schoonmaakpartner te vinden die continu\u00efteit in personeel biedt en tijdig communiceert over wijzigingen.",
+            "opdrachtgeverNaam": "Samenwerking De Liemers",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441408",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-09-28T10:00:00",
+            "tsenderLink": "https://s2c.mercell.com/today/228196",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Horecapersoneel theater de Stoep",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614314,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441397",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "BKN",
+              "omschrijving": "Bekend"
+            },
+            "opdrachtBeschrijving": "In het kader van de voorbereidingen van een aanbesteding met betrekking tot het inzetten van horecapersoneel voor Theater de Stoep (onderdeel van gemeente Nissewaard), nodigen wij u uit voor een schriftelijke marktconsultatie. De informatie uit deze marktconsultatie willen wij gebruiken om kennis en ervaring van de marktpartijen in te zetten voor het doorlopen van een goede aanbesteding.",
+            "opdrachtgeverNaam": "gemeente Nissewaard",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441397",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatumMarktconsultatie": "2026-10-15",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Consulent WMO beschermd wonen maatschappelijke opvang",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614306,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441389",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Binnen het team WMO zijn wij op zoek naar een collega die zich gaat richten op de ondersteuningsvragen op het gebied van begeleiding, beschermd wonen en maatschappelijke opvang. Je werkt met doelgroepen zoals dak- en thuislozen, cli?nten met een psychiatrische kwetsbaarheid en /of verslavingsproblematiek en/of een licht verstandelijke beperking. Daarnaast krijg je te maken met probleemgezinnen en slachtoffers van huiselijk geweld. Daarnaast kun je worden ingezet bij ondersteuningsvragen die gaan over het verstrekken van huishoudelijke hulp, hulpmiddelen en woningaanpassingen. Ben jij het type dat enthousiast wordt van begrippen als zelfregie, eigen kracht, participatie, zelfredzaamheid en eigen verantwoordelijkheid? Iemand die mensen graag helpt hun leven beter op de rit te krijgen en regie voert waar dit nodig is? Dan zijn wij op zoek naar jou.  Wat ga je doen?  Je legt huisbezoeken af, gaat in gesprek met inwoners en instanties gericht op het vormen van een zo compleet mogelijk beeld van de hulpvragen op de diverse leefgebieden. Dit doe je door het zorgvuldig uitvoeren van onderzoek. Je bent in staat op zelfstandige wijze het onderzoeksverslag op te stellen volgens de regels van de organisatie. Op basis van je bevindingen geef je advies aan het regioteam Oss. Als regiogemeente is Oss eindverantwoordelijk voor de budgetten. Zij hebben het mandaat hierin het besluit te nemen. Je hebt oog voor voorliggende oplossingen ter voorkoming van de inzet van (zwaardere) zorg en om de zelfredzaamheid en veiligheid van inwoners te vergroten. Je besteedt aandacht aan wat de inwoner zelf kan, wat het netwerk kan betekenen of wat met algemene voorzieningen opgelost kan worden. Wij zoeken de juiste weg passend bij de inwoner waarin wij waar nodig zorgen dat de juiste gecontracteerde begeleiding wordt ingezet. Door jouw toegewijde maar objectieve manier van werken kom je tot een duidelijke analyse en neem je regie, zeker als er sprake is van complexe problematiek. Wij werken vanuit de uitgangspunten van de SAMENWERWIJZE Het doel van de samenwerkwijze is dat inwoners met een hulpvraag rond gezondheid, dagelijks leven, geld, wonen en meedoen samen met hun netwerk en professionals passende oplossingen vinden voor hun vraag en meer welbevinden ervaren.",
+            "opdrachtgeverNaam": "Gemeente Land van Cuijk",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441389",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "http://inhuurdesk.werkeninnoordoostbrabant.nl",
+            "tsenderNaam": "WerkenInNoordoostBrabant.nl",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Warme dranken",
+            "aantalDagenTotSluitingsDatum": 42,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614150,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441293",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Door middel van deze aanbesteding wil de aanbestedende dienst voorzien in gewaardeerde warme dranken voor medewerkers en bezoekers.\n\n\nMeer informatie vind u in de leidraad.",
+            "opdrachtgeverNaam": "IBN Kader B.V.",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441293",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-05T09:00:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Herinrichting Strausslaan - Mahlerstraat",
+            "aantalDagenTotSluitingsDatum": 56,
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614082,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441289",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De scope van de opdracht omvat voornamelijk het uitvoeren van de\nvolgende werkzaamheden:\n- Reconstructie- en herinrichtingswerkzaamheden\n- Verwijderen en vervangen van rioolaansluitingen\n- Vervangen kolken\n- Asfalt in rijbanen verwijderen en vervangen door nieuwe\nasfaltverharding\n- Onderhoud aan trottoirs\n- Vervangen parkeerhavens en parkeerterreinen\n- Vervangen van bomen in de Strausslaan en Mahlerstraat\n- Aanbrengen waterberging\n- Leveren en plaatsen van enkele speeltuintjes\n- Co\u00f6rdinatieverplichting t.a.v. raamcontractant Van den Heuvel\nv.w.b. straatverlichting.\nNiet in de scope aan werkzaamheden:\n- vervanging openbare verlichting (deze werkzaamheden worden\nseparaat door de gemeente in opdracht gegeven bij Van de\nHeuvel.\n- onderhoud aan opgeleverde werkzaamheden",
+            "opdrachtgeverNaam": "Gemeente Tilburg",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441289",
+            "publicatiecode": {
+              "code": "EFE3",
+              "omschrijving": "Vrijwillige aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-19T10:00:00",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Beweegroutes",
+            "aantalDagenTotSluitingsDatum": -79,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 587877,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441285",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Het doel van deze aanbesteding is om in iedere kern van de gemeente Westland een beweegroute te realiseren. Tot op heden zijn er twee kernen voorzien van beweegroutes. Vanwege de positieve reac-ties vanuit zowel de politiek als de inwoners, is er een duidelijke wens om het aantal routes uit te breiden. Dit houdt in dat er nog zeven routes bijkomen, wat het totaal aantal op negen brengt.",
+            "opdrachtgeverNaam": "gemeente Westland",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441285",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-07-07T09:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Architectenselectie ver-/nieuwbouw Montessori Vaklyceum",
+            "aantalDagenTotSluitingsDatum": 61,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 613752,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441277",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De opdracht betreft de architectonische uitwerking van de vernieuwbouw, inclusief de buitenruimte, van het Montessori Vaklyceum aan de Vondellaan 83 in Groningen. De opgave omvat de voorbereiding, het ontwerp en de verdere uitwerking van een toekomstbestendige onderwijshuisvesting, passend bij de ambities van Openbaar Onderwijs Groningen en de gemeente Groningen.",
+            "opdrachtgeverNaam": "Gemeente Groningen",
+            "procedure": {
+              "code": "CCD",
+              "omschrijving": "Concurrentiegerichte dialoog"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441277",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-24T13:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Brokerdienstverlening",
+            "aantalDagenTotSluitingsDatum": -105,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 585883,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441288",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Aanbestedende dienst heeft nu en in de toekomst diverse inhuuraanvragen en streeft ernaar om via deze aanbesteding en de Raamovereenkomst die hieruit voortvloeit, een effici\u00ebnt, kwalitatief hoogwaardig en compliant inhuurproces in de vorm van detachering en detavast te realiseren via Opdrachtnemer (zie ook paragraaf 1.2.3 Beschrijving en reikwijdte van de Opdracht), met als resultaat: \n\u2022\tEen continue inzet van kandidaten met zo min mogelijk wisselingen tussentijds.\n\u2022\tTijdige en optimale invulling van Inhuuropdrachten: \n\u2022\tSnelle selectie van passende Kandidaten uit een brede pool van gegadigden in dienst bij Toeleveranciers, gegarandeerd door de onafhankelijke positie van Opdrachtnemer. \n\u2022\tToegang tot de gehele regionale en nationale arbeidsmarkt, waardoor de beste Kandidaat voor elke functie gevonden kan worden",
+            "opdrachtgeverNaam": "Waterschap Brabantse Delta",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441288",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-06-11T12:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Accountantsdienstverlening",
+            "aantalDagenTotSluitingsDatum": -239,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 558774,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441273",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Het doel van deze aanbesteding is het sluiten van een Overeenkomst met \u00e9\u00e9n geschikt accountantskantoor dat de wettelijk verplichte accountantscontrole z\u00e1l uitvoeren en aanvullende accountantsdiensten k\u00e1n uitvoeren voor ICTU. Bij de gunning staat de beste prijs-kwaliteitsverhouding centraal, zodat de dienstverlening niet alleen rechtmatig is, maar ook bijdraagt aan continu\u00efteit, onafhankelijkheid en een doelmatige uitvoering van de controle. \n\nZie voor meer informatie de aanbestedingsstukken.\n\nAlle ondernemers die aan de eisen voldoen worden van harte uitgenodigd een Inschrijving in te dienen.",
+            "opdrachtgeverNaam": "Stichting ICTU",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441273",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-01-28T10:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          }
+        ],
+        "first": true,
+        "last": false,
+        "number": 0,
+        "numberOfElements": 20,
+        "size": 20,
+        "totalElements": 145920,
+        "totalPages": 7296
+      },
+      "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+      "unverified": false,
+      "usage_notice": null
+    },
+    {
+      "api_slug": "kvk-dutch-business-register",
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "cardinality": "one",
+        "identifies": "company_registry.kvknummer",
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "collect": true,
+                  "path": "$.sbiActiviteiten[*].sbiCode"
+                },
+                "trade_names": {
+                  "collect": true,
+                  "path": "$.handelsnamen[*].naam"
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "web.company_website_query": {
+              "adapter": "record.website-query",
+              "key": "{\"name\":\"/naam\",\"identifier\":\"/kvkNummer\",\"registry\":\"KVK\",\"pattern\":\"^[0-9]{8}$\"}"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "optional": false,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 9
+      },
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "fixed_params": {},
+      "freshness_seconds": null,
+      "id": "dc655508-e529-4c2f-905e-1b6d69b80e4c",
+      "jurisdiction": "NL",
+      "list_atomic": 66162,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "KVK Business Register",
+      "optional_outputs": [
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.sbi_activities",
+        "company.profile",
+        "web.company_website_query"
+      ],
+      "pagination": {},
+      "path": "/api/v1/basisprofielen",
+      "preconditions": {},
+      "sample_payload": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma\u2019s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "unverified": false,
+      "usage_notice": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company_intel.input.cpvcodes",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.procedure",
+      "value_schema": {
+        "enum": [
+          "OPE",
+          "NOP",
+          "CCD",
+          "OMB",
+          "OZB",
+          "OHP",
+          "OH",
+          "INP",
+          "CA",
+          "APM",
+          "APE",
+          "VUB"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumpreset",
+      "value_schema": {
+        "enum": [
+          "AF7",
+          "AF30"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "value_schema": {
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\",\"search_term\",\"sector\",\"topic\"]}",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.typeopdracht",
+      "value_schema": {
+        "enum": [
+          "W",
+          "L",
+          "D"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "pattern": "^[0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "pattern": "^[0-9]{9}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+        "properties": {
+          "employee_count": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sbi_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trade_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "legal_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "value_schema": {
+        "properties": {
+          "content": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "web.company_website_query",
+      "value_schema": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company.branch-profile": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Du",
+          "company.financial-statements": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaa",
+          "company.registered-names": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which ",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company_registry.lookup": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "company_registry.search": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers."
+        },
+        "categorized": 5,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 5,
+        "description": "Official Dutch company register (Handelsregister) from KVK, the Netherlands Chamber of Commerce: search companies by name, resolve a KVK number (kvk-nummer), and look up the basic profile (basisprofiel), branch profile (vestigingsprofiel), registered and trade names (statutaire naam, handelsnamen), filed annual accounts (jaarrekeningen) and open company data \u2014 the employee count (how many people work at a company, headcount, staff, werknemers), where the company is based (registered address, office location, vestiging), SBI activities, RSIN, legal form (rechtsvorm) and insolvency status.",
+        "documented_inputs": 5,
+        "endpoint_count": 5,
+        "endpoints": [
+          {
+            "description": "Search the Dutch Handelsregister (KVK business register) and resolve identifiers: find a company by name and get its KVK number (kvkNummer), RSIN or branch number (vestigingsnummer). Zoek bedrijven op naam, kvk-nummer, rsin, vestigingsnummer of adres (postcode, huisnummer, straatnaam, plaats). Returns a list of matching registrations with name, address, type (rechtspersoon, hoofdvestiging, nevenvestiging) and active flag. Inactive registrations are excluded unless asked for, result ordering is not guaranteed, so filter on name, address or type when a company name is ambiguous.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "method": "GET",
+            "path": "/api/v2/zoeken",
+            "registration": {
+              "list_atomic": 18903,
+              "listing_type": "api",
+              "query_params": {
+                "huisletter": {
+                  "description": "House letter, one alphabetic character. Only with a house number.",
+                  "example": "D",
+                  "pattern": "^[a-zA-Z]$",
+                  "required": false,
+                  "type": "string"
+                },
+                "huisnummer": {
+                  "description": "House number. KVK accepts it only together with a postcode.",
+                  "example": 300,
+                  "maximum": 99999,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "inclusiefInactieveRegistraties": {
+                  "description": "Include inactive registrations. Default false.",
+                  "required": false,
+                  "type": "boolean"
+                },
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer), 8 digits.",
+                  "example": "59581883",
+                  "pattern": "^[0-9]{8}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "naam": {
+                  "description": "Company name, trade name (handelsnaam) or statutory name. Matching is full text, not plain substring, so a distinctive word works better than a full legal name.",
+                  "example": "Kamer van Koophandel",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "pagina": {
+                  "default": 1,
+                  "description": "Page number, 1 to 1000.",
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "plaats": {
+                  "description": "City or place.",
+                  "example": "Utrecht",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "postbusnummer": {
+                  "description": "PO box number (postbusnummer). Only with a postcode.",
+                  "example": 9292,
+                  "maximum": 99999,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "postcode": {
+                  "description": "Dutch postal code. KVK accepts it only together with a house number or a PO box number.",
+                  "example": "3511BT",
+                  "pattern": "^[0-9]{4}[a-zA-Z]{2}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "resultatenPerPagina": {
+                  "default": 10,
+                  "description": "Results per page, 1 to 100. Default 10.",
+                  "maximum": 100,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "rsin": {
+                  "description": "RSIN, 9 digits.",
+                  "example": "823807071",
+                  "pattern": "^[0-9]{9}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "straatnaam": {
+                  "description": "Street name.",
+                  "example": "St.-Jacobsstraat",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "type": {
+                  "description": "Restrict to main branch, secondary branch or legal entity.",
+                  "enum": [
+                    "hoofdvestiging",
+                    "nevenvestiging",
+                    "rechtspersoon"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "vestigingsnummer": {
+                  "description": "Branch number (vestigingsnummer), 12 digits.",
+                  "example": "000015063097",
+                  "pattern": "^[0-9]{12}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          },
+          {
+            "description": "Registration record for ONE specific establishment of a Dutch company \u2014 the vestigingsprofiel \u2014 by 12-digit branch number (vestigingsnummer). What this location does (SBI activities), its official visiting and postal address, the employee count at that office \u2014 how many people work there, headcount, staff (voltijd, deeltijd, totaal werkzame personen) \u2014 which trade names (handelsnamen) it uses, whether it is the main branch (hoofdvestiging), and its parent KVK number and RSIN. Use this instead of the basic profile when the question is about one office location rather than the company as a whole.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "method": "GET",
+            "path": "/api/v1/vestigingsprofielen",
+            "registration": {
+              "list_atomic": 66162,
+              "listing_type": "api",
+              "query_params": {
+                "vestigingsnummer": {
+                  "description": "Branch number (vestigingsnummer) of the establishment, 12 digits.",
+                  "pattern": "^[0-9]{12}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          },
+          {
+            "description": "Structured financial data from the annual accounts a Dutch company filed with KVK \u2014 the jaarrekening. Balance sheet (balans: assets, equity, provisions, liabilities), income statement (winst- en verliesrekening: gross margin, employee benefits expenses, operating result, result before and after tax), cash flow statement, their consolidated variants, the financial year and the filing/adoption date. Open data under CC BY 4.0. Only adopted (vastgestelde) accounts filed via XBRL are available, not every company is required to file, and which fields are present depends on company size class. Rate-limited hard upstream (1 request/minute per IP), so answers are cached for a day.",
+            "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+            "method": "GET",
+            "path": "/api/v1/hvds/jaarrekeningen/kvknummer",
+            "registration": {
+              "list_atomic": 94518,
+              "listing_type": "api",
+              "query_params": {
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          },
+          {
+            "description": "Official registration record for one Dutch company by KVK number \u2014 the basisprofiel. Answers most company questions in a single call: the employee count \u2014 how many people work at the company, headcount, staff, company size (werknemers: voltijd, deeltijd, totaal) \u2014 and where the company is based: its registered visiting and postal address, city, office location and main branch (hoofdvestiging), plus the statutory name (statutaire naam) and trade names (handelsnamen), SBI business activities, RSIN, legal form (rechtsvorm), formal registration date, registered website and the number of branches (vestigingen). Use one call to answer several fields at once rather than one call per field. Needs an 8-digit kvkNummer, a company name is resolved to one automatically via KVK Search.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "method": "GET",
+            "path": "/api/v1/basisprofielen",
+            "registration": {
+              "list_atomic": 66162,
+              "listing_type": "api",
+              "query_params": {
+                "geoData": {
+                  "description": "Include geodata (GPS latitude/longitude, Rijksdriehoek coordinates, BAG object ids) on addresses. Default false.",
+                  "required": false,
+                  "type": "boolean"
+                },
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          },
+          {
+            "description": "Every name a Dutch company is registered under \u2014 the naamgeving. The statutory name (statutaire naam), the trading name, alternative names it is also known by (ook genoemd), and the trade names (handelsnamen) registered per establishment, with their start and end dates. The call to make when the question is which names, brands or trade names belong to a registration, rather than what the company does.",
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "method": "GET",
+            "path": "/api/v1/naamgevingen/kvknummer",
+            "registration": {
+              "list_atomic": 66162,
+              "listing_type": "api",
+              "query_params": {
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://developers.kvk.nl/nl/documentation"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 0,
+        "recent_unresolved": 0,
+        "tagged": 5,
+        "tags": [
+          "address search",
+          "annual accounts",
+          "basisprofiel",
+          "branch profile",
+          "business lookup",
+          "company names",
+          "company profile",
+          "company search",
+          "dutch business register",
+          "establishment",
+          "financial statements",
+          "handelsnamen",
+          "handelsregister",
+          "handelsregister zoeken",
+          "jaarrekening",
+          "kvk",
+          "kvk search",
+          "location data",
+          "naamgeving",
+          "open data",
+          "statutaire naam",
+          "trade names",
+          "vestigingsprofiel",
+          "xbrl"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "KVK Business Register",
+      "slug": "kvk-dutch-business-register"
+    },
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "company_intel.search": "Bedrijfsinformatie: zoeken. Zoekwoorden: accelerator, acquisition, agency, angels, archives, art, assignee, austender, awards, bank, biotech, bizbuysell.",
+          "legal_compliance.search": "Recht en compliance: zoeken. Zoekwoorden: aaro, ancestry, archives, bills, cbi, cia, citizenship, classification, code, comment, countries, customs.",
+          "procurement.company-name-mentions": "Search TenderNed publication text using the KVK registered company name. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+          "procurement.nl-public-contracts": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve ",
+          "procurement.rsin-mentions": "Search TenderNed publication text using the RSIN. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt."
+        },
+        "categorized": 3,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 3,
+        "description": "The Dutch national public procurement platform. Every tender notice published by the Dutch state, provinces, municipalities, water boards, hospitals, universities and housing corporations \u2014 around 145,000 notices and counting. Search by keyword, CPV code, procedure type, contract type (works, supplies, services), publication date or closing date; open any notice for its full detail, its attached documents and its official PDF; or follow the live feed of what was published today. Data is published by PIANOo under CC-0.",
+        "documented_inputs": 1,
+        "endpoint_count": 3,
+        "endpoints": [
+          {
+            "description": "Search Dutch public tender notices, or look one up in full. Search the whole archive (~145,000 notices) with any combination of search (free text over title, buyer and description), cpvCodes, procedure, typeOpdracht, and a window on either the publication date or the closing date. Supply publicatieId instead to fetch that one notice's complete record: awarding authority, full description, CPV and NUTS codes, procedure and legal framework, start/completion dates, closing date, national or European, and whether it was awarded or terminated early. A caller building the raw request path directly (not through structured parameters) can also append further segments after the publicatieId at the same price: /documenten for the list of tender documents with their download links, and /pdf for the o",
+            "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "method": "GET",
+            "path": "/v2/publicaties",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "cpvCodes": {
+                  "description": "EU Common Procurement Vocabulary code, INCLUDING the check digit, e.g. 85000000-9 (health and social work). An eight-digit code without the check digit is rejected.",
+                  "required": false,
+                  "type": "string"
+                },
+                "page": {
+                  "description": "Zero-based page number.",
+                  "required": false,
+                  "type": "integer"
+                },
+                "procedure": {
+                  "description": "Procedure code.",
+                  "enum": [
+                    "OPE",
+                    "NOP",
+                    "CCD",
+                    "OMB",
+                    "OZB",
+                    "OHP",
+                    "OH",
+                    "INP",
+                    "CA",
+                    "APM",
+                    "APE",
+                    "VUB"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumPreset": {
+                  "description": "Shorthand window on the publication date: AF7 for the last 7 days, AF30 for the last 30. Any other value is rejected.",
+                  "enum": [
+                    "AF7",
+                    "AF30"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumTot": {
+                  "description": "Only notices published up to this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumVanaf": {
+                  "description": "Only notices published on or after this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieId": {
+                  "description": "A known publication id to fetch that notice's full detail directly, e.g. 438729. Omit to search instead using the parameters below.",
+                  "required": false,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                },
+                "search": {
+                  "description": "Free-text search over the notice title, the awarding authority and the contract description, e.g. zorg or wegonderhoud.",
+                  "required": false,
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Results per page (the site itself uses 50).",
+                  "required": false,
+                  "type": "integer"
+                },
+                "sluitingsDatumTot": {
+                  "description": "Only notices closing up to this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "sluitingsDatumVanaf": {
+                  "description": "Only notices closing on or after this date, ISO yyyy-mm-dd \u2014 the filter for finding tenders still open to bid on. Note the capital D.",
+                  "required": false,
+                  "type": "string"
+                },
+                "sort": {
+                  "description": "Order publications by publication date, newest first. Verified against the official public TenderNed search endpoint.",
+                  "enum": [
+                    "publicatieDatum,desc"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "typeOpdracht": {
+                  "description": "Contract type: W werken (works), L leveringen (supplies), D diensten (services).",
+                  "enum": [
+                    "W",
+                    "L",
+                    "D"
+                  ],
+                  "required": false,
+                  "type": "string"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+          },
+          {
+            "description": "The NUTS region code tree used by every notice's nutsCodes field, from NL (Nederland) down through the four landsdelen and twelve provinces to the COROP regions \u2014 each leaf listing the municipalities it covers. What turns a code like NL112 in a notice into \"Delfzijl en omgeving: Appingedam, Delfzijl, Loppersum\".",
+            "endpoint_id": "8e7a1970-955d-44e8-a036-bcc87dce6c1f",
+            "method": "GET",
+            "path": "/v2/nutscodes",
+            "registration": {
+              "list_atomic": 18903,
+              "listing_type": "api",
+              "query_params": {},
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+          },
+          {
+            "description": "The most recent TenderNed publications as an Atom feed \u2014 title, awarding authority, publication date and a link to each notice. The way to watch for new Dutch tenders without re-running a search. Returns application/atom+xml, not JSON.",
+            "endpoint_id": "956fcdfd-c78d-44ab-ba96-c59270abbf43",
+            "method": "GET",
+            "path": "/rss/laatste-publicatie.rss",
+            "registration": {
+              "list_atomic": 28355,
+              "listing_type": "api",
+              "query_params": {},
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 0,
+        "recent_unresolved": 0,
+        "tagged": 3,
+        "tags": [
+          "aanbestedende dienst",
+          "aanbesteding",
+          "aanbestedingen",
+          "aankondiging",
+          "bid",
+          "cpv",
+          "dutch",
+          "gegunde opdracht",
+          "government tender",
+          "gunning",
+          "inschrijving",
+          "marktconsultatie",
+          "nederland",
+          "netherlands",
+          "niet-openbare procedure",
+          "nuts",
+          "offerte",
+          "opdrachtgever",
+          "open house",
+          "openbare aanbesteding",
+          "overheidsopdracht",
+          "overheidsopdrachten",
+          "pianoo",
+          "procurement",
+          "public procurement",
+          "public sector",
+          "rfp",
+          "sales intelligence",
+          "tender",
+          "tenderned",
+          "tenders",
+          "vooraankondiging"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "TenderNed",
+      "slug": "tenderned"
+    }
+  ]
+}

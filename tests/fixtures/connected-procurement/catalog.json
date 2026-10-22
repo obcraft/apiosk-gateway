@@ -1,0 +1,1202 @@
+{
+  "description": "Read-only projection of the production public TenderNed contract captured 2026-10-22. Activity counts omitted; exact schemas, validation sample and fixed request parameters retained.",
+  "known_sources": [
+    {
+      "block_reason": null,
+      "metadata": {
+        "capability_descriptions": {
+          "procurement.nl-public-contracts": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve "
+        },
+        "categorized": 3,
+        "category": "data",
+        "coverage_notice": null,
+        "described": 3,
+        "description": "The Dutch national public procurement platform. Every tender notice published by the Dutch state, provinces, municipalities, water boards, hospitals, universities and housing corporations — around 145,000 notices and counting. Search by keyword, CPV code, procedure type, contract type (works, supplies, services), publication date or closing date; open any notice for its full detail, its attached documents and its official PDF; or follow the live feed of what was published today. Data is published by PIANOo under CC-0.",
+        "documented_inputs": 1,
+        "endpoint_count": 3,
+        "endpoints": [
+          {
+            "description": "Search Dutch public tender notices, or look one up in full. Search the whole archive (~145,000 notices) with any combination of search (free text over title, buyer and description), cpvCodes, procedure, typeOpdracht, and a window on either the publication date or the closing date. Supply publicatieId instead to fetch that one notice's complete record: awarding authority, full description, CPV and NUTS codes, procedure and legal framework, start/completion dates, closing date, national or European, and whether it was awarded or terminated early. A caller building the raw request path directly (not through structured parameters) can also append further segments after the publicatieId at the same price: /documenten for the list of tender documents with their download links, and /pdf for the o",
+            "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+            "method": "GET",
+            "path": "/v2/publicaties",
+            "registration": {
+              "list_atomic": 47259,
+              "listing_type": "api",
+              "query_params": {
+                "cpvCodes": {
+                  "description": "EU Common Procurement Vocabulary code, INCLUDING the check digit, e.g. 85000000-9 (health and social work). An eight-digit code without the check digit is rejected.",
+                  "required": false,
+                  "type": "string"
+                },
+                "page": {
+                  "description": "Zero-based page number.",
+                  "required": false,
+                  "type": "integer"
+                },
+                "procedure": {
+                  "description": "Procedure code.",
+                  "enum": [
+                    "OPE",
+                    "NOP",
+                    "CCD",
+                    "OMB",
+                    "OZB",
+                    "OHP",
+                    "OH",
+                    "INP",
+                    "CA",
+                    "APM",
+                    "APE",
+                    "VUB"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumPreset": {
+                  "description": "Shorthand window on the publication date: AF7 for the last 7 days, AF30 for the last 30. Any other value is rejected.",
+                  "enum": [
+                    "AF7",
+                    "AF30"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumTot": {
+                  "description": "Only notices published up to this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieDatumVanaf": {
+                  "description": "Only notices published on or after this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "publicatieId": {
+                  "description": "A known publication id to fetch that notice's full detail directly, e.g. 438729. Omit to search instead using the parameters below.",
+                  "required": false,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                },
+                "search": {
+                  "description": "Free-text search over the notice title, the awarding authority and the contract description, e.g. zorg or wegonderhoud.",
+                  "required": false,
+                  "type": "string"
+                },
+                "size": {
+                  "description": "Results per page (the site itself uses 50).",
+                  "required": false,
+                  "type": "integer"
+                },
+                "sluitingsDatumTot": {
+                  "description": "Only notices closing up to this date, ISO yyyy-mm-dd.",
+                  "required": false,
+                  "type": "string"
+                },
+                "sluitingsDatumVanaf": {
+                  "description": "Only notices closing on or after this date, ISO yyyy-mm-dd — the filter for finding tenders still open to bid on. Note the capital D.",
+                  "required": false,
+                  "type": "string"
+                },
+                "sort": {
+                  "description": "Order publications by publication date, newest first. Verified against the official public TenderNed search endpoint.",
+                  "enum": [
+                    "publicatieDatum,desc"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "typeOpdracht": {
+                  "description": "Contract type: W werken (works), L leveringen (supplies), D diensten (services).",
+                  "enum": [
+                    "W",
+                    "L",
+                    "D"
+                  ],
+                  "required": false,
+                  "type": "string"
+                }
+              },
+              "request_body": null,
+              "usage_notice": null
+            },
+            "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+          }
+        ],
+        "identity_documented": true,
+        "inferred": 0,
+        "provider_slug": "apiosk-basics",
+        "recent_failures": 0,
+        "recent_successes": 0,
+        "recent_unresolved": 0,
+        "tagged": 3,
+        "tags": [
+          "aanbestedende dienst",
+          "aanbesteding",
+          "aanbestedingen",
+          "aankondiging",
+          "bid",
+          "cpv",
+          "dutch",
+          "gegunde opdracht",
+          "government tender",
+          "gunning",
+          "inschrijving",
+          "marktconsultatie",
+          "nederland",
+          "netherlands",
+          "niet-openbare procedure",
+          "nuts",
+          "offerte",
+          "opdrachtgever",
+          "open house",
+          "openbare aanbesteding",
+          "overheidsopdracht",
+          "overheidsopdrachten",
+          "pianoo",
+          "procurement",
+          "public procurement",
+          "public sector",
+          "rfp",
+          "sales intelligence",
+          "tender",
+          "tenderned",
+          "tenders",
+          "vooraankondiging"
+        ],
+        "unknown_provenance": 0
+      },
+      "name": "TenderNed",
+      "slug": "tenderned"
+    }
+  ],
+  "services": [
+    {
+      "api_slug": "tenderned",
+      "contract": {
+        "capability_slug": "procurement.nl-public-contracts",
+        "cardinality": "one",
+        "identifies": null,
+        "input_map": {
+          "company_intel.input.cpvcodes": {
+            "in": "query",
+            "name": "cpvCodes"
+          },
+          "company_intel.input.procedure": {
+            "in": "query",
+            "name": "procedure"
+          },
+          "company_intel.input.publicatiedatumpreset": {
+            "in": "query",
+            "name": "publicatieDatumPreset"
+          },
+          "company_intel.input.publicatiedatumtot": {
+            "in": "query",
+            "name": "publicatieDatumTot"
+          },
+          "company_intel.input.publicatiedatumvanaf": {
+            "in": "query",
+            "name": "publicatieDatumVanaf"
+          },
+          "company_intel.input.search": {
+            "in": "query",
+            "name": "search"
+          },
+          "company_intel.input.sluitingsdatumtot": {
+            "in": "query",
+            "name": "sluitingsDatumTot"
+          },
+          "company_intel.input.sluitingsdatumvanaf": {
+            "in": "query",
+            "name": "sluitingsDatumVanaf"
+          },
+          "company_intel.input.typeopdracht": {
+            "in": "query",
+            "name": "typeOpdracht"
+          }
+        },
+        "max_fan_out": 1,
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "tenderned.publication_page": {
+              "path": "$"
+            }
+          }
+        },
+        "requires": [
+          {
+            "fact_type": "company_intel.input.search",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.cpvcodes",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.procedure",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.typeopdracht",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.sluitingsdatumtot",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumtot",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.sluitingsdatumvanaf",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumvanaf",
+            "optional": true,
+            "subject_role": "subject"
+          },
+          {
+            "fact_type": "company_intel.input.publicatiedatumpreset",
+            "optional": true,
+            "subject_role": "subject"
+          }
+        ],
+        "version": 1
+      },
+      "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+      "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+      "fixed_params": {
+        "page": 0,
+        "size": 20,
+        "sort": "publicatieDatum,desc"
+      },
+      "freshness_seconds": 3600,
+      "id": "14cd2fdd-5836-4517-998a-018e3c27a241",
+      "jurisdiction": null,
+      "list_atomic": 47259,
+      "listing_type": "api",
+      "method": "GET",
+      "name": "TenderNed",
+      "optional_outputs": [],
+      "pagination": {},
+      "path": "/v2/publicaties",
+      "preconditions": {},
+      "sample_payload": {
+        "content": [
+          {
+            "aanbestedingNaam": "Raamovereenkomst Elektrotechnische en Procesautomatisering werkzaamheden  iWA2.0/ iPA2.0 2026",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614031,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441462",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De Raamovereenkomst Elektrotechnische en Procesautomatisering werkzaamheden iWA2.0/iPA2.0 2026-2030 is voornamelijk gebaseerd op de programma’s iWA2.0 en iPA2.0. De, niet uitputtende, werkzaamheden zijn onderverdeeld in:\n• Werkzaamheden aan de objecten stuwen en gemalen, krooshekreiniger, meetpunten en dergelijke objecten in het watersysteem. Deze objecten behoren tot het programma iWA2.0\n• Werkzaamheden aan de objecten rioolgemalen en rioolwaterzuiveringsinstallaties (rwzi’s) in de waterketen. Deze objecten behoren tot het programma iPA2.0;\n• Buiten de programma’s iWA2.0 en iPA2.0 kunnen werkzaamheden op de (de)centrale locaties/kantoren van WSRL deel uitmaken van deze Raamovereenkomst. De werkzaamheden moeten wel in relatie staan met de werkzaamheden zoals in deze Aanbestedingsleidraad benoemd;\n• Detachering van personeel in geval van capaciteitsbehoefte bij WSRL.\n\nVoor deze objecten dienen er voornamelijk elektrotechnische installatiewerkzaamheden uitgevoerd te worden. Meestal worden de engineeringswerkzaamheden door WSRL zelf uitgevoerd. In sommige gevallen kan de engineering door Opdrachtnemer onderdeel uitmaken van de Nadere opdracht.\n\nWSRL hanteert voor het gehele programma iWA2.0 en iPA2.0 de volgende doelstellingen:\n• Het vervangen van de procesautomatisering eens per 12,5 jaar van de objecten waarbij enkel op elektrotechnisch en procesautomatisering vlak vervanging dient plaats te vinden;\n• Bij het vervangen van de procesautomatisering gelijktijdig het vervangen van de elektrotechnische componenten, welke niet meer voldoen aan de normen of aan vervanging toe zijn, inclusief de benodigde documentatie van de objecten;\n• Het technisch en functioneel op orde houden van de centrale hoofdposten watersysteem en waterketen.\n \nHet doel van deze aanbesteding is tweeledig:\n1. Het sluiten van een Raamovereenkomst(en) met één of meerdere ondernemingen voor Elektrotechnische installaties & Procesautomatisering werkzaamheden iWA2.0/ iPA2.0 2026-2030; \n2. Het verstrekken van één Opdracht (een Nadere opdracht vanuit vakgebied B) voor werkzaamheden aan gemaal Middelkoop.",
+            "opdrachtgeverNaam": "Waterschap Rivierenland",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441462",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "https://s2c.mercell.com/today/200534",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Leveren Bomen en Planten",
+            "aantalDagenTotSluitingsDatum": 7,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 603626,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441454",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Betreft het leveren aanbrengen en onderhouden van Bomen (Perceel 1)\nen het leveren van Planten (Perceel 2)",
+            "opdrachtgeverNaam": "Gemeente Nieuwegein",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441454",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-01T11:30:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "2026-0709 ROK Stadsbank",
+            "aantalDagenTotSluitingsDatum": 26,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": true,
+            "kenmerk": 607741,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441444",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De opdracht betreft het op afroep beschikbaar stellen en inzetten van gekwalificeerde professionals voor de uitvoering en ondersteuning van de gemeentelijke schuldhulpverlening.\nDe raamovereenkomst biedt de gemeente de mogelijkheid om gedurende de looptijd van de overeenkomst tijdelijk aanvullende capaciteit en/of specifieke deskundigheid in te zetten wanneer de reguliere personele capaciteit onvoldoende is of wanneer specifieke expertise noodzakelijk is.",
+            "opdrachtgeverNaam": "Gemeente Leiden",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441444",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-20T10:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "VBE",
+              "omschrijving": "Vroegtijdige beëindiging"
+            }
+          },
+          {
+            "aanbestedingNaam": "Water- en Oeverplanten stromend 2027-2032",
+            "aantalDagenTotSluitingsDatum": 67,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 610736,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441438",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Doel van deze Europese aanbesteding is zekerstelling/continuïteit van de monitoring van de Water- en oeverplanten stromend in de 2027 tot en met 2032.",
+            "opdrachtgeverNaam": "Rijkswaterstaat Centrale Informatievoorziening",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441438",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-30T12:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Marktconsultatie ICT Hardware",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614340,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441436",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "OBK",
+              "omschrijving": "Onbekend"
+            },
+            "opdrachtBeschrijving": "SOVON onderzoekt de optie om een nieuw ICT Hardware contract af te sluiten met één leverancier op basis van adviesprijs minus korting voor zowel non-Apple devices als Apple devices.\n\nDoor middel van deze marktconsultatie wil SOVON informatie krijgen uit de markt over de moge-lijkheden en onmogelijkheden van deze prijsstrategie.\n\nMeer informatie vind u in het document Marktconsultatie ICT Hardware.",
+            "opdrachtgeverNaam": "Sovon",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441436",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Nieuwe inrichting Enterprise Resource Planning (ERP)",
+            "aantalDagenTotSluitingsDatum": 13,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 595718,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441435",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Deze aanbesteding volgt op een eerder uitgevoerde marktconsultatie en heeft als doel om de meest geschikte partij te vinden die een nieuwe inrichting van SAP S/4 HANA kan uitvoeren op basis van de in 2016 op rechtmatige wijze verkregen licenties.  \n\nDe opdracht bestaat uit drie onderdelen:\n- Implementatie\n- Doorontwikkeling\n- Beheer en onderhoud",
+            "opdrachtgeverNaam": "Universitair Medisch Centrum Groningen (UMCG)",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441435",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-07T17:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Raamovereenkomst Onderhoud waterkeringen 2027 - 2032",
+            "aantalDagenTotSluitingsDatum": 42,
+            "digitaal": false,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614375,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441430",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Voorwerp van de opdracht\nDe aanbesteding heeft tot doel een raamovereenkomst af te sluiten voor het verrichten van onderhoud aan de waterkeringen binnen het verzorgingsgebied van WSHD middels een RAW-raamovereenkomst. Deze dienst is te classificeren met de \n\nEr wordt één (1) RAW-raamovereenkomst gesloten met één (1) opdrachtnemers. Het uitgangspunt is dat WSHD de regie voert op de uitvoering van het onderhoud van de waterkeringen en de hieruit voortkomende onderhoudswerkzaamheden door middel van nader te verstrekken deelopdrachten onder de raamovereenkomst. \n\nInhoud van de opdracht\nMet het onderhouden van de waterkeringen wordt in ieder geval voldaan aan de doelstellingen van WSHD te weten:\nHet waarborgen van de veiligheid van de waterkeringen;\nDe dijken en duinen voldoende sterk zijn en voldoen aan de wettelijke normen;\nDe kans op een overstroming alsmede de gevolgen daarvan worden beperkt;\nHet toevoegen van maatschappelijke meerwaarde;\nHet duurzaam en ecologisch uitvoeren van de waterveiligheidstaak alsmede het terugdringen van CO2-uitstoot bij het beheer en onderhoud; \nHet verbeteren van de inrichting en uitvoering van de zorgplicht. \n\nDe onderhoudswerkzaamheden binnen de scope van de opdracht omvatten hoofdzakelijk regulier onderhoud op primaire (ongeveer 3.000 kilometer) en regionale waterkeringen (ongeveer 3.000 kilometer), maar zijn niet beperkt tot het:\nHet aanbrengen van bestortingen;\nHet herstellen van zetwerk;\nHet bestrijden van onkruid;\nHet uitvoeren van grondwerk;\nHet vervangen van en onderhouden van drainagesystemen; \nHet vervangen van en onderhouden van afrasteringen;\nHet vervangen van oeververdediging;\nHet verwijderen van opschot en ruigten;\nHet schoonmaken van strandopgangen en onderhoud aan strandpalen.\nWSHD stelt haar gebiedsinformatie ter beschikking via ArcGIS Online, waarin onder andere alle assets gelegen in het werkgebied zijn opgenomen.",
+            "opdrachtgeverNaam": "Waterschap Hollandse Delta",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441430",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-05T14:00:11",
+            "tsenderLink": "https://s2c.mercell.com/today/196464",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Grootschalige warmtescans uitvoering straatbeeld",
+            "digitaal": false,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614319,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441429",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "In 2026 worden tussen de 2.000 en 2.500 warmtescans gemaakt in de kernen Wolvega, Noordwolde en Oldeholtpade, bij adressen die door de gemeente worden aangeleverd.",
+            "opdrachtgeverNaam": "Gemeente Weststellingwerf",
+            "procedure": {
+              "code": "OZB",
+              "omschrijving": "Onderhandelingsprocedure zonder voorafgaande oproep tot mededinging"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441429",
+            "publicatiecode": {
+              "code": "EF25",
+              "omschrijving": "Aankondiging in geval van vrijwillige transparantie vooraf - algemene richtlijn"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Speeltoestellen en valondergronden t.b.v Gemeenten Gennep, Roermond, Venray en Weert",
+            "aantalDagenTotSluitingsDatum": 35,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 606626,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441423",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Voor u ligt het Beschrijvend Document voor de Aanbesteding voor de verwerving van speeltoestellen en valondergronden, die Inkoopcentrum Zuid als Aanbestedende dienst, als penvoerder uitvoert in naam van de gemeenten Gennep, Venray, Weert en Roermond. Met elke gemeente zal er een aparte gelijkluidende overeenkomst gesloten worden. Het doel van deze Aanbesteding is om voor perceel 1 vier (4) Inschrijvers en voor perceel 2 één (1) Inschrijver te contrateren en per Contractant een Raamovereenkomst te sluiten",
+            "opdrachtgeverNaam": "InkoopcentrumZuid u.a.",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441423",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-10-29T12:00:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Individuele Begeleiding en Dagbesteding Heemstede-Bloemendaal",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614351,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441421",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "BKN",
+              "omschrijving": "Bekend"
+            },
+            "opdrachtBeschrijving": "De gemeenten willen een goed beeld krijgen van wat er mogelijk is en wat er leeft in de markt. Zo helpt het om de eisen en eigenschappen van de gevraagde dienstverlening zo te formuleren dat de markt op een goede wijze kan aanbieden. Daarnaast gebruiken we de ontvangen informatie voor het bepalen van de best passende aanbestedingsprocedure.",
+            "opdrachtgeverNaam": "Gemeente Heemstede",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441421",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatumMarktconsultatie": "2026-10-21",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Vegen van Wegen - Gemeente Deurne",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 613797,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441001",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De overeenkomst bestaat uit het vegen van wegen in de gemeente Deurne. De overeenkomst wordt aangegaan voor een periode van minimaal 2 jaar en maximaal 6 jaar. De beoogde ingangsdatum van de overeenkomst is 1 januari 2027.\n\nDe werkzaamheden moeten worden uitgevoerd binnen de gemeentegrenzen van Deurne en vallen\nalleen onder haar verantwoordelijkheid. Deze opdracht wordt dan ook niet samengevoegd. Daarnaast betreft het werkzaamheden enkel in het kader van het reinigen van de wegen, dus ook op het gebied van de aard van de werkzaamheden wordt de opdracht niet samengevoegd.\nDe omvang van de opdracht is dusdanig dat het volledige werk voor een MKB bedrijf goed uitvoerbaar is. Om deze reden is het niet noodzakelijk om het werk op te delen in percelen.",
+            "opdrachtgeverNaam": "Gemeente Deurne",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441001",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "https://s2c.mercell.com/today/199043",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Schoonmaak ten behoeve van 1Stroom (gemeenten Duiven en Westervoort)",
+            "aantalDagenTotSluitingsDatum": 4,
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": true,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 606949,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441408",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Deze aanbesteding heeft als doel om een schoonmaakleverancier te contracteren voor schoonmaak van de gebouwen die in bezit zijn van - of verhuurd worden door de gemeenten Duiven en Westervoort en die de beoogde kwaliteit levert tegen een marktconforme prijs. Opdrachtgever beoogt verder met deze aanbesteding een schoonmaakpartner te vinden die continuïteit in personeel biedt en tijdig communiceert over wijzigingen.",
+            "opdrachtgeverNaam": "Samenwerking De Liemers",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441408",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-09-28T10:00:00",
+            "tsenderLink": "https://s2c.mercell.com/today/228196",
+            "tsenderNaam": "Mercell",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "REC",
+              "omschrijving": "Rectificatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Horecapersoneel theater de Stoep",
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614314,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441397",
+              "title": "self"
+            },
+            "looptijd": {
+              "code": "BKN",
+              "omschrijving": "Bekend"
+            },
+            "opdrachtBeschrijving": "In het kader van de voorbereidingen van een aanbesteding met betrekking tot het inzetten van horecapersoneel voor Theater de Stoep (onderdeel van gemeente Nissewaard), nodigen wij u uit voor een schriftelijke marktconsultatie. De informatie uit deze marktconsultatie willen wij gebruiken om kennis en ervaring van de marktpartijen in te zetten voor het doorlopen van een goede aanbesteding.",
+            "opdrachtgeverNaam": "gemeente Nissewaard",
+            "procedure": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441397",
+            "publicatiecode": {
+              "code": "EFE1",
+              "omschrijving": "Vrijwillige aankondiging van voorafgaande marktconsultatie"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatumMarktconsultatie": "2026-10-15",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "MAC",
+              "omschrijving": "Marktconsultatie"
+            }
+          },
+          {
+            "aanbestedingNaam": "Consulent WMO beschermd wonen maatschappelijke opvang",
+            "digitaal": false,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614306,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441389",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Binnen het team WMO zijn wij op zoek naar een collega die zich gaat richten op de ondersteuningsvragen op het gebied van begeleiding, beschermd wonen en maatschappelijke opvang. Je werkt met doelgroepen zoals dak- en thuislozen, cli?nten met een psychiatrische kwetsbaarheid en /of verslavingsproblematiek en/of een licht verstandelijke beperking. Daarnaast krijg je te maken met probleemgezinnen en slachtoffers van huiselijk geweld. Daarnaast kun je worden ingezet bij ondersteuningsvragen die gaan over het verstrekken van huishoudelijke hulp, hulpmiddelen en woningaanpassingen. Ben jij het type dat enthousiast wordt van begrippen als zelfregie, eigen kracht, participatie, zelfredzaamheid en eigen verantwoordelijkheid? Iemand die mensen graag helpt hun leven beter op de rit te krijgen en regie voert waar dit nodig is? Dan zijn wij op zoek naar jou.  Wat ga je doen?  Je legt huisbezoeken af, gaat in gesprek met inwoners en instanties gericht op het vormen van een zo compleet mogelijk beeld van de hulpvragen op de diverse leefgebieden. Dit doe je door het zorgvuldig uitvoeren van onderzoek. Je bent in staat op zelfstandige wijze het onderzoeksverslag op te stellen volgens de regels van de organisatie. Op basis van je bevindingen geef je advies aan het regioteam Oss. Als regiogemeente is Oss eindverantwoordelijk voor de budgetten. Zij hebben het mandaat hierin het besluit te nemen. Je hebt oog voor voorliggende oplossingen ter voorkoming van de inzet van (zwaardere) zorg en om de zelfredzaamheid en veiligheid van inwoners te vergroten. Je besteedt aandacht aan wat de inwoner zelf kan, wat het netwerk kan betekenen of wat met algemene voorzieningen opgelost kan worden. Wij zoeken de juiste weg passend bij de inwoner waarin wij waar nodig zorgen dat de juiste gecontracteerde begeleiding wordt ingezet. Door jouw toegewijde maar objectieve manier van werken kom je tot een duidelijke analyse en neem je regie, zeker als er sprake is van complexe problematiek. Wij werken vanuit de uitgangspunten van de SAMENWERWIJZE Het doel van de samenwerkwijze is dat inwoners met een hulpvraag rond gezondheid, dagelijks leven, geld, wonen en meedoen samen met hun netwerk en professionals passende oplossingen vinden voor hun vraag en meer welbevinden ervaren.",
+            "opdrachtgeverNaam": "Gemeente Land van Cuijk",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441389",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "tsenderLink": "http://inhuurdesk.werkeninnoordoostbrabant.nl",
+            "tsenderNaam": "WerkenInNoordoostBrabant.nl",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Warme dranken",
+            "aantalDagenTotSluitingsDatum": 42,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614150,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441293",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Door middel van deze aanbesteding wil de aanbestedende dienst voorzien in gewaardeerde warme dranken voor medewerkers en bezoekers.\n\n\nMeer informatie vind u in de leidraad.",
+            "opdrachtgeverNaam": "IBN Kader B.V.",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441293",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-05T09:00:00",
+            "typeOpdracht": {
+              "code": "L",
+              "omschrijving": "Leveringen"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Herinrichting Strausslaan - Mahlerstraat",
+            "aantalDagenTotSluitingsDatum": 56,
+            "digitaal": true,
+            "europees": false,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 614082,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441289",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De scope van de opdracht omvat voornamelijk het uitvoeren van de\nvolgende werkzaamheden:\n- Reconstructie- en herinrichtingswerkzaamheden\n- Verwijderen en vervangen van rioolaansluitingen\n- Vervangen kolken\n- Asfalt in rijbanen verwijderen en vervangen door nieuwe\nasfaltverharding\n- Onderhoud aan trottoirs\n- Vervangen parkeerhavens en parkeerterreinen\n- Vervangen van bomen in de Strausslaan en Mahlerstraat\n- Aanbrengen waterberging\n- Leveren en plaatsen van enkele speeltuintjes\n- Coördinatieverplichting t.a.v. raamcontractant Van den Heuvel\nv.w.b. straatverlichting.\nNiet in de scope aan werkzaamheden:\n- vervanging openbare verlichting (deze werkzaamheden worden\nseparaat door de gemeente in opdracht gegeven bij Van de\nHeuvel.\n- onderhoud aan opgeleverde werkzaamheden",
+            "opdrachtgeverNaam": "Gemeente Tilburg",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441289",
+            "publicatiecode": {
+              "code": "EFE3",
+              "omschrijving": "Vrijwillige aankondiging van een opdracht"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-19T10:00:00",
+            "typeOpdracht": {
+              "code": "W",
+              "omschrijving": "Werken"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Beweegroutes",
+            "aantalDagenTotSluitingsDatum": -79,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 587877,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441285",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Het doel van deze aanbesteding is om in iedere kern van de gemeente Westland een beweegroute te realiseren. Tot op heden zijn er twee kernen voorzien van beweegroutes. Vanwege de positieve reac-ties vanuit zowel de politiek als de inwoners, is er een duidelijke wens om het aantal routes uit te breiden. Dit houdt in dat er nog zeven routes bijkomen, wat het totaal aantal op negen brengt.",
+            "opdrachtgeverNaam": "gemeente Westland",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441285",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-07-07T09:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Architectenselectie ver-/nieuwbouw Montessori Vaklyceum",
+            "aantalDagenTotSluitingsDatum": 61,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 613752,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441277",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "De opdracht betreft de architectonische uitwerking van de vernieuwbouw, inclusief de buitenruimte, van het Montessori Vaklyceum aan de Vondellaan 83 in Groningen. De opgave omvat de voorbereiding, het ontwerp en de verdere uitwerking van een toekomstbestendige onderwijshuisvesting, passend bij de ambities van Openbaar Onderwijs Groningen en de gemeente Groningen.",
+            "opdrachtgeverNaam": "Gemeente Groningen",
+            "procedure": {
+              "code": "CCD",
+              "omschrijving": "Concurrentiegerichte dialoog"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441277",
+            "publicatiecode": {
+              "code": "EF16",
+              "omschrijving": "Aankondiging van een opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-11-24T13:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AAO",
+              "omschrijving": "Aankondiging opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Brokerdienstverlening",
+            "aantalDagenTotSluitingsDatum": -105,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 585883,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441288",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Aanbestedende dienst heeft nu en in de toekomst diverse inhuuraanvragen en streeft ernaar om via deze aanbesteding en de Raamovereenkomst die hieruit voortvloeit, een efficiënt, kwalitatief hoogwaardig en compliant inhuurproces in de vorm van detachering en detavast te realiseren via Opdrachtnemer (zie ook paragraaf 1.2.3 Beschrijving en reikwijdte van de Opdracht), met als resultaat: \n•\tEen continue inzet van kandidaten met zo min mogelijk wisselingen tussentijds.\n•\tTijdige en optimale invulling van Inhuuropdrachten: \n•\tSnelle selectie van passende Kandidaten uit een brede pool van gegadigden in dienst bij Toeleveranciers, gegarandeerd door de onafhankelijke positie van Opdrachtnemer. \n•\tToegang tot de gehele regionale en nationale arbeidsmarkt, waardoor de beste Kandidaat voor elke functie gevonden kan worden",
+            "opdrachtgeverNaam": "Waterschap Brabantse Delta",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441288",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-06-11T12:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          },
+          {
+            "aanbestedingNaam": "Accountantsdienstverlening",
+            "aantalDagenTotSluitingsDatum": -239,
+            "digitaal": true,
+            "europees": true,
+            "isEformsWijziging": false,
+            "isVroegtijdigeBeeindiging": false,
+            "kenmerk": 558774,
+            "link": {
+              "href": "https://www.tenderned.nl/aankondigingen/overzicht/441273",
+              "title": "self"
+            },
+            "opdrachtBeschrijving": "Het doel van deze aanbesteding is het sluiten van een Overeenkomst met één geschikt accountantskantoor dat de wettelijk verplichte accountantscontrole zál uitvoeren en aanvullende accountantsdiensten kán uitvoeren voor ICTU. Bij de gunning staat de beste prijs-kwaliteitsverhouding centraal, zodat de dienstverlening niet alleen rechtmatig is, maar ook bijdraagt aan continuïteit, onafhankelijkheid en een doelmatige uitvoering van de controle. \n\nZie voor meer informatie de aanbestedingsstukken.\n\nAlle ondernemers die aan de eisen voldoen worden van harte uitgenodigd een Inschrijving in te dienen.",
+            "opdrachtgeverNaam": "Stichting ICTU",
+            "procedure": {
+              "code": "OPE",
+              "omschrijving": "Openbaar"
+            },
+            "publicatieDatum": "2026-09-24",
+            "publicatieId": "441273",
+            "publicatiecode": {
+              "code": "EF29",
+              "omschrijving": "Aankondiging gegunde opdracht - algemene richtlijn, standaardregeling"
+            },
+            "publicatiestatus": {
+              "code": "PUB",
+              "omschrijving": "Gepubliceerd"
+            },
+            "score": null,
+            "sluitingsDatum": "2026-01-28T10:00:00",
+            "typeOpdracht": {
+              "code": "D",
+              "omschrijving": "Diensten"
+            },
+            "typePublicatie": {
+              "code": "AGO",
+              "omschrijving": "Aankondiging gegunde opdracht"
+            }
+          }
+        ],
+        "first": true,
+        "last": false,
+        "number": 0,
+        "numberOfElements": 20,
+        "size": 20,
+        "totalElements": 145920,
+        "totalPages": 7296
+      },
+      "source_url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+      "unverified": false,
+      "usage_notice": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "company_intel.input.cpvcodes",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.procedure",
+      "value_schema": {
+        "enum": [
+          "OPE",
+          "NOP",
+          "CCD",
+          "OMB",
+          "OZB",
+          "OHP",
+          "OH",
+          "INP",
+          "CA",
+          "APM",
+          "APE",
+          "VUB"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumpreset",
+      "value_schema": {
+        "enum": [
+          "AF7",
+          "AF30"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.publicatiedatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.search",
+      "value_schema": {
+        "$comment": "{\"apiosk_input_aliases_v1\":[\"service\",\"keyword\",\"search_term\",\"sector\",\"topic\"]}",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumtot",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.sluitingsdatumvanaf",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_intel.input.typeopdracht",
+      "value_schema": {
+        "enum": [
+          "W",
+          "L",
+          "D"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "slug": "tenderned.publication_page",
+      "value_schema": {
+        "properties": {
+          "content": {
+            "$comment": "{\"apiosk_output_aliases_v1\":[\"matching_tenders\",\"tenders\",\"tender_notices\",\"publications\"]}",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "totalElements": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "content",
+          "totalElements"
+        ],
+        "type": "object"
+      }
+    }
+  ]
+}

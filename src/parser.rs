@@ -22,6 +22,7 @@ mod capability_binding;
 #[cfg(test)]
 mod intake_scope_tests;
 pub(crate) mod contract_planner;
+pub mod connected_planning;
 use capability_binding::Bindings;
 mod analysis_source_coverage;
 mod analysis_evidence;

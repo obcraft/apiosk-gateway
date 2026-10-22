@@ -122,6 +122,9 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   // The experimental Ask run engine has been removed; keep its SQL history
   // out of the current Ask fixture without dropping any existing live data.
   &&!name.endsWith('_ask_v2_runs.sql')
+  // Website-read onboarding needs complete catalog/provider tables, not the
+  // runtime-only aliases installed after this migration loop.
+  &&!name.endsWith('_ask_website_read.sql')
   &&!name.endsWith('_allow_ask_analysis_compute.sql')
   &&!name.endsWith('_expand_ask_analysis_model_prices.sql')
   &&!name.endsWith('_declare_yelp_location_record_scope.sql')
@@ -147,7 +150,7 @@ for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/
   &&!/_((onboard_brightdata_linkedin)|(brightdata_v2_admission_access)|(activate_brightdata_linkedin)|(brightdata_five_cent_prices_and_examples))\.sql$/.test(name)
   // Recurring orders require the App's complete billing and tenancy schema,
   // which this isolated task/selection fixture does not install.
-  &&!name.endsWith('_recurring_orders.sql')&&!name.endsWith('_locked_recurring_workflows.sql')&&!name.endsWith('_recurring_self_email.sql')).sort()) {
+  &&!name.endsWith('_recurring_orders.sql')&&!name.endsWith('_locked_recurring_workflows.sql')&&!name.endsWith('_recurring_self_email.sql')&&!name.endsWith('_recurring_delivery_edit.sql')).sort()) {
  await db.exec(await fs.readFile(new URL(name,migrations),'utf8'));
 }
 // Production uses providers/catalog/actions schemas. Keep the legacy fixture

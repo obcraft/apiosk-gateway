@@ -1408,6 +1408,117 @@ async fn assert_no_purchase(intake: &Intake, person: &Person, task: Uuid) {
     assert_eq!((executions, approvals, charges), (0, 0, 0), "recovery cannot buy, approve, or charge source data");
 }
 
+/// The connected MCP route retains both an interrupted parse and a validated
+/// intake whose planner failed. Request replay and task reads are model-free;
+/// an explicit retry stays on the same unpaid task.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn connected_intake_recovery_preserves_state_and_reuses_validated_discovery() {
+    let intake = Intake::start().await;
+    for stage in ["parsing", "planning"] {
+        let person = Person::new();
+        let question = if stage == "parsing" { "Jaarrekening van Coolblue" } else { "Controleer het onbekende bedrijfsgegeven van Coolblue" };
+        let delta = json!({"explicit_values":[],"requested_focus_refs":[]});
+        if stage == "parsing" {
+            let invalid = json!({"language":"nl","subjects":[],"capabilities":[],"deliverable":{"format":"chat","operations":[]}});
+            intake.model.ask_v2_replies.lock().unwrap().extend([invalid.clone(), invalid]);
+        } else {
+            let mut parsed = ask_v2_capabilities();
+            parsed["capabilities"][0]["outputs"] = json!(["unknown_material_requirement"]);
+            parsed["capabilities"][0]["description"] = json!("Retrieve the unknown company information.");
+            intake.model.ask_v2_replies.lock().unwrap().push_back(parsed);
+            intake.model.fail_next("plan", 2);
+        }
+        let request = json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta});
+        let (status, failed) = intake.send(&person.bearer, "/v2/discover", Some(request.clone())).await;
+        assert_eq!(status, StatusCode::OK, "{failed}");
+        let task = paused_task(&person, &failed, stage, question, &delta);
+        let parsed = failed["context_view"]["capability_intake"].clone();
+        assert_eq!(parsed.is_null(), stage == "parsing");
+        let calls = intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed);
+        let (_, replay) = intake.send(&person.bearer, "/v2/discover", Some(request)).await;
+        assert_eq!(replay, failed);
+        let (_, recovered) = intake.send(&person.bearer, &format!("/v2/tasks/{task}"), None).await;
+        assert_eq!(recovered["context_view"]["intake_recovery"], failed["context_view"]["intake_recovery"]);
+        assert_eq!(intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed), calls);
+        let other = Person::new();
+        let (status, _) = intake.send(&other.bearer, &format!("/v2/tasks/{task}"), None).await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_no_purchase(&intake, &person, task).await;
+
+        let parses = intake.model.ask_v2_requests.lock().unwrap().len();
+        let bazaar = intake.model.count("bazaar");
+        let retry = json!({"request_id":Uuid::new_v4(),"question":question,"state":recovered["state"],"context_delta":delta});
+        let (_, resumed) = intake.send(&person.bearer, "/v2/discover", Some(retry.clone())).await;
+        assert_ne!(resumed["status"], "failed", "{resumed}");
+        assert_eq!(resumed["state"]["state_ref"], json!(task));
+        assert!(resumed["context_view"]["intake_recovery"].is_null());
+        assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 1);
+        assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), parses + usize::from(stage == "parsing"));
+        if stage == "planning" {
+            assert_eq!(resumed["context_view"]["capability_intake"], parsed);
+            assert_eq!(intake.model.count("bazaar"), bazaar, "validated discovery is reused");
+        }
+        let (_, replay) = intake.send(&person.bearer, "/v2/discover", Some(retry)).await;
+        assert_eq!(replay, resumed);
+        assert_no_purchase(&intake, &person, task).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn connected_company_quote_preserves_missing_coverage_through_status_and_requires_approval() {
+    let intake = Intake::start().await;
+    let person = Person { owner: "00000000-0000-4000-8000-000000000001".parse().unwrap(), bearer: "apk_access_local_fixture".into() };
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/connected-planning/catalog.json")).unwrap();
+    for fact in fixture["vocabulary"].as_array().unwrap() {
+        sqlx::query("INSERT INTO fact_types(slug,status,value_schema) VALUES($1,'active',$2) ON CONFLICT(slug) DO NOTHING")
+            .bind(fact["slug"].as_str().unwrap()).bind(&fact["value_schema"]).execute(&intake.pool).await.unwrap();
+    }
+    let source = fixture["services"].as_array().unwrap().iter().find(|source|source["api_slug"]=="kvk-dutch-business-register").unwrap();
+    let api: Uuid = source["id"].as_str().unwrap().parse().unwrap();
+    let endpoint: Uuid = source["endpoint_id"].as_str().unwrap().parse().unwrap();
+    sqlx::query("INSERT INTO apis(id,slug,name,listing_type,status,active,is_verified,discoverable,description) VALUES($1,'kvk-dutch-business-register','KVK Business Register','api','active',true,true,true,$2)")
+        .bind(api).bind(source["description"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO api_endpoints(id,api_id,method,path,price,active,description) VALUES($1,$2,'GET','/api/v1/basisprofielen',0.066162,true,$3)")
+        .bind(endpoint).bind(api).bind(source["description"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    let contract = &source["contract"];
+    sqlx::query("INSERT INTO capabilities(slug,status) VALUES('company.registry-profile','active') ON CONFLICT DO NOTHING").execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) VALUES($1,$2,'company.registry-profile',9,'active',$3,$4,$5,'company_registry.kvknummer','one',1,'{}','{}','{}',3600,$6,now(),'read','per_call')")
+        .bind(Uuid::new_v4()).bind(endpoint).bind(&contract["requires"]).bind(&contract["input_map"])
+        .bind(&contract["output_map"]).bind(&source["sample_payload"]).execute(&intake.pool).await.unwrap();
+    let saved: Value = serde_json::from_str(include_str!("fixtures/connected-planning/fcca.json")).unwrap();
+    intake.model.ask_v2_replies.lock().unwrap().push_back(saved["parsed_request"].clone());
+    let request = json!({"request_id":Uuid::new_v4(),"question":saved["question"],"state":null});
+    let (status, quote) = intake.send(&person.bearer, "/v2/discover", Some(request.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{quote}");
+    assert_eq!(quote["status"], "ready", "{quote}");
+    assert_eq!(quote["proposal"]["steps"], json!(["company.registry-profile"]));
+    assert_eq!(quote["proposal"]["max_total_atomic"], "76087");
+    assert_eq!(quote["context_view"]["approval_mode"], "chatbot");
+    let coverage = &quote["context_view"]["connected_coverage"];
+    assert_eq!(coverage["gaps"].as_array().unwrap().iter().map(|gap|gap["output"].as_str().unwrap()).collect::<Vec<_>>(), ["directors", "ownership_structure"]);
+    assert!(coverage["original_intake"]["parsed_request"]["capabilities"][0]["outputs"].as_array().unwrap().iter().any(|output|output=="ownership_structure"));
+    assert!(quote["context_view"]["coverage_notices"].to_string().contains("ownership structure"));
+    let task: Uuid = quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    let calls = intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed);
+    let (_, replay) = intake.send(&person.bearer, "/v2/discover", Some(request)).await;
+    assert_eq!(replay, quote);
+    let (_, recovered) = intake.send(&person.bearer, &format!("/v2/tasks/{task}"), None).await;
+    assert_eq!(recovered["context_view"]["connected_coverage"], *coverage);
+    assert_eq!(recovered["context_view"]["coverage_notices"], quote["context_view"]["coverage_notices"]);
+    assert_eq!(intake.model.model_http_requests.load(std::sync::atomic::Ordering::Relaxed), calls);
+    let action = quote["next_actions"].as_array().unwrap().iter().find(|action|action["kind"]=="execute_quoted_step").unwrap();
+    assert_eq!(action["requires_authorization"], true);
+    let (_, unapproved) = intake.send(&person.bearer, "/v2/execute", Some(json!({"request_id":Uuid::new_v4(),
+        "action_id":action["action_id"],"state":quote["state"],"quote_ref":quote["proposal"]["quote_ref"],
+        "authorization_ref":null,"idempotency_key":action["action_id"],"input":null}))).await;
+    assert_eq!(unapproved["status"], "requires_approval", "{unapproved}");
+    assert_eq!(unapproved["context_view"]["coverage_notices"], quote["context_view"]["coverage_notices"]);
+    assert_no_purchase(&intake, &person, task).await;
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+}
+
 /// Both interpretation stages before planning must survive malformed model
 /// output without losing the submitted text or creating an executable task.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

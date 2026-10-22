@@ -17,6 +17,7 @@ pub(crate) fn waiting_for_auto_approval(p: &Principal, r: &Response) -> bool {
         && r.state.is_some()
         && r.proposal.is_some()
         && r.errors.is_empty()
+        && !r.context_view["connected_coverage"]["gaps"].as_array().is_some_and(|gaps| !gaps.is_empty())
         && matches!(r.status, Status::Ready | Status::RequiresApproval)
         && r.next_actions.iter().any(|action| action.kind == "execute_quoted_step")
         && !r.billing.as_ref().is_some_and(|billing| billing["authorization_active"] == true)
@@ -109,6 +110,7 @@ mod tests {
         let cases: Vec<fn(&mut Response)> = vec![
             |r| r.context_view = json!({"auto_approval": {"active": false}}),
             |r| r.context_view = json!({}),
+            |r| r.context_view["connected_coverage"] = json!({"gaps":[{"output":"ownership_structure"}]}),
             |r| r.billing = Some(json!({"authorization_active": true})),
             |r| r.status = Status::NeedsSelection,
             |r| r.status = Status::Running,
