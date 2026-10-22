@@ -1298,7 +1298,8 @@ impl Parser {
     /// does: the Ask v2 capability parse, then the deterministic source search.
     /// No model pass ever sees the whole catalog.
     pub async fn ask_intake(&self, question: &str, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
-        self.ask_intake_selected(question, None, task, catalog, earlier).await
+        let intake = self.ask_intake_selected(question, None, task, catalog, earlier).await?;
+        Ok(self.complete_origin_search(intake, catalog).await)
     }
 
     async fn ask_intake_selected(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog, earlier: Option<&crate::capability_intake::Intake>) -> anyhow::Result<crate::capability_intake::Intake> {
@@ -1356,9 +1357,18 @@ impl Parser {
 
     /// Ask must finish capability extraction before any source search starts.
     pub async fn prepare_ask(&self, question: &str, selection: Option<&ModelSelection>, task: &Task, catalog: &Catalog) -> anyhow::Result<crate::capability_intake::Intake> {
-        let mut intake=self.ask_intake_selected(question,selection,task,catalog,task.capability_intake.as_ref()).await?;
+        let intake=self.ask_intake_selected(question,selection,task,catalog,task.capability_intake.as_ref()).await?;
+        Ok(self.complete_origin_search(intake, catalog).await)
+    }
+
+    /// Finish both origins for every caller, with the same topic and country
+    /// filter as the Ask page. A connected agent must not receive an external
+    /// search marked pending when no search was ever scheduled.
+    async fn complete_origin_search(&self, mut intake: crate::capability_intake::Intake, catalog: &Catalog) -> crate::capability_intake::Intake {
         crate::capability_intake::add_coinbase(&self.discovery_http,&mut intake.matches,&self.bazaar_search_url).await;
-        Ok(intake)
+        crate::ask_v2::search::filter_coinbase_in_english(&intake.parsed_request, &intake.parsed_request,
+            &mut intake.matches, &|text| catalog.english.english(text));
+        intake
     }
 
     /// Historical contract fixtures exercise their authored intake and search

@@ -435,6 +435,7 @@ impl Request {
     /// Exact schema fields/aliases are stronger evidence than a prose mention,
     /// but do not change the operation's record, asset or measurement scope.
     pub(super) fn output_matches(&self, candidate: &Document) -> bool {
+        if self.documented_record_output(candidate) { return true; }
         if self.name_collection_search && self.primary_facets == 0 && candidate.namespace.contains(&self.domain)
             && candidate.name_search_domains.contains(&self.domain) {
             return true;
@@ -460,10 +461,23 @@ impl Request {
     /// Require the same specific term in the request identity, requested
     /// output and reviewed operation identity; context prose is insufficient.
     pub(super) fn complementary_output(&self, candidate: &Document) -> bool {
-        self.outputs.iter().any(|word| self.key.contains(word)
+        self.documented_record_output(candidate) || self.outputs.iter().any(|word| self.key.contains(word)
             && candidate.contract.contains(word)
             && !FACET_WORDS.contains(&word.as_str())
             && !super::output_metadata::record_word(word))
+    }
+
+    /// An explicitly requested record category is its own discovery evidence,
+    /// including when the interpreter groups it with other outputs. Only an
+    /// admitted structured response in the same domain proves that category:
+    /// a company profile can answer company_details, never directors merely
+    /// because those words occur together in a request. Complete plan coverage
+    /// is still checked independently against every original output.
+    fn documented_record_output(&self, candidate: &Document) -> bool {
+        !self.name_collection_search && candidate.namespace.contains(&self.domain)
+            && self.metrics.supported_by(candidate) && self.sentiment_scope_matches(candidate)
+            && self.output_concepts.iter().any(|concept|
+                concept.starts_with("record:") && candidate.output_concepts.contains(concept))
     }
 
     /// A shared word such as "profile" does not make an organisation's

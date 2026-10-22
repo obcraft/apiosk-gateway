@@ -54,7 +54,7 @@ pub(super) fn concept_in_domain(name: &str, domain: &BTreeSet<String>) -> String
 }
 
 pub(super) fn record_word(word: &str) -> bool {
-    matches!(word, "detail" | "record" | "information" | "info" | "overview" | "data" | "match" | "result")
+    matches!(word, "detail" | "record" | "profile" | "information" | "info" | "overview" | "data" | "match" | "result")
 }
 
 fn insert_concept(name: &str, structured: bool, domain: &BTreeSet<String>, concepts: &mut BTreeSet<String>) {
@@ -153,7 +153,10 @@ pub(super) fn metadata(service: &Service, catalog: &Catalog) -> Metadata {
     for fact in service.contract.output_map.produces.keys() {
         if let Some(definition) = catalog.vocabulary.get(fact) {
             let (namespace, name) = fact.rsplit_once('.').unwrap_or(("", fact));
-            collect(&definition.value_schema, name, 0, &mut terms, &mut concepts, &super::words(namespace), &mut collections);
+            // Keep the declared namespace for a generic root record such as
+            // company.profile. A nested field named profile has no such scope.
+            let scoped_name = if name == "profile" { fact.as_str() } else { name };
+            collect(&definition.value_schema, scoped_name, 0, &mut terms, &mut concepts, &super::words(namespace), &mut collections);
         }
     }
     Metadata {

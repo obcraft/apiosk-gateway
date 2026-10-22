@@ -1,5 +1,26 @@
 [
   {
+    "id": "fcca-company-details",
+    "question": "Haal de bedrijfsgegevens op van Financial Crime Compliance Associates, KVK-nummer 91251982.",
+    "source_free": true,
+    "expect_discovery": true,
+    "expect_plan": true,
+    "expect_needs": [{"label":"Company details","concepts":[["company","business"],["details","profile","records","information"]]}]
+  },
+  {
+    "id": "fcca-due-diligence",
+    "question": "Verzamel de bedrijfsgegevens, bestuurders en eigendomsstructuur van Financial Crime Compliance Associates; KVK-nummer: 91251982 voor een cliëntonderzoek. Vermeld de bronnen en geef aan welke informatie ontbreekt of nog gecontroleerd moet worden.",
+    "source_free": true,
+    "expect_discovery": true,
+    "coverage_probe": true,
+    "coverage_note": "A supported Dutch company profile must remain discoverable. Directors and ownership require their own documented source coverage; a profile alone must not be sold as the complete dossier.",
+    "expect_needs": [
+      {"label":"Company details","concepts":[["company","business"],["details","profile","records","information"]]},
+      {"label":"Directors","concepts":[["directors","officers","board"]]},
+      {"label":"Ownership","concepts":[["ownership","owners","shareholders","control"]]}
+    ]
+  },
+  {
     "id": "personnel-nl",
     "question": "Ik ben op zoek naar personeelsinformatie van Coolblue.",
     "source_free": true,
