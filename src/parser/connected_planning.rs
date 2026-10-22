@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 mod collections;
 mod discovery;
-pub use discovery::{input_context, refresh_discovery};
+pub use discovery::{anchor_collection_request, input_context, refresh_discovery};
 mod scope;
 pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requirements, ScopeRequirement};
 mod selected;

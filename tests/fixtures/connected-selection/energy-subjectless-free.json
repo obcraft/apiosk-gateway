@@ -1,0 +1,232 @@
+{
+  "question": "Vind nieuwe energieaanbestedingen in Nederland en de EU, gepubliceerd in de afgelopen 7 dagen.",
+  "parsed_request": {
+    "capabilities": [
+      {
+        "confidence": 0.9,
+        "description": "Search for new energy procurement contracts published in the past 7 days in the Netherlands and the EU",
+        "domain": "procurement",
+        "inputs": [],
+        "missing": [],
+        "name": "Search procurement records",
+        "outputs": [
+          "records"
+        ],
+        "slug": "procurement.records.search",
+        "source_hint": null,
+        "subject_id": null
+      }
+    ],
+    "deliverable": {
+      "format": "chat",
+      "operations": []
+    },
+    "language": "nl",
+    "meta": {
+      "model": "openai/gpt-oss-120b",
+      "parsed_at": "2026-10-22T21:54:09.864416057+00:00",
+      "text_sha256": "633de4ecb3df2da7ccacb6c37e13016f7c1ed818afac7e1fdc6c29477f3a062b"
+    },
+    "subjects": []
+  },
+  "matches": [
+    {
+      "apiosk": [
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.nl-public-contracts",
+          "description": "Browse Dutch public government contracts and procurement notices in the Netherlands via TenderNed. No keyword or company identifier required; optional literal search/date/sector filters. One page of 20, sorted by publication date. Preserve notice types: announcements, awards, corrections and cancellations. Not all are open tenders or awarded contracts; no full contract PDFs.",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": null,
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        },
+        {
+          "api_id": "996381d3-9c1e-42c9-84ed-c7a575c3d1f9",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.ted-kvk-notices",
+          "description": "Search TED notices by exact numeric KVK/RSIN in buyer or winner identifier fields. Identifier scheme and legal-entity identity require confirmation. Includes historical notices; no subsidy or current revenue inference. Input: KVK",
+          "endpoint_id": "996381d3-9c1e-42c9-84ed-c7a575c3d1f9",
+          "logo_url": "https://apiosk.com/brands/ted.png",
+          "method": "GET",
+          "name": "TED European Procurement Notices",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "ted",
+          "subject_id": null,
+          "url": "https://docs.ted.europa.eu/api/latest/search.html"
+        },
+        {
+          "api_id": "996381d3-9c1e-42c9-84ed-c7a575c3d1f9",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.ted-rsin-notices",
+          "description": "Search TED notices by exact numeric KVK/RSIN in buyer or winner identifier fields. Identifier scheme and legal-entity identity require confirmation. Includes historical notices; no subsidy or current revenue inference. Input: RSIN",
+          "endpoint_id": "996381d3-9c1e-42c9-84ed-c7a575c3d1f9",
+          "logo_url": "https://apiosk.com/brands/ted.png",
+          "method": "GET",
+          "name": "TED European Procurement Notices",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "ted",
+          "subject_id": null,
+          "url": "https://docs.ted.europa.eu/api/latest/search.html"
+        },
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.rsin-mentions",
+          "description": "Search TenderNed publication text using the RSIN. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": null,
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        },
+        {
+          "api_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "availability": "supported",
+          "calls_30d": null,
+          "capability": "procurement.company-name-mentions",
+          "description": "Search TenderNed publication text using the KVK registered company name. Candidate mentions only: not proof of a supplier award, legal-entity match or subsidy receipt.",
+          "endpoint_id": "3f20905f-d8f3-4243-9728-e28f62a4890e",
+          "logo_url": "https://api.apiosk.com/storage/v1/object/public/provider-avatars/logo-tenderned.png",
+          "method": "GET",
+          "name": "TenderNed",
+          "network": null,
+          "origin": "apiosk",
+          "price": "0.054348 USD",
+          "source_slug": "tenderned",
+          "subject_id": null,
+          "url": "https://www.tenderned.nl/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen"
+        }
+      ],
+      "coinbase": [
+        {
+          "api_id": "bazaar:WyJodHRwczovL2RhdGEuZ3JlZW5lcmlzLmlvL3YxL2V1L3RlbmRlcnMiLCJHRVQiLCJTZWFyY2ggcHJvY3VyZW1lbnQgcmVjb3Jkcy4gU2VhcmNoIGZvciBuZXcgZW5lcmd5IHByb2N1cmVtZW50IGNvbnRyYWN0cyBwdWJsaXNoZWQgaW4gdGhlIHBhc3QgNyBkYXlzIGluIHRoZSBOZXRoZXJsYW5kcyBhbmQgdGhlIEVVIl0",
+          "availability": "supported",
+          "calls_30d": 5,
+          "capability": "external.request",
+          "description": "Fresh EU public procurement notices from TED (Tenders Electronic Daily, official Publications Office API, new notices daily). Query: ?cpv=48000000&country=FRA&days_back=7&limit=10 (cpv = 8-digit CPV code, country = 3-letter buyer country, all optional). Each notice: publication_number, publication_date, title, buyer_name, tender deadline, notice URL. 1h cache.",
+          "endpoint": {
+            "api_id": "bazaar:WyJodHRwczovL2RhdGEuZ3JlZW5lcmlzLmlvL3YxL2V1L3RlbmRlcnMiLCJHRVQiLCJTZWFyY2ggcHJvY3VyZW1lbnQgcmVjb3Jkcy4gU2VhcmNoIGZvciBuZXcgZW5lcmd5IHByb2N1cmVtZW50IGNvbnRyYWN0cyBwdWJsaXNoZWQgaW4gdGhlIHBhc3QgNyBkYXlzIGluIHRoZSBOZXRoZXJsYW5kcyBhbmQgdGhlIEVVIl0",
+            "capability": "external.request",
+            "input_values": {
+              "query.days_back": 7,
+              "query.limit": 10
+            },
+            "inputs": [
+              {
+                "field": "query.country",
+                "location": "query",
+                "name": "country",
+                "required": false,
+                "schema": {
+                  "description": "3-letter buyer country code, e.g. FRA (optional)",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "query.cpv",
+                "location": "query",
+                "name": "cpv",
+                "required": false,
+                "schema": {
+                  "description": "8-digit CPV classification code (optional)",
+                  "type": "string"
+                }
+              },
+              {
+                "field": "query.days_back",
+                "location": "query",
+                "name": "days_back",
+                "required": false,
+                "schema": {
+                  "default": 7,
+                  "description": "Look-back window in days, 1-30",
+                  "type": "integer"
+                }
+              },
+              {
+                "field": "query.limit",
+                "location": "query",
+                "name": "limit",
+                "required": false,
+                "schema": {
+                  "default": 10,
+                  "description": "Max notices returned, 1-25",
+                  "type": "integer"
+                }
+              }
+            ],
+            "lookup": null,
+            "missing_inputs": [],
+            "output_schema": null,
+            "outputs": null,
+            "price": {
+              "buyer_atomic": "11500",
+              "currency": "USDC",
+              "provider_atomic": "10000"
+            }
+          },
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "eu-verify",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.011500 USD",
+          "source_slug": null,
+          "subject_id": null,
+          "url": "https://data.greeneris.io/v1/eu/tenders"
+        },
+        {
+          "availability": "discovery_only",
+          "calls_30d": 1,
+          "capability": null,
+          "description": "EU government tender / public procurement search across all 27 EU member states — live TED (Tenders Electronic Daily) data. Returns contract notices with value, contracting authority, CPV category, and deadline. Free EU data, for business-development and procurement agents.",
+          "endpoint": null,
+          "endpoint_id": null,
+          "method": "GET",
+          "name": "GovSpendPulse",
+          "network": "eip155:8453",
+          "origin": "coinbase",
+          "price": "0.092000 USD",
+          "source_slug": null,
+          "subject_id": null,
+          "url": "https://govspendpulse.theaslangroupllc.com/api/govspend/eu-tenders"
+        }
+      ],
+      "coinbase_status": "complete",
+      "operations": [
+        "procurement.company-name-mentions",
+        "procurement.nl-public-contracts",
+        "procurement.rsin-mentions",
+        "procurement.ted-kvk-notices",
+        "procurement.ted-rsin-notices"
+      ],
+      "query": "Search procurement records. Search for new energy procurement contracts published in the past 7 days in the Netherlands and the EU",
+      "slug": "procurement.records.search",
+      "subject_id": null
+    }
+  ],
+  "source_options": [],
+  "catalog_version": "46c878bfc12b6b991e4095ff61b722e2b6476ba968281a5dcc46e0dd120e5f67",
+  "apiosk_sources_searched": 46
+}

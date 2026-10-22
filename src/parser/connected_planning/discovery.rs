@@ -1,9 +1,52 @@
 //! A vague model namespace must not hide an admitted, exactly named output.
 //! This only supplies a search namespace; normal search still owns source,
 //! country and operation relevance, and the canonical request is unchanged.
-use crate::{capability_intake::Intake, catalog::{Catalog, Service}};
+use crate::{capability_intake::{Intake, ParsedRequest, Subject}, catalog::{Catalog, Service}};
 use serde_json::Value;
 use std::collections::BTreeSet;
+
+/// A subjectless collection request still needs a stable selection scope. This
+/// anchor is not a company, person, keyword or inferred identifier. Only a
+/// reviewed, already matched collection that needs no entity permits it.
+pub fn anchor_collection_request(question: &str, parsed: &mut ParsedRequest, catalog: &Catalog) -> bool {
+    if !parsed.subjects.is_empty() || question.trim().is_empty() || question.len() > 500 { return false; }
+    let indices: Vec<_> = parsed.capabilities.iter().enumerate().filter(|(_, cap)| !super::super::plan_coverage::answer_instruction(cap))
+        .map(|(index, _)| index).collect();
+    let [index] = indices.as_slice() else { return false; };
+    let cap = &parsed.capabilities[*index];
+    if cap.subject_id.is_some() || !cap.inputs.is_empty() || !cap.missing.is_empty() { return false; }
+    let outputs: Vec<_> = cap.outputs.iter().filter(|output| !super::metadata(output)).collect();
+    if outputs.is_empty() { return false; }
+    fn collection(schema: &Value) -> bool {
+        schema["type"] == "array" && (schema["items"]["type"] == "object" || schema["items"]["properties"].is_object())
+            || schema["properties"].as_object().is_some_and(|fields| fields.values().any(collection))
+    }
+    // Search may omit answer-only rows, so its position is not the original
+    // capability index. Probe this one retrieval while leaving the canonical
+    // answer instructions unchanged.
+    let mut probe = parsed.clone(); probe.capabilities = vec![cap.clone()];
+    let Some(found) = crate::ask_v2::search::search(&probe, catalog).into_iter().next() else { return false; };
+    let eligible = catalog.services.iter().any(|service| !service.unverified
+        && service.contract.capability_slug.split('.').next() == Some(cap.domain.as_str())
+        && service.contract.requires.iter().all(|input| input.optional)
+        && service.contract.output_map.produces.keys().any(|field| catalog.vocabulary.get(field).is_some_and(|fact|
+            crate::ask_v2::output_schema::documented(&fact.value_schema) && collection(&fact.value_schema)
+                && outputs.iter().all(|output| matches!(output.as_str(), "records" | "results" | "items" | "entries")
+                    || *output == field || collection_alias(&fact.value_schema, output))))
+        && found.apiosk.iter().any(|candidate| candidate.availability == "supported"
+            && candidate.endpoint_id.as_deref() == Some(service.endpoint_id.to_string().as_str())
+            && candidate.capability.as_deref() == Some(service.contract.capability_slug.as_str())));
+    if !eligible { return false; }
+    let anchor = Subject { id: "s1".into(), label: question.into(), kind: "collection_request".into(), identifiers: Default::default() };
+    // The label is only a selection scope, never a provider input. Fail closed
+    // if a future native field happens to recognize this reserved subject type.
+    if catalog.services.iter().flat_map(|service| &service.contract.requires).any(|input|
+        catalog.vocabulary.get(&input.fact_type).is_some_and(|fact|
+            crate::ask_v2::input_values::documented_literal(&input.fact_type, &fact.value_schema, &anchor).is_some())) { return false; }
+    parsed.capabilities[*index].subject_id = Some(anchor.id.clone());
+    parsed.subjects.push(anchor);
+    true
+}
 
 fn collection_alias(schema: &Value, output: &str) -> bool {
     if schema["type"] == "array" && schema["items"]["type"] == "object"

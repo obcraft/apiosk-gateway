@@ -1584,6 +1584,21 @@ async fn connected_free_ask_finds_tenders_when_the_model_uses_a_generic_domain()
     }
     assert!(intake.model.chats().is_empty(), "discovery never invokes the planner");
     assert!(intake.edge.calls.lock().unwrap().is_empty());
+    // A fresh retry must not erase criteria pinned by a successfully normalized
+    // first response. Only failures before normalization are retry-eligible.
+    let mut erased_scope=omitted.clone();
+    erased_scope["capabilities"][0]["description"]=json!("Search for tenders");
+    let mut ungrounded_after_scope=parsed.clone();
+    ungrounded_after_scope["capabilities"][0]["inputs"]=json!(["location","date_range"]);
+    for correction in [erased_scope,ungrounded_after_scope] {
+        intake.model.ask_v2_replies.lock().unwrap().extend([omitted.clone(),correction,parsed.clone()]);
+        let calls_before=intake.model.ask_v2_requests.lock().unwrap().len();
+        let (status,failed)=intake.send(&person.bearer,"/v2/ask",Some(json!({"question":question}))).await;
+        assert_eq!(status,StatusCode::SERVICE_UNAVAILABLE,"{failed}");
+        assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),calls_before+2,"a pinned source criterion never resets through the free retry");
+        assert_eq!(intake.model.ask_v2_replies.lock().unwrap().len(),1);
+        intake.model.ask_v2_replies.lock().unwrap().clear();
+    }
     let app_person = Person::new();
     let (status, app_search) = intake.send(&app_person.bearer, "/v2/ask-v2/search", Some(json!({
         "origin":"apiosk","parsed_request":found["parsed_request"]

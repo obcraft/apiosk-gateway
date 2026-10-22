@@ -2,6 +2,104 @@ use super::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 #[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn connected_free_grounding_retry_retains_validation_and_stops_without_purchase() {
+    let intake = Intake::start().await;
+    let person = Person { owner:"00000000-0000-4000-8000-000000000001".parse().unwrap(), bearer:"apk_access_local_fixture".into() };
+    let question = "Jaarrekening van Coolblue";
+    let valid = ask_v2_capabilities();
+    let mut invalid = valid.clone();
+    invalid["capabilities"][0]["inputs"] = json!(["location", "date_range"]);
+    intake.model.ask_v2_replies.lock().unwrap().extend([invalid.clone(), invalid.clone(), valid.clone()]);
+    let before = task_count(&intake, &person).await;
+    let (status, found) = intake.send(&person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::OK, "{found}");
+    assert_eq!(found["attempts"], 3);
+    assert!(found["search_id"].is_string());
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 3);
+    for request in intake.model.ask_v2_requests.lock().unwrap().iter() {
+        assert_eq!(request["messages"][1]["content"], question, "retry preserves the exact question");
+    }
+    intake.model.ask_v2_replies.lock().unwrap().extend([invalid.clone(), invalid.clone(), invalid.clone(), invalid.clone(), valid]);
+    let (status, failed) = intake.send(&person.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{failed}");
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 7, "two strict two-response attempts, then stop");
+    assert!(failed.get("parsed_request").is_none());
+    assert!(failed.get("search_id").is_none());
+    assert_eq!(intake.model.ask_v2_replies.lock().unwrap().len(), 1, "no fifth model request");
+    intake.model.ask_v2_replies.lock().unwrap().clear();
+    intake.model.ask_v2_replies.lock().unwrap().extend([invalid.clone(), invalid]);
+    let app = Person::new();
+    let (status, _) = intake.send(&app.bearer, "/v2/ask", Some(json!({"question":question}))).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(), 9, "App retains its existing two-attempt boundary");
+    assert_eq!(task_count(&intake, &person).await, before);
+    assert_eq!(task_count(&intake, &app).await, 0);
+    assert!(intake.edge.calls.lock().unwrap().is_empty());
+    assert!(intake.model.chats().is_empty());
+    let charges:i64 = sqlx::query_scalar("SELECT count(*) FROM balance_charges WHERE user_id=$1")
+        .bind(person.owner).fetch_one(&intake.pool).await.unwrap();
+    assert_eq!(charges, 0);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn connected_free_subjectless_collection_has_signed_choices_and_manual_filtered_quote() {
+    let intake = Intake::start().await;
+    let person = Person { owner:"00000000-0000-4000-8000-000000000001".parse().unwrap(), bearer:"apk_access_local_fixture".into() };
+    let fixture:Value = serde_json::from_str(include_str!("../fixtures/connected-selection/energy-catalog.json")).unwrap();
+    let capture:Value = serde_json::from_str(include_str!("../fixtures/connected-selection/energy-subjectless-free.json")).unwrap();
+    for fact in fixture["vocabulary"].as_array().unwrap() {
+        sqlx::query("INSERT INTO fact_types(slug,status,value_schema) VALUES($1,'active',$2) ON CONFLICT(slug) DO NOTHING")
+            .bind(fact["slug"].as_str().unwrap()).bind(&fact["value_schema"]).execute(&intake.pool).await.unwrap();
+    }
+    let source=&fixture["services"][0];
+    let api=Uuid::new_v4();
+    let endpoint=Uuid::new_v4();
+    sqlx::query("INSERT INTO apis(id,slug,name,listing_type,status,active,is_verified,discoverable,description,docs_url) VALUES($1,$2,'TenderNed','api','active',true,true,true,$3,$4)")
+        .bind(api).bind(format!("tenderned-subjectless-{api}")).bind(source["description"].as_str().unwrap()).bind(source["source_url"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO api_endpoints(id,api_id,method,path,price,active,description,query_params) VALUES($1,$2,'GET','/v2/publicaties',0.047259,true,$3,$4)")
+        .bind(endpoint).bind(api).bind(source["description"].as_str().unwrap())
+        .bind(&fixture["known_sources"][0]["metadata"]["endpoints"][0]["registration"]["query_params"]).execute(&intake.pool).await.unwrap();
+    sqlx::query("INSERT INTO capabilities(slug,status,description) VALUES('procurement.nl-public-contracts','active',$1) ON CONFLICT(slug) DO UPDATE SET description=EXCLUDED.description")
+        .bind(source["description"].as_str().unwrap()).execute(&intake.pool).await.unwrap();
+    let contract=&source["contract"];
+    sqlx::query("INSERT INTO capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model) VALUES($1,$2,'procurement.nl-public-contracts',1,'active',$3,$4,$5,NULL,'one',1,$6,'{}','{}',3600,$7,now(),'read','per_call')")
+        .bind(Uuid::new_v4()).bind(endpoint).bind(&contract["requires"]).bind(&contract["input_map"]).bind(&contract["output_map"])
+        .bind(&source["fixed_params"]).bind(&source["sample_payload"]).execute(&intake.pool).await.unwrap();
+    let question=capture["question"].as_str().unwrap();
+    intake.model.ask_v2_replies.lock().unwrap().push_back(capture["parsed_request"].clone());
+    let before=task_count(&intake,&person).await;
+    let (status, found)=intake.send(&person.bearer,"/v2/ask",Some(json!({"question":question}))).await;
+    assert_eq!(status,StatusCode::OK,"{found}");
+    assert_eq!(found["attempts"],1);
+    assert_eq!(found["parsed_request"]["subjects"][0]["type"],"collection_request");
+    assert_eq!(found["parsed_request"]["subjects"][0]["label"],question);
+    assert_eq!(found["parsed_request"]["subjects"][0]["identifiers"],json!({}));
+    let option=found["source_options"].as_array().unwrap().iter().find(|o|o["source"]["endpoint_id"]==endpoint.to_string()&&o["source"]["capability"]=="procurement.nl-public-contracts").unwrap();
+    assert_eq!(option["subject_id"],"s1");
+    assert_eq!(option["endpoint"]["input_values"],json!({}),"the query anchor never guesses native source filters");
+    assert_eq!(task_count(&intake,&person).await,before);
+    let request=json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":found["parsed_request"],"search_id":found["search_id"],
+        "selections":[{"endpoint_id":endpoint,"capability":"procurement.nl-public-contracts","subject_id":"s1","input":{}}]});
+    let (_,empty)=intake.send(&person.bearer,"/v2/ask/prepare",Some(request.clone())).await;
+    assert!(empty["proposal"].is_null(),"an unfiltered source cannot fulfill the requested energy/date scope: {empty}");
+    assert_eq!(task_count(&intake,&person).await,before);
+    let mut request=request; request["request_id"]=json!(Uuid::new_v4());
+    request["selections"][0]["input"]=json!({"company_intel.input.search":"energie","company_intel.input.publicatiedatumpreset":"AF7"});
+    let (status,quote)=intake.send(&person.bearer,"/v2/ask/prepare",Some(request)).await;
+    assert_eq!(status,StatusCode::OK,"{quote}");
+    assert_eq!(quote["status"],"ready","{quote}");
+    assert_eq!(quote["proposal"]["max_total_atomic"],"54348");
+    assert_eq!(quote["context_view"]["manual_approval_required"],true);
+    let notices=quote["context_view"]["coverage_notices"].to_string();
+    assert!(notices.contains("NL")&&notices.contains("outside"),"{notices}");
+    let task:Uuid=quote["state"]["state_ref"].as_str().unwrap().parse().unwrap();
+    assert_no_purchase(&intake,&person,task).await;
+    assert_eq!(intake.model.ask_v2_requests.lock().unwrap().len(),1,"selection does not reparse or purchase");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
 async fn connected_selected_sources_one_combined_quote_manual_requote_and_one_approval() {
     let intake=Intake::start().await;
     let person=Person{owner:"00000000-0000-4000-8000-000000000001".parse().unwrap(),bearer:"apk_access_local_fixture".into()};

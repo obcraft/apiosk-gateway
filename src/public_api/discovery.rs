@@ -30,14 +30,18 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         return Err(busy());
     }
     let started=std::time::Instant::now();
-    // One model request reads the question; both origin searches are then
-    // deterministic and run concurrently.
-    let interpretation = if ctx.principal.connection.is_some() {
+    // Interpretation stays free; both origin searches are deterministic.
+    let mut interpretation = if ctx.principal.connection.is_some() {
         let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("Ask catalog", &e))?;
-        client.interpret_connected_with_context(question, question, question, &[], &catalog).await
+        retry_free_interpretation(|| client.interpret_connected_with_context(question, question, question, &[], &catalog)).await
+            .map(|(mut interpretation, prior_attempts)| { interpretation.attempts += prior_attempts; interpretation })
     } else {
         client.interpret_with_context(question, question, question, &[]).await
     }.map_err(|e| unavailable("Ask interpretation", &e))?;
+    if ctx.principal.connection.is_some() {
+        let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("Ask catalog", &e))?;
+        crate::parser::connected_planning::anchor_collection_request(question, &mut interpretation.parsed_request, &catalog);
+    }
     let parsed = &interpretation.parsed_request;
     let (apiosk, coinbase) = tokio::join!(
         async {
@@ -114,6 +118,53 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         response["source_options"] = source_options;
     }
     Ok(Json(response).into_response())
+}
+
+// Only an exhausted, strictly validated interpretation gets one fresh try.
+// This is deliberately confined to free connected discovery: it never retries
+// transport/rate failures or any task, quote, approval or purchase operation.
+async fn retry_free_interpretation<T, F, Fut>(mut interpret: F) -> anyhow::Result<(T, usize)>
+where F: FnMut() -> Fut, Fut: std::future::Future<Output = anyhow::Result<T>> {
+    match interpret().await {
+        Err(error) if error.is::<crate::ask_v2::UnverifiedInputGrounding>() => {
+            tracing::warn!("Connected free discovery retries an unverified interpretation once");
+            // Both responses failed literal grounding before any source-scope
+            // requirement was pinned. A retry cannot erase a retained scope.
+            interpret().await.map(|value| (value, 2))
+        }
+        result => result.map(|value| (value, 0)),
+    }
+}
+
+#[cfg(test)]
+mod free_interpretation_tests {
+    use super::retry_free_interpretation;
+    use std::collections::VecDeque;
+
+    #[tokio::test]
+    async fn connected_free_retry_is_bounded_to_exact_unverified_error() {
+        for (replies, expected_calls, expected_prior_attempts) in [
+            (vec![Ok(1)], 1, Some(0)),
+            (vec![Err("eligible_grounding"), Ok(1)], 2, Some(2)),
+            (vec![Err("eligible_grounding"), Err("eligible_grounding"), Ok(1)], 2, None),
+            (vec![Err("ask_v2_interpretation_unverified"), Ok(1)], 1, None),
+            (vec![Err("connection reset"), Ok(1)], 1, None),
+            (vec![Err("request rate limit"), Ok(1)], 1, None),
+            (vec![Err("ask_v2_interpretation_unverified: unrelated"), Ok(1)], 1, None),
+        ] {
+            let mut replies = VecDeque::from(replies);
+            let mut calls = 0;
+            let result = retry_free_interpretation(|| {
+                calls += 1;
+                std::future::ready(replies.pop_front().unwrap().map_err(|error| {
+                    if error == "eligible_grounding" { crate::ask_v2::UnverifiedInputGrounding.into() }
+                    else { anyhow::Error::msg(error) }
+                }))
+            }).await;
+            assert_eq!(calls, expected_calls);
+            assert_eq!(result.ok().map(|(_, attempts)| attempts), expected_prior_attempts);
+        }
+    }
 }
 
 #[derive(Deserialize)]

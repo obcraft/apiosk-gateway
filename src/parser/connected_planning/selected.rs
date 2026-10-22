@@ -572,6 +572,87 @@ mod tests {
     }
 
     #[test]
+    fn subjectless_collection_gets_only_a_signed_selection_anchor_and_still_requires_explicit_filters() {
+        let (fixture_catalog, _, mut intake, _, mut choice) = energy_selection_fixture();
+        let catalog = match std::env::var("CONNECTED_SUBJECTLESS_CATALOG") {
+            Ok(path) => Catalog::build(serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()),
+            Err(_) => fixture_catalog,
+        };
+        intake.catalog_version = catalog.version.clone();
+        let saved: Value = serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-subjectless-free.json")).unwrap();
+        let question = saved["question"].as_str().unwrap();
+        intake.parsed_request = serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        let raw = intake.parsed_request.clone();
+        assert!(raw.subjects.is_empty() && raw.capabilities[0].subject_id.is_none());
+        assert!(super::super::anchor_collection_request(question, &mut intake.parsed_request, &catalog));
+        let anchor = &intake.parsed_request.subjects[0];
+        assert_eq!(anchor.kind, "collection_request");
+        assert_eq!(anchor.label, question);
+        assert!(anchor.identifiers.is_empty());
+        assert!(input_values::literal("company.name", anchor).is_none());
+        assert!(input_values::literal("company_intel.input.search", anchor).is_none());
+        let mut expected = raw.clone(); expected.subjects.push(anchor.clone()); expected.capabilities[0].subject_id = Some(anchor.id.clone());
+        assert_eq!(serde_json::to_value(&intake.parsed_request).unwrap(), serde_json::to_value(expected).unwrap(), "no semantic criteria are inferred");
+        intake.matches = crate::ask_v2::search::search(&intake.parsed_request, &catalog);
+        let options = crate::ask_v2::source_options::connected_options(&intake.parsed_request, &intake.matches, &catalog);
+        let offered = options.iter().find(|option| option.source.capability.as_deref() == Some(choice.capability.as_str())).unwrap();
+        assert!(offered.input_values.is_empty(), "whole question must not become a keyword");
+        assert_eq!(offered.subject_id, anchor.id);
+        let signer = crate::state::Signer::new(vec![7;32]).unwrap();
+        let principal = crate::auth::Principal { owner: uuid::Uuid::new_v4(), workspace: None, connection: Some(uuid::Uuid::new_v4()) };
+        let response = json!({"matches":intake.matches,"source_options":options,"catalog_version":catalog.version,"apiosk_sources_searched":1});
+        let token = crate::search_snapshot::Snapshot::issue_connected(&signer, &principal, &intake.parsed_request, &response).unwrap();
+        let signed = crate::search_snapshot::Snapshot::open_connected(&signer, &principal, &intake.parsed_request, &token).unwrap();
+        println!("subjectless collection replay: {} catalog services, {} signed options, {} token bytes", catalog.services.len(), signed.source_options().len(), token.len());
+        assert!(crate::search_snapshot::Snapshot::open_connected(&signer, &principal, &raw, &token).is_err(), "signed canonical request must include its anchor");
+        choice.input.clear();
+        let error = compile_selected(question, &Task::default(), &catalog, &intake, &[choice.clone()], signed.source_options()).err().unwrap().to_string();
+        assert!(error.contains("company_intel.input.search") && error.contains("AF7"), "{error}");
+        choice.input.insert("company_intel.input.search".into(), json!("energie"));
+        choice.input.insert("company_intel.input.publicatiedatumpreset".into(), json!("AF7"));
+        let prepared = compile_selected(question, &Task::default(), &catalog, &intake, &[choice], signed.source_options()).unwrap();
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("Fixed source country: NL") && notice.contains(question)));
+        assert_eq!(serde_json::to_value(&prepared.coverage.original_intake.parsed_request).unwrap(), serde_json::to_value(&intake.parsed_request).unwrap());
+        let (task, plan) = plan(prepared, question, &catalog);
+        assert_eq!(plan.steps.len(), 1); assert_eq!(plan.cap_atomic, 54348);
+        assert_eq!(plan.steps[0].service.inputs(&task, plan.steps[0].entity_ref, &catalog.vocabulary).unwrap(),
+            json!({"search":"energie","publicatieDatumPreset":"AF7","page":0,"size":20,"sort":"publicatieDatum,desc"}));
+    }
+
+    #[test]
+    fn collection_anchor_does_not_repair_entities_unresolved_inputs_or_ambiguous_requests() {
+        let (mut catalog, question, _, _, _) = energy_selection_fixture();
+        let saved: Value = serde_json::from_str(include_str!("../../../tests/fixtures/connected-selection/energy-subjectless-free.json")).unwrap();
+        let raw: crate::capability_intake::ParsedRequest = serde_json::from_value(saved["parsed_request"].clone()).unwrap();
+        let mut with_answer = raw.clone();
+        let mut answer = raw.capabilities[0].clone();
+        answer.slug = "general.conversation".into(); answer.name = "Conversation".into(); answer.domain = "general".into();
+        answer.outputs = vec!["sources".into()];
+        with_answer.capabilities.insert(0, answer.clone());
+        assert!(super::super::anchor_collection_request(&question, &mut with_answer, &catalog));
+        assert_eq!(serde_json::to_value(&with_answer.capabilities[0]).unwrap(), serde_json::to_value(answer).unwrap(), "answer instructions remain unchanged");
+        assert_eq!(with_answer.capabilities[1].subject_id.as_deref(), Some("s1"));
+        for variant in 0..6 {
+            let mut parsed = raw.clone();
+            match variant {
+                0 => parsed.subjects.push(Subject { id:"s1".into(),label:"Named company".into(),kind:"company".into(),identifiers:Default::default() }),
+                1 => parsed.capabilities[0].subject_id = Some("unresolved".into()),
+                2 => parsed.capabilities[0].inputs = vec!["company_name".into()],
+                3 => parsed.capabilities[0].missing = vec!["company_name".into()],
+                4 => parsed.capabilities.push(parsed.capabilities[0].clone()),
+                _ => parsed.capabilities[0].outputs = vec!["company_profile".into()],
+            }
+            let before = serde_json::to_value(&parsed).unwrap();
+            assert!(!super::super::anchor_collection_request(&question, &mut parsed, &catalog), "variant {variant}");
+            assert_eq!(serde_json::to_value(parsed).unwrap(), before);
+        }
+        for service in &mut catalog.services { for input in &mut service.contract.requires { input.optional = false; } }
+        let mut parsed = raw.clone();
+        assert!(!super::super::anchor_collection_request(&question, &mut parsed, &catalog), "an entity-keyed source cannot justify a subjectless anchor");
+        assert_eq!(serde_json::to_value(parsed).unwrap(), serde_json::to_value(raw).unwrap());
+    }
+
+    #[test]
     fn complementary_selected_roots_do_not_restore_each_others_original_output_gaps() {
         let (_,question,mut intake,mut options)=fixture(false);
         let mut snapshot:crate::catalog::Snapshot=serde_json::from_str(include_str!("../../../tests/fixtures/connected-planning/catalog.json")).unwrap();

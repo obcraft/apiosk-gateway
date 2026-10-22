@@ -77,6 +77,13 @@ pub(crate) struct Interpretation {
     pub attempts: usize,
 }
 
+/// Both responses failed strict literal-input grounding before any connected
+/// source-scope requirement could be recorded. Free connected discovery may
+/// retry this class once; the public error remains unchanged.
+#[derive(Debug, thiserror::Error)]
+#[error("ask_v2_interpretation_unverified")]
+pub(crate) struct UnverifiedInputGrounding;
+
 /// A provider refusal, classified so a rejected credential is not repeated
 /// on the fallback model. Its message is the stable client error.
 #[derive(Debug, thiserror::Error)]
@@ -155,8 +162,15 @@ impl Client {
         // A repair must bind the original criterion, even if the model drops
         // that criterion from its new description instead of supplying it.
         let mut required_scope = Vec::new();
+        let ungrounded_responses = std::sync::atomic::AtomicUsize::new(0);
         let mut normalize = |output: &Output| -> Result<ParsedRequest> {
-            let mut parsed_request = capability_intake::normalize_with_context(&output.text, question, literals, &output.model)?;
+            let mut parsed_request = capability_intake::normalize_with_context(&output.text, question, literals, &output.model)
+                .map_err(|error| {
+                    if error.to_string().starts_with("input concepts require supplied identifiers or the literal subject:") {
+                        ungrounded_responses.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    }
+                    error
+                })?;
             if let Some(catalog) = connected_catalog {
                 let matches = search::search(&parsed_request, catalog);
                 let mut intake = capability_intake::Intake {
@@ -206,7 +220,11 @@ impl Client {
                     #[cfg(test)]
                     crate::live_ask_planning_tests::record_validation_failure(
                         &json!({"stage":"intake_normalization","attempt":2,"question":question,"raw":output.text}).to_string(), &error);
-                    Err(anyhow!(UNVERIFIED))
+                    if connected_catalog.is_some() && ungrounded_responses.load(std::sync::atomic::Ordering::Relaxed) == 2 {
+                        Err(UnverifiedInputGrounding.into())
+                    } else {
+                        Err(anyhow!(UNVERIFIED))
+                    }
                 }
             }
         })
