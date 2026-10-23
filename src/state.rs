@@ -232,6 +232,10 @@ pub struct Task {
     pub connected_selection: Option<crate::engine::ConnectedSelection>,
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub manual_approval_required: bool,
+    /// Only a validated connected source choice may enable its native lookup
+    /// chain. Ordinary Ask calls keep their independent-input contract.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub connected_lookup_required: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_grounding: Option<crate::parser::source_grounding::Grounding>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -286,7 +290,7 @@ impl Task {
     /// Ad hoc Ask calls take their inputs from the context available before
     /// approval. Explicit workflow recipes retain their separate execution DAG.
     pub fn independent_sources(&self) -> bool {
-        self.capability_intake.is_some() && self.workflow.is_none() && self.supplier_check.is_none()
+        self.capability_intake.is_some() && self.workflow.is_none() && self.supplier_check.is_none() && !self.connected_lookup_required
     }
     pub fn step_finished(&self, key: &str) -> bool {
         self.completed.iter().any(|done| done == key) || self.failed_steps.contains_key(key) || self.skipped_steps.contains(key)
@@ -361,6 +365,7 @@ impl Task {
         object.remove("source_selection");
         object.remove("selected_sources");
         object.remove("manual_approval_required");
+        object.remove("connected_lookup_required");
         object.remove("intake_recovery");
         if let Some(turns) = object.get_mut("conversation").and_then(Value::as_array_mut) {
             for turn in turns {

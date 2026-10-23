@@ -42,7 +42,40 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         let catalog = state.engine.catalog.get().await.map_err(|e| unavailable("Ask catalog", &e))?;
         crate::parser::connected_planning::anchor_collection_request(question, &mut interpretation.parsed_request, &catalog);
     }
-    let parsed = &interpretation.parsed_request;
+    search_parsed(state, &ctx, question, interpretation.parsed_request, interpretation.output.model, interpretation.attempts, started).await
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SearchRetry { question: String, parsed_request: crate::capability_intake::ParsedRequest, search_id: String }
+
+/// Retry discovery from the verified parse. An expired catalog snapshot can
+/// be refreshed here; it never authorizes a quote or a source purchase.
+pub async fn search(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> HttpResponse {
+    let result=async {
+        let ctx=context(&state,&headers,&["ask:create"]).await?;
+        if ctx.principal.connection.is_none() {
+            return Err(problem(StatusCode::FORBIDDEN,"connection_required","Use the connected chatbot account to refresh its source search."));
+        }
+        let req:SearchRetry=parse(&body)?;
+        let question=req.question.trim();
+        if question.is_empty() || question.encode_utf16().count()>16_000
+            || req.parsed_request.meta.text_sha256 != hex::encode(Sha256::digest(question.as_bytes())) {
+            return Err(problem(StatusCode::BAD_REQUEST,"invalid_question","Keep the original question and signed parse when refreshing sources."));
+        }
+        crate::search_snapshot::Snapshot::open_connected(&state.engine.signer,&ctx.principal,&req.parsed_request,&req.search_id)
+            .map_err(|_|problem(StatusCode::CONFLICT,"source_refresh_required","This signed search does not belong to this connection and question."))?;
+        let Ok(_permit)=state.permits.try_acquire() else {return Err(busy());};
+        if state.engine.parser.ask_v2().is_some_and(|client|!client.admit_search(&ctx.principal.owner.to_string())) {return Err(busy());}
+        let model=req.parsed_request.meta.model.clone();
+        search_parsed(&state,&ctx,question,req.parsed_request,model,0,std::time::Instant::now()).await
+    }.await;
+    result.unwrap_or_else(|response|response)
+}
+
+async fn search_parsed(state:&ServerState,ctx:&AuthContext,question:&str,parsed:crate::capability_intake::ParsedRequest,
+    model:String,attempts:usize,started:std::time::Instant)->Answer {
+    let parsed=&parsed;
     let (apiosk, coinbase) = tokio::join!(
         async {
             // Connected callers retain the canonical parse, but a generic
@@ -76,6 +109,7 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
     let mut apis = Vec::new();
     let mut errors = Vec::new();
     let mut search_id = None;
+    let mut discovery_id = None;
     let mut source_options = json!([]);
     for (origin, result) in [("apiosk", apiosk), ("coinbase", coinbase)] {
         match result {
@@ -84,6 +118,10 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
                     search_id = Some(crate::search_snapshot::Snapshot::issue_connected(&state.engine.signer, &ctx.principal, parsed, &value)
                         .map_err(|error| unavailable("source selection snapshot", &error))?);
                     source_options = value["source_options"].clone();
+                }
+                if origin == "coinbase" && ctx.principal.connection.is_some() {
+                    discovery_id = Some(crate::search_snapshot::Snapshot::issue_connected(&state.engine.signer, &ctx.principal, parsed, &value)
+                        .map_err(|error| unavailable("external discovery snapshot", &error))?);
                 }
                 for found in value["matches"].as_array().into_iter().flatten() {
                     for candidate in found[origin].as_array().into_iter().flatten() {
@@ -110,12 +148,15 @@ async fn discover(state: &ServerState, headers: &HeaderMap, body: &[u8]) -> Answ
         }
     }
     let status = if !errors.is_empty() { "partial" } else if apis.is_empty() { "needs_input" } else { "choices" };
-    let mut response = json!({"status":status,"question":question,"parsed_request":parsed,"model":interpretation.output.model,
-        "attempts":interpretation.attempts,"timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_http_requests":crate::telemetry::model_http_requests()},"apis":apis,"searches":searches,
+    let mut response = json!({"status":status,"question":question,"parsed_request":parsed,"model":model,
+        "attempts":attempts,"timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_http_requests":crate::telemetry::model_http_requests()},"apis":apis,"searches":searches,
         "errors":errors,"execution":{"method":"POST","path":"/v2/execute"}});
     if ctx.principal.connection.is_some() {
         response["search_id"] = json!(search_id);
         response["source_options"] = source_options;
+        response["discovery_id"] = json!(discovery_id);
+        response["company_context"] = json!(crate::subject_context::collect(parsed).await);
+        response["context_status"] = json!("complete");
     }
     Ok(Json(response).into_response())
 }

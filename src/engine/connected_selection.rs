@@ -80,6 +80,7 @@ impl Engine {
         let selections = choices(req, &options)?;
         let original = snapshot.intake(req.parsed_request.clone());
         let mut task = Task {workspace_id:p.workspace,..Default::default()};
+        task.connected_lookup_required=crate::parser::connected_planning::needs_native_lookup(&catalog,&selections);
         let prepared = crate::parser::connected_planning::compile_selected(&req.question, &task, &catalog, &original, &selections, &options)?;
         task.connected_selection = Some(ConnectedSelection {question:req.question.clone(),original_intake:original,
             search_id:req.search_id.clone(),selections,options});

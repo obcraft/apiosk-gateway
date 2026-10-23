@@ -769,7 +769,6 @@ async fn search_catalog_with_options(state: &ServerState, parsed_request: &Parse
                 brand_matches(&mut matches, sources);
             }
             describe_endpoints(&mut matches, &catalog, sources.as_ref().map(|sources| sources.as_slice()));
-            if connected { direct_source_inputs(&mut matches); }
             bind_inputs(&mut matches, parsed_request);
             let source_options = if connected {
                 describe_connected_options(&source_options, parsed_request, &catalog, sources.as_ref().map(|sources| sources.as_slice()))
@@ -859,16 +858,8 @@ fn describe_endpoints(matches: &mut Value, catalog: &crate::catalog::Catalog, so
     }
 }
 
-/// A manual connected basket quotes independent selected sources. Unlike the
-/// App's endpoint preparation flow, it cannot substitute a prerequisite lookup
-/// for the selected operation's required input. Show the actual missing field.
-fn direct_source_inputs(matches: &mut Value) {
-    for candidate in matches.as_array_mut().into_iter().flatten()
-        .flat_map(|found| found["apiosk"].as_array_mut().into_iter().flatten()) {
-        if candidate["endpoint"].is_object() { candidate["endpoint"]["lookup"] = Value::Null; }
-    }
-}
-
+// Connected choices retain the same catalog-validated lookup descriptor as
+// App endpoint review. Preparation quotes its native prerequisites together.
 /// Related signed choices need the same native input review as primary matches.
 /// Keep their identity/requirement intact; descriptor metadata is presentation
 /// only and is excluded by the typed signed snapshot serializer.
@@ -880,7 +871,6 @@ fn describe_connected_options(options: &[crate::ask_v2::source_options::SourceOp
         single.capabilities = vec![option.requirement.clone()];
         let mut matched = json!([{"slug":option.requirement.slug,"apiosk":[option.source]}]);
         describe_endpoints(&mut matched, catalog, sources);
-        direct_source_inputs(&mut matched);
         bind_inputs(&mut matched, &single);
         value["endpoint"] = matched[0]["apiosk"][0]["endpoint"].clone();
         value
@@ -1075,14 +1065,13 @@ mod tests {
         println!("Replayed {} saved live App records without network or purchases",reports.len());
     }
     #[test]
-    fn connected_source_picker_requires_native_lookup_inputs_without_changing_app_lookup_review() {
+    fn connected_source_picker_exposes_the_same_validated_lookup_as_app_review() {
         let catalog=crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/catalog.json")).unwrap());
         let capture:Value=serde_json::from_str(include_str!("../../tests/fixtures/connected-selection/fcca-free.json")).unwrap();
         let parsed:ParsedRequest=serde_json::from_value(capture["parsed_request"].clone()).unwrap();
         let mut app=capture["matches"].clone();
         describe_endpoints(&mut app,&catalog,None);
         let mut connected=app.clone();
-        direct_source_inputs(&mut connected);
         bind_inputs(&mut app,&parsed);bind_inputs(&mut connected,&parsed);
         let lookup=|matches:&Value| matches[0]["apiosk"].as_array().unwrap().iter()
             .find(|candidate|candidate["endpoint_id"]=="e7b4647f-f2aa-481e-b613-9ffbf4cad6fd").unwrap()["endpoint"].clone();
@@ -1090,10 +1079,7 @@ mod tests {
         assert_eq!(app["lookup"]["field"],"company.name");
         assert_eq!(app["input_values"]["company.name"],"Financial Crime Compliance Associates");
         assert_eq!(app["missing_inputs"],json!([]),"App keeps its reviewed prerequisite lookup flow");
-        assert!(connected["lookup"].is_null());
-        assert_eq!(connected["inputs"][0]["field"],"company_registry.openkvk_slug");
-        assert_eq!(connected["input_values"],json!({}));
-        assert_eq!(connected["missing_inputs"],json!(["company_registry.openkvk_slug"]),"connected basket asks for exactly the native input it accepts");
+        assert_eq!(connected,app,"connected review offers the same validated native lookup seed");
     }
 
     #[test]
@@ -1114,7 +1100,7 @@ mod tests {
             .all(|candidate| candidate.source_slug.as_deref()==Some("apimarket-magicapi-crunchbase-bbcca0a6")), "actual executable primary match was only Crunchbase");
         let options=crate::ask_v2::source_options::connected_options(&parsed,&matches,&catalog);
         let exposed=describe_connected_options(&options,&parsed,&catalog,None);
-        assert!(exposed.as_array().unwrap().iter().all(|option| option["endpoint"]["inputs"].is_array() && option["endpoint"]["lookup"].is_null()));
+        assert!(exposed.as_array().unwrap().iter().all(|option| option["endpoint"]["inputs"].is_array()));
         for (endpoint, capability) in [
             ("b050c654-284a-49e8-a7ca-0bfca565816e","company.registry-profile"),
             ("46e9d53a-1942-442a-a310-5e1a6b7f8297","company_registry.search"),

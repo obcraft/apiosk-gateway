@@ -19,6 +19,12 @@ pub(super) struct ExplicitValues {
     pub values: BTreeMap<(String, String), Value>,
 }
 
+pub(crate) fn needs_native_lookup(catalog:&Catalog,selections:&[SelectedSource])->bool {
+    selections.iter().any(|selected|crate::engine::Engine::endpoint_service(catalog,selected.endpoint_id,Some(&selected.capability)).ok()
+        .and_then(|service|crate::engine::Engine::endpoint_lookup(catalog,service))
+        .is_some_and(|(seed,resolves)|selected.input.contains_key(seed)&&resolves.iter().any(|field|!selected.input.contains_key(field))))
+}
+
 // Preserve every unrelated original criterion. Replace only aliases that are
 // demonstrably bound to this exact reviewed field, then prove the new binding.
 fn overlay(subject: &mut Subject, field: &str, schema: &Value, value: &Value) -> Result<()> {
@@ -59,8 +65,13 @@ fn identity_verified_contribution(
     let target = input_values::documented_literal(identity, identity_schema, subject)?;
     catalog_core::facts::schema::validate(identity_schema, &target).ok()?;
     let target_text = literal(&target).filter(|text| !text.trim().is_empty())?;
-    let fields: Vec<_> = service.contract.requires.iter().filter(|input| service.contract.input_map.contains_key(&input.fact_type))
+    let mut fields: Vec<_> = service.contract.requires.iter().filter(|input| service.contract.input_map.contains_key(&input.fact_type))
         .filter_map(|input| catalog.vocabulary.get(&input.fact_type).map(|fact| (input.fact_type.as_str(), &fact.value_schema))).collect();
+    if task.connected_lookup_required {
+        if let Some((seed, _)) = crate::engine::Engine::endpoint_lookup(catalog, service) {
+            if let Some(fact) = catalog.vocabulary.get(seed) { fields.push((seed, &fact.value_schema)); }
+        }
+    }
     let binds = |field: &str, schema: &Value, isolated: &Subject| input_values::documented_literal(field, schema, isolated)
         .and_then(|value| literal(&value)).is_some_and(|value| !value.trim().is_empty());
     let mut projected = subject.clone();
@@ -126,8 +137,10 @@ pub(crate) fn compile_selected(
         let subject = scoped.parsed_request.subjects.iter_mut().find(|subject| subject.id == selected.subject_id)
             .context("Selected source belongs to an unknown subject")?;
         ensure!(selected.input.len() <= 16, "Too many values for one source");
+        let lookup = crate::engine::Engine::endpoint_lookup(catalog, service);
         for (field, value) in &selected.input {
-            ensure!(service.contract.input_map.contains_key(field) && service.contract.requires.iter().any(|input| input.fact_type == *field), "Selected source does not accept this input");
+            ensure!((service.contract.input_map.contains_key(field) && service.contract.requires.iter().any(|input| input.fact_type == *field))
+                || lookup.as_ref().is_some_and(|(seed,_)|field==seed), "Selected source does not accept this input");
             let text = literal(value).filter(|text| !text.trim().is_empty() && text.chars().count() <= 500)
                 .context("Source input must be a short literal value")?;
             characters += text.chars().count(); ensure!(characters <= 4000, "Selected source values are too long");
@@ -139,6 +152,9 @@ pub(crate) fn compile_selected(
         }
         selected_options.push((selected, option, service));
     }
+    let mut lookup_task=task.clone();
+    lookup_task.connected_lookup_required=needs_native_lookup(catalog,selections);
+    let task=&lookup_task;
     // Pin all original matching alternatives to the person's choices. Empty
     // matches remain empty; they become disclosed gaps rather than new roots.
     for (index, cap) in scoped.parsed_request.capabilities.iter().enumerate() {
@@ -254,13 +270,32 @@ pub(crate) fn compile_selected(
     preview.record_turn(question, None);
     let mut bound = reply.intent.clone().unwrap(); crate::engine::bind_subjects(&mut preview, catalog, &mut bound)?;
     let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &preview, &bound) else { anyhow::bail!("The selected sources are not ready to price"); };
+    if preview.connected_lookup_required {
+        ensure!(plan.steps.iter().all(|step|selections.iter().any(|selected|
+            Some(step.entity_ref)==bound.subjects[subject_indices[&selected.subject_id]].entity_ref
+                && (step.service.endpoint_id==selected.endpoint_id&&step.service.contract.capability_slug==selected.capability
+                    || needs_native_lookup(catalog,std::slice::from_ref(selected))&&catalog.services.iter().any(|root|
+                        root.endpoint_id==selected.endpoint_id&&root.contract.capability_slug==selected.capability&&root.api_slug==step.service.api_slug)))),
+            "Lookup prerequisites must belong to the selected source and subject");
+    }
     let mut physical_calls = BTreeSet::new();
     for selected in selections {
         let entity = bound.subjects[subject_indices[&selected.subject_id]].entity_ref;
         let step = plan.steps.iter().find(|step| step.service.endpoint_id == selected.endpoint_id
             && step.service.contract.capability_slug == selected.capability && Some(step.entity_ref) == entity)
             .context("A selected source was omitted from the combined price")?;
-        let input = step.service.inputs(&preview, step.entity_ref, &catalog.vocabulary)?;
+        let input = match step.service.inputs(&preview, step.entity_ref, &catalog.vocabulary) {
+            Ok(input)=>input,
+            Err(error) if preview.connected_lookup_required && !plan.independent_calls => {
+                let preceding=plan.steps.iter().take_while(|prior|prior.key()!=step.key());
+                let outputs: BTreeSet<_>=preceding.filter(|prior|prior.entity_ref==step.entity_ref&&prior.service.api_slug==step.service.api_slug)
+                    .flat_map(|prior|prior.service.contract.output_map.produces.keys().cloned()).collect();
+                if !step.service.contract.requires.iter().filter(|required|!required.optional).all(|required|
+                    crate::catalog::fact_value(&preview.facts,step.entity_ref,&required.fact_type).ok().flatten().is_some()||outputs.contains(&required.fact_type)) {return Err(error);}
+                serde_json::json!({"lookup_inputs":selected.input,"subject_id":selected.subject_id})
+            },
+            Err(error)=>return Err(error),
+        };
         ensure!(physical_calls.insert((selected.endpoint_id, &selected.subject_id, serde_json::to_string(&input)?)),
             "Two selected source options make the same request. Select one of those options before reviewing the total price.");
     }
@@ -271,6 +306,28 @@ pub(crate) fn compile_selected(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn connected_choice_quotes_native_lookup_and_selected_root_together() {
+        let catalog=Catalog::build(serde_json::from_str(include_str!("../../../tests/fixtures/integration-catalog.json")).unwrap());
+        let question="Annual accounts for Coolblue";
+        let parsed_request=crate::capability_intake::normalize(&json!({"language":"en","subjects":[{"id":"s1","label":"Coolblue","type":"company","identifiers":{}}],
+            "capabilities":[{"slug":"company.accounts","name":"Annual accounts","description":"Company annual accounts","domain":"company","inputs":[],"outputs":["accounts"],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(),question,"fixture").unwrap();
+        let matches=crate::ask_v2::search::search(&parsed_request,&catalog);
+        let options=crate::ask_v2::source_options::connected_options(&parsed_request,&matches,&catalog);
+        let original=Intake {parsed_request,selected_capabilities:matches.iter().flat_map(|m|m.operations.iter().cloned()).collect(),matches,apiosk_sources_searched:1,catalog_version:catalog.version.clone()};
+        let option=options.iter().find(|o|o.source.capability.as_deref()==Some("company.accounts")).unwrap();
+        let selection=SelectedSource {endpoint_id:option.source.endpoint_id.as_deref().unwrap().parse().unwrap(),capability:"company.accounts".into(),subject_id:"s1".into(),input:BTreeMap::from([("company.name".into(),json!("Coolblue"))])};
+        let prepared=compile_selected(question,&Task::default(),&catalog,&original,&[selection],&options).unwrap();
+        let mut task=Task {capability_intake:Some(prepared.intake),connected_lookup_required:true,..Task::default()};
+        task.record_turn(question,None);
+        let mut intent=prepared.reply.intent.unwrap();crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("lookup plan required")};
+        assert!(!plan.independent_calls);
+        assert_eq!(plan.steps.iter().map(|step|step.service.contract.capability_slug.as_str()).collect::<Vec<_>>(),vec!["company.search","company.accounts"]);
+        assert_eq!(plan.cap_atomic,138);
+    }
 
     fn fixture(two: bool) -> (Catalog, String, Intake, Vec<SourceOption>) {
         let mut snapshot: crate::catalog::Snapshot = serde_json::from_str(include_str!("../../../tests/fixtures/connected-planning/catalog.json")).unwrap();
@@ -302,6 +359,10 @@ mod tests {
         let mut task = Task { capability_intake: Some(prepared.intake), ..Task::default() };
         task.record_turn(question, None);
         let mut intent = prepared.reply.intent.unwrap();
+        task.connected_lookup_required=intent.goals.iter().any(|goal|catalog.services.iter()
+            .find(|service|service.contract.capability_slug==goal.capability&&goal.constraints.get("endpoint_id").and_then(Value::as_str)==Some(service.endpoint_id.to_string().as_str()))
+            .and_then(|service|crate::engine::Engine::endpoint_lookup(catalog,service))
+            .is_some_and(|(seed,resolves)|intent.subjects[goal.subject].values.contains_key(seed)&&resolves.iter().any(|field|!intent.subjects[goal.subject].values.contains_key(field))));
         crate::engine::bind_subjects(&mut task, catalog, &mut intent).unwrap();
         let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(catalog, &task, &intent) else { panic!("expected priced selected plan") };
         plan.validate_independent_inputs(&task, &catalog.vocabulary).unwrap();
@@ -369,6 +430,16 @@ mod tests {
         choices.push(lookup);
         let error = compile_selected(&question, &Task::default(), &catalog, &intake, &choices, &options).err().unwrap().to_string();
         assert!(error.contains("Enter company_registry.openkvk_slug"), "{error}");
+        let mut by_name=choices.clone();
+        let service=catalog.services.iter().find(|service|service.endpoint_id==by_name[1].endpoint_id&&service.contract.capability_slug==by_name[1].capability).unwrap();
+        let descriptor=crate::server::ask_v2::endpoint_descriptor(&catalog,service,None);
+        assert_eq!(descriptor["lookup"]["field"],"company.name","only the catalog-advertised lookup may provide the missing native input");
+        by_name[1].input.insert(descriptor["lookup"]["field"].as_str().unwrap().into(),json!("Financial Crime Compliance Associates"));
+        let prepared=compile_selected(&question,&Task::default(),&catalog,&intake,&by_name,&options).unwrap();
+        assert!(prepared.coverage.limitations.iter().any(|notice| notice.contains("Verify")&&notice.contains("91251982")));
+        let (_,lookup_plan)=plan(prepared,&question,&catalog);
+        assert!(lookup_plan.steps.iter().any(|step|step.service.endpoint_id==by_name[1].endpoint_id));
+        assert!(lookup_plan.steps.len()>by_name.len(),"native name lookup is included in the reviewed price");
         // An explicitly entered fixture identifier, never inferred from the name.
         choices[1].input.insert("company_registry.openkvk_slug".into(), json!("fixture-source-record-slug"));
         let lookup_id = choices[1].endpoint_id;

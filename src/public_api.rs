@@ -38,9 +38,13 @@ use std::{
 use uuid::Uuid;
 
 mod discovery;
-pub use discovery::{ask, execute_selected};
+pub use discovery::{ask, execute_selected, search as search_again};
 mod connected_selection;
 pub use connected_selection::{prepare as prepare_sources, requote as requote_sources};
+mod connected_ask;
+pub use connected_ask::{research as research_sources, conversation as ask_conversation};
+mod connected_external;
+pub use connected_external::{source as external_source, prepare as external_prepare, status as external_status, authorize as external_authorize};
 
 const DEFAULT_WAIT_SECONDS: u64 = 25;
 const MAX_WAIT_SECONDS: u64 = 55;

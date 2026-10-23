@@ -140,6 +140,26 @@ impl Engine {
     /// that are still busy, are left out rather than reported. The tasks of a
     /// saved answer are queued here; the caller starts their workers.
     pub async fn ask_follow_up(&self, p: &Principal, request: Uuid, question: &str, task_refs: &[Uuid]) -> anyhow::Result<AskFollowUp> {
+        self.ask_follow_up_scoped(p,request,question,task_refs,None).await
+    }
+
+    pub(crate) async fn connected_ask_follow_up(&self,p:&Principal,request:Uuid,question:&str,task_refs:&[Uuid])->anyhow::Result<Response> {
+        anyhow::ensure!(p.connection.is_some(),"Connected follow-up requires a connection");
+        if let Some(response)=self.request_claim(p,request,&digest(&("connected-ask-conversation",p.connection,question,task_refs)),"discover").await? {return Ok(response);}
+        let result=async {
+            let routed=self.ask_follow_up_scoped(p,request,question,task_refs,p.connection).await?;
+            let mut response=Response::new(request,Status::Succeeded);
+            response.context_view["ask_conversation"]=match routed {
+                AskFollowUp::SavedAnswer(tasks)=>json!({"kind":"saved_answer","task_refs":tasks}),
+                AskFollowUp::Search=>json!({"kind":"search"}),
+                AskFollowUp::Clarification(message)=>json!({"kind":"clarification","message":message}),
+            };
+            Ok(response)
+        }.await;
+        Ok(self.complete(p,request,result).await)
+    }
+
+    async fn ask_follow_up_scoped(&self,p:&Principal,request:Uuid,question:&str,task_refs:&[Uuid],connection_scope:Option<Uuid>)->anyhow::Result<AskFollowUp> {
         let mut saved = Vec::new();
         for id in task_refs.iter().take(ASK_FOLLOW_UP_TASKS) {
             if saved.iter().any(|(saved, _, _)| saved == id) { continue; }
@@ -148,7 +168,7 @@ impl Engine {
                 Err(error) if matches!(error.downcast_ref::<crate::store::StoreAccessError>(), Some(crate::store::StoreAccessError::TaskUnavailable)) => continue,
                 Err(error) => return Err(error),
             };
-            if connection.is_some() || self.worker_active(*id).await? { continue; }
+            if connection != connection_scope || self.worker_active(*id).await? { continue; }
             self.prepare_conversation(p.owner, *id, &mut task).await?;
             if answerable(&task) { saved.push((*id, revision, task)); }
         }

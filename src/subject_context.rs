@@ -1,5 +1,6 @@
-//! Free, best-effort public web context. No paid APIs, models, executor,
-//! credentials or billing calls. Named subjects share the legacy company_context
+//! Best-effort public web context, free to the buyer. An optional SerpApi key
+//! pays search costs from the operator's account, never the buyer ledger.
+//! No models or executor calls. Named subjects share the legacy company_context
 //! wire format. Web excerpts never become registry or sanctions evidence.
 use crate::capability_intake::{ParsedRequest, Subject};
 use futures_util::{future::{join_all, BoxFuture}, stream::FuturesUnordered, FutureExt, StreamExt};
@@ -7,6 +8,7 @@ use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use std::{sync::OnceLock, time::Duration};
 use url::Url;
+mod serpapi;
 
 // Search, encyclopedia and supplied homepages start together. Every result is
 // published on arrival; the final snapshot still supports non-streaming clients.
@@ -28,12 +30,16 @@ pub(crate) async fn collect_with_updates(parsed: &ParsedRequest, update: impl Fn
     join_all(subjects.into_iter().enumerate().map(|(index, subject)| {
       let update = &update;
       async move {
-        let key = crate::state::digest(&(&subject.kind, subject.label.to_lowercase(), &subject.identifiers));
+        let key = context_cache_key(subject);
         let value = cached_context(key, fetch_with_updates(subject, &|value| update(index, value))).await;
         update(index, value.clone());
         value
       }
     })).await
+}
+
+fn context_cache_key(subject: &Subject) -> String {
+    crate::state::digest(&(serpapi::cache_partition(), &subject.kind, subject.label.to_lowercase(), &subject.identifiers))
 }
 
 async fn cached_context(key: String, fetch: impl std::future::Future<Output = Value>) -> Value {
@@ -162,6 +168,15 @@ async fn read_homepage(homepage: &Url, label: &str) -> Option<Value> {
 }
 
 async fn free_search(label: &str, query: &str, topic: bool) -> (Vec<Value>, &'static str, String) {
+    if serpapi::enabled() {
+        match serpapi::search(label, query, topic).await {
+            Ok(pages) if !pages.is_empty() => return (pages, "serpapi", search_url(query).to_string()),
+            Ok(_) => tracing::info!(provider = "serpapi", reason = "no_usable_results", "subject web search returned no usable pages"),
+            // Never log the request URL or upstream error: api_key is a query
+            // parameter. Failure falls back to the existing public searches.
+            Err(reason) => tracing::info!(provider = "serpapi", reason, "subject web search unavailable; trying public search"),
+        }
+    }
     let service = crate::link_preview::Service::shared();
     let google = search_url(query);
     let google_read = async {
@@ -720,7 +735,7 @@ mod tests {
     async fn cached_subject_context_is_reused_without_a_second_request() {
         let parsed: ParsedRequest = serde_json::from_value(json!({"language":"en","subjects":[{"id":"1","type":"company","label":"Cached company fixture","identifiers":{}}],"capabilities":[],"deliverable":{"format":"chat","operations":[]},"meta":{"model":"fixture","parsed_at":"now","text_sha256":"hash"}})).unwrap();
         let subject = &parsed.subjects[0];
-        let key = crate::state::digest(&(&subject.kind, subject.label.to_lowercase(), &subject.identifiers));
+        let key = context_cache_key(subject);
         let saved = json!({"company":subject.label,"search_status":"completed","pages":[{"title":"Previously saved result"}]});
         cache().insert(key, saved.clone()).await;
         assert_eq!(collect(&parsed).await, vec![saved]);

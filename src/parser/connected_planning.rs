@@ -14,6 +14,7 @@ pub use scope::{preserve_scope, scope_feedback, scope_feedback_for, scope_requir
 mod selected;
 mod selected_collection;
 pub(crate) use selected::compile_selected;
+pub(crate) use selected::needs_native_lookup;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Gap {

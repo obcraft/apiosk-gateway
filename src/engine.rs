@@ -253,6 +253,26 @@ impl Engine {
         telemetry::question(&result);
         Ok(self.complete(p, req.request_id, result).await)
     }
+    /// MCP adopts its signed search through the same compiler as the Ask page.
+    /// The connection is part of the receipt and the saved task always requires
+    /// manual approval. No parser, auto-approval or source execution runs here.
+    pub(crate) async fn discover_connected_searched(&self, p:&Principal, req:DiscoverRequest, intake:crate::capability_intake::Intake,
+        catalog:std::sync::Arc<Catalog>, search_id:&str, context:crate::ask_v2::source_selection::Context)->anyhow::Result<Response> {
+        anyhow::ensure!(p.connection.is_some() && req.state.is_none() && intake.catalog_version == catalog.version, "Research requires a current connected search");
+        let hash=digest(&("connected-ask-research",p.connection,&req,&context.original_intake.parsed_request,search_id));
+        if let Some(response)=self.request_claim(p,req.request_id,&hash,"discover").await? {return Ok(response);}
+        telemetry::set_segment(telemetry::Segment::Question);
+        let result=self.intake_question(p,&req,true,None,Some((&intake,catalog,Some(&context)))).await;
+        telemetry::question(&result);
+        Ok(self.complete(p,req.request_id,result).await)
+    }
+    pub(crate) async fn existing_connected_research(&self,p:&Principal,req:&DiscoverRequest,parsed:&crate::capability_intake::ParsedRequest,search_id:&str)->anyhow::Result<Option<Response>> {
+        self.store.check_workspace(p).await?;
+        let hash=digest(&("connected-ask-research",p.connection,req,parsed,search_id));
+        let scoped_hash=p.workspace.map(|workspace|digest(&(workspace,&hash)));
+        Ok(self.store.existing_claim(p.owner,req.request_id,scoped_hash.as_deref().unwrap_or(&hash)).await?
+            .and_then(|claim|Self::claimed_response(req.request_id,claim)))
+    }
     /// The App chat intake (`app_chat`: capability intake, endpoint
     /// selections, conversational workflows, the invoice upload prompt). No
     /// route serves it since `/v2/chat` answers 410 `ask_moved`; the database
@@ -490,7 +510,7 @@ impl Engine {
             task.connected_coverage.as_ref().map(|coverage| coverage.original_intake.clone())
                 .or_else(|| task.capability_intake.clone())
         };
-        if !app_chat { task.connected_coverage = None; task.connected_selection = None; task.manual_approval_required = false; }
+        if !app_chat { task.connected_coverage = None; task.connected_selection = None; task.manual_approval_required = false; task.connected_lookup_required = false; }
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract,
@@ -498,6 +518,7 @@ impl Engine {
         // never interpreted, so it is not parsed either (a parse outage must
         // not stop a workflow that needs no model before its quote).
         task.source_selection=displayed_search.as_ref().and_then(|(_,_,context)|*context).cloned();
+        if has_displayed_search && p.connection.is_some() { task.manual_approval_required = true; }
         task.capability_intake = if let Some((intake, _,_)) = displayed_search {
             // A later English rendering or a different server must not replace
             // the candidate set the person actually reviewed.

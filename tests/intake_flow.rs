@@ -29,6 +29,10 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 
 #[path = "intake_flow/connected_sources.rs"]
 mod connected_sources;
+#[path = "intake_flow/connected_ask.rs"]
+mod connected_ask;
+#[path = "intake_flow/connected_external.rs"]
+mod connected_external;
 
 /// Every interpretation the model was asked for, as the user JSON it received.
 #[derive(Default)]
@@ -39,6 +43,7 @@ struct Model {
     ask_v2_replies: Mutex<std::collections::VecDeque<Value>>,
     /// Requests to the conversation-reply model (OpenRouter in production).
     replies: Mutex<Vec<Value>>,
+    conversation_routes: Mutex<std::collections::VecDeque<Value>>,
     chats: Mutex<Vec<Value>>,
     workflow_chats: Mutex<Vec<Value>>,
     stages: Mutex<Vec<&'static str>>,
@@ -105,7 +110,8 @@ async fn interpret(State(model): State<Arc<Model>>, Json(body): Json<Value>) -> 
     model.model_http_requests.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("saved_outputs").is_some() {
-        return Json(json!({"choices":[{"message":{"content":"{\"kind\":\"continue_request\"}"}}]}));
+        let route=model.conversation_routes.lock().unwrap().pop_front().unwrap_or_else(||json!({"kind":"continue_request"}));
+        return Json(json!({"choices":[{"message":{"content":route.to_string()}}]}));
     }
     if let Some(sources) = input["sources"].as_array().filter(|_| input.get("answer_operations").is_some()) {
         model.stages.lock().unwrap().push("analysis");
