@@ -1,7 +1,7 @@
 // Read-only production checks. Optional REQUEST_FLOW_EVENTS_PATH is a
 // short-lived capability returned for your own task; never log its signature.
 import assert from 'node:assert/strict';
-import { APIO_V2_CARD_URI } from '../../mcp/src/gateway-v2-card.mjs';
+import { APIO_V2_CARD_URI, APIO_V2_CHATGPT_CARD_URI } from '../../mcp/src/gateway-v2-card.mjs';
 const gateway = 'https://apiosk-gateway-v2.fly.dev';
 const checked = {};
 const get = (url, options = {}) => fetch(url, { ...options, signal: AbortSignal.timeout(15_000) });
@@ -10,12 +10,28 @@ assert.equal(health.status, 200);
 assert.equal((await health.json()).payment_executor, 'ready');
 assert.equal((await get(`${gateway}/v2/tasks`)).status, 401);
 checked.gateway = 'ready; task reads require authentication';
-const card = await (await get('https://mcp.apiosk.com/.well-known/mcp/server-card.json')).json();
-assert.deepEqual(card.tools.map(t => t.name).sort(), ['apiosk_approve', 'apiosk_discover', 'apiosk_execute', 'apiosk_prepare', 'apiosk_search', 'apiosk_sources', 'apiosk_status']);
-assert.ok(card.tools.filter(t => t.name !== 'apiosk_approve').every(t => t._meta.ui.resourceUri === APIO_V2_CARD_URI));
-assert.deepEqual(card.tools.find(t => t.name === 'apiosk_approve')._meta.ui.visibility, ['app']);
+const cardResponse = await get(`https://mcp.apiosk.com/.well-known/mcp/server-card.json?release_check=${Date.now()}`);
+assert.equal(cardResponse.status, 200);
+const card = await cardResponse.json();
+const modelTools = ['apiosk_ask', 'apiosk_discover', 'apiosk_execute', 'apiosk_external', 'apiosk_sources', 'apiosk_status'];
+const privateTools = ['apiosk_approve', 'apiosk_external_approve', 'apiosk_requote'];
+assert.deepEqual(card.tools.map(t => t.name).sort(), [...modelTools, ...privateTools].sort());
+for (const tool of card.tools) {
+  const meta = tool._meta;
+  if (privateTools.includes(tool.name)) {
+    assert.deepEqual(meta.ui.visibility, ['app'], `${tool.name} must stay card-only`);
+    assert.equal(meta['openai/visibility'], 'private');
+    assert.equal(meta.ui.resourceUri, undefined);
+    assert.equal(meta['openai/outputTemplate'], undefined);
+  } else {
+    assert.deepEqual(meta.ui.visibility, ['model', 'app']);
+    assert.equal(meta['openai/visibility'], 'public');
+    assert.equal(meta.ui.resourceUri, APIO_V2_CARD_URI);
+    assert.equal(meta['openai/outputTemplate'], APIO_V2_CHATGPT_CARD_URI);
+  }
+}
 assert.equal(card.authentication.required, true);
-checked.mcp = `seven tools; ${APIO_V2_CARD_URI}; app-only approval`;
+checked.mcp = `nine tools: six model-visible, three card-only; ${APIO_V2_CARD_URI}; ${APIO_V2_CHATGPT_CARD_URI}`;
 const origin = 'https://embedded-host.example';
 const preflight = await get(`${gateway}/v2/approve`, { method: 'OPTIONS', headers: { origin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'authorization,content-type' } });
 assert.notEqual(preflight.headers.get('access-control-allow-origin'), origin);
