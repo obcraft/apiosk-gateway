@@ -148,6 +148,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/execute/:source/:operation", post(crate::public_api::execute))
         .route("/v2/ask", post(crate::public_api::ask))
         .route("/v2/ask/prepare", post(crate::public_api::prepare_sources))
+        .route("/v2/ask/source/prepare", post(crate::public_api::prepare_source))
         .route("/v2/ask/research", post(crate::public_api::research_sources).layer(DefaultBodyLimit::max(512 * 1024)))
         .route("/v2/ask/search", post(crate::public_api::search_again).layer(DefaultBodyLimit::max(512 * 1024)))
         .route("/v2/ask/conversation", post(crate::public_api::ask_conversation).layer(DefaultBodyLimit::max(128 * 1024)))

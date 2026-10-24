@@ -41,6 +41,8 @@ mod discovery;
 pub use discovery::{ask, execute_selected, search as search_again};
 mod connected_selection;
 pub use connected_selection::{prepare as prepare_sources, requote as requote_sources};
+mod connected_endpoint;
+pub use connected_endpoint::prepare as prepare_source;
 mod connected_ask;
 pub use connected_ask::{research as research_sources, conversation as ask_conversation};
 mod connected_external;
