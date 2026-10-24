@@ -249,7 +249,7 @@ impl Engine {
             return Ok(response);
         }
         telemetry::set_segment(telemetry::Segment::Question);
-        let result = self.intake_question(p, &req, true, None, Some((&intake, catalog,context.as_ref()))).await;
+        let result = self.intake_question(p, &req, true, None, Some((&intake, catalog,context.as_ref())), false).await;
         telemetry::question(&result);
         Ok(self.complete(p, req.request_id, result).await)
     }
@@ -262,7 +262,7 @@ impl Engine {
         let hash=digest(&("connected-ask-research",p.connection,&req,&context.original_intake.parsed_request,search_id));
         if let Some(response)=self.request_claim(p,req.request_id,&hash,"discover").await? {return Ok(response);}
         telemetry::set_segment(telemetry::Segment::Question);
-        let result=self.intake_question(p,&req,true,None,Some((&intake,catalog,Some(&context)))).await;
+        let result=self.intake_question(p,&req,true,None,Some((&intake,catalog,Some(&context))),false).await;
         telemetry::question(&result);
         Ok(self.complete(p,req.request_id,result).await)
     }
@@ -393,8 +393,15 @@ impl Engine {
         app_chat: bool,
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
     ) -> anyhow::Result<Response> {
+        self.intake_with_approval_policy(p, req, app_chat, forced, false).await
+    }
+    async fn intake_with_approval_policy(
+        &self, p: &Principal, req: &DiscoverRequest, app_chat: bool,
+        forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
+        manual_approval_required: bool,
+    ) -> anyhow::Result<Response> {
         telemetry::set_segment(telemetry::Segment::Question);
-        let result = self.intake_question(p, req, app_chat, forced, None).await;
+        let result = self.intake_question(p, req, app_chat, forced, None, manual_approval_required).await;
         telemetry::question(&result);
         result
     }
@@ -407,6 +414,7 @@ impl Engine {
         app_chat: bool,
         forced: Option<(crate::parser::Intent, Option<crate::workflow_catalog::WorkflowContext>)>,
         displayed_search: Option<(&crate::capability_intake::Intake, std::sync::Arc<Catalog>,Option<&crate::ask_v2::source_selection::Context>)>,
+        manual_approval_required: bool,
     ) -> anyhow::Result<Response> {
         // Explicit named-workflow entry points share the temporary feature gate.
         // Normal Ask discovery and recurring execution do not select this mode.
@@ -416,6 +424,8 @@ impl Engine {
         // A direct call names its source and operation; it is priced as asked
         // or refused, never re-planned by the model.
         let direct = forced.as_ref().is_some_and(|(_, workflow)| workflow.is_none());
+        anyhow::ensure!(!manual_approval_required || (p.connection.is_some() && direct && !app_chat && req.state.is_none()),
+            "Manual endpoint policy applies only to new connected endpoint requests");
         let has_displayed_search = displayed_search.is_some();
         let mut workflow = forced.as_ref().and_then(|(_, workflow)| workflow.clone());
         let mut forced = forced.map(|(intent, _)| intent);
@@ -446,7 +456,7 @@ impl Engine {
             }
             state.state_ref
         } else {
-            self.store.create_scoped(p.owner, p.connection, p.workspace).await?
+            self.store.create_scoped_with_approval_policy(p.owner, p.connection, p.workspace, manual_approval_required).await?
         };
         // Best-effort: a lost response can still be recovered by task id even
         // when `finish` never runs (#11). Never blocks the answer.
@@ -510,7 +520,9 @@ impl Engine {
             task.connected_coverage.as_ref().map(|coverage| coverage.original_intake.clone())
                 .or_else(|| task.capability_intake.clone())
         };
-        if !app_chat { task.connected_coverage = None; task.connected_selection = None; task.manual_approval_required = false; task.connected_lookup_required = false; }
+        // A task prepared for manual review keeps that policy when inputs or
+        // the question change; a follow-up cannot enable a standing mandate.
+        if !app_chat { task.connected_coverage = None; task.connected_selection = None; task.manual_approval_required |= manual_approval_required; task.connected_lookup_required = false; }
         // All Ask submissions, including follow-ups and workflow input, cross
         // this boundary before source selection or planning. Direct API calls
         // already name an exact operation and keep their separate contract,

@@ -31,6 +31,8 @@ const NAMELESS: &str = "Wat staat er in de jaarrekening van Coolblue?";
 mod connected_sources;
 #[path = "intake_flow/connected_endpoint.rs"]
 mod connected_endpoint;
+#[path = "intake_flow/ask_page_discovery.rs"]
+mod ask_page_discovery;
 #[path = "intake_flow/connected_ask.rs"]
 mod connected_ask;
 #[path = "intake_flow/connected_external.rs"]

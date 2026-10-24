@@ -127,6 +127,11 @@ impl Store {
         self.create_scoped(owner, connection, None).await
     }
     pub async fn create_scoped(&self, owner: Uuid, connection: Option<Uuid>, workspace: Option<Uuid>) -> anyhow::Result<Uuid> {
+        self.create_scoped_with_approval_policy(owner, connection, workspace, false).await
+    }
+    /// A manual source quote is never persisted first as an automatically
+    /// approvable task, including when preparation is interrupted before save.
+    pub(crate) async fn create_scoped_with_approval_policy(&self, owner: Uuid, connection: Option<Uuid>, workspace: Option<Uuid>, manual_approval_required: bool) -> anyhow::Result<Uuid> {
         let _db = crate::telemetry::db("tasks.create");
         let id = Uuid::new_v4();
         sqlx::query(
@@ -135,7 +140,7 @@ impl Store {
         .bind(id)
         .bind(owner)
         .bind(connection)
-        .bind(serde_json::to_value(Task { workspace_id: workspace, ..Task::default() })?)
+        .bind(serde_json::to_value(Task { workspace_id: workspace, manual_approval_required, ..Task::default() })?)
         .execute(&self.pool)
         .await?;
         Ok(id)

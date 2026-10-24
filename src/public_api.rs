@@ -39,6 +39,8 @@ use uuid::Uuid;
 
 mod discovery;
 pub use discovery::{ask, execute_selected, search as search_again};
+mod ask_page_discovery;
+pub use ask_page_discovery::{discover as ask_page, refresh as ask_page_search};
 mod connected_selection;
 pub use connected_selection::{prepare as prepare_sources, requote as requote_sources};
 mod connected_endpoint;

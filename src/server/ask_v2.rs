@@ -707,7 +707,7 @@ pub(super) async fn search(
 /// A directory match alone never releases the complete-plan UI. Compile and
 /// resolve every requested field and literal filter before it can proceed
 /// while optional external discovery is still running. No model or DB writes.
-fn complete_local_plan(catalog: &crate::catalog::Catalog, question: &str, parsed: &ParsedRequest, search: &Value) -> bool {
+pub(crate) fn complete_local_plan(catalog: &crate::catalog::Catalog, question: &str, parsed: &ParsedRequest, search: &Value) -> bool {
     let checked = ResearchRequest { request_id: Uuid::new_v4(), question: question.into(), parsed_request: parsed.clone(),
         search_id: None, discovery_id: None, selection: None };
     if checked.normalized().is_err() { return false; }

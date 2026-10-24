@@ -24,13 +24,34 @@ impl Engine {
         &self, p: &Principal, request_id: Uuid, endpoint_id: Uuid,
         capability: Option<&str>, input: &BTreeMap<String, Value>, question: Option<&str>,
     ) -> anyhow::Result<Response> {
+        self.prepare_endpoint_answer_with_policy(p, request_id, endpoint_id, capability, input, question, false).await
+    }
+
+    /// The connected source picker uses the same endpoint quote compiler, but
+    /// its task and request receipt require manual approval from the outset.
+    pub(crate) async fn prepare_manual_endpoint_answer(
+        &self, p: &Principal, request_id: Uuid, endpoint_id: Uuid,
+        capability: Option<&str>, input: &BTreeMap<String, Value>, question: Option<&str>,
+    ) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.connection.is_some(), "Manual source preparation requires a connected caller");
+        self.prepare_endpoint_answer_with_policy(p, request_id, endpoint_id, capability, input, question, true).await
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn prepare_endpoint_answer_with_policy(
+        &self, p: &Principal, request_id: Uuid, endpoint_id: Uuid,
+        capability: Option<&str>, input: &BTreeMap<String, Value>, question: Option<&str>, manual: bool,
+    ) -> anyhow::Result<Response> {
         anyhow::ensure!(question.is_none_or(|q| !q.trim().is_empty() && q.len() <= 8_000), "invalid question");
         let hash = match question {
             Some(question) => digest(&("ask-v2-prepare-answer", p.connection, endpoint_id, capability, input, question)),
             None => digest(&("ask-v2-prepare", p.connection, endpoint_id, capability, input)),
         };
+        // Never adopt an earlier App/direct receipt that allowed a standing
+        // approval rule. Existing App hashes and behavior remain unchanged.
+        let hash = if manual { digest(&("connected-manual-endpoint", hash)) } else { hash };
         if let Some(response) = self.request_claim(
-            p, request_id, &hash, "endpoint-prepare",
+            p, request_id, &hash, if manual { "manual-endpoint-prepare" } else { "endpoint-prepare" },
         ).await? {
             return Ok(response);
         }
@@ -51,7 +72,7 @@ impl Engine {
                 state: None,
                 context_delta: ContextDelta::default(),
             };
-            self.intake(p, &request, false, Some((intent, None))).await
+            self.intake_with_approval_policy(p, &request, false, Some((intent, None)), manual).await
         }.await;
         Ok(self.complete(p, request_id, result).await)
     }

@@ -41,19 +41,8 @@ pub async fn prepare(State(state): State<ServerState>, headers: HeaderMap, body:
         let response = crate::telemetry::spawn(async move {
             let _permit = permit;
             let person = &ctx.principal;
-            let response = engine.prepare_endpoint_answer(person, req.request_id, req.endpoint_id,
-                req.capability.as_deref(), &req.input, req.question.as_deref()).await?;
-            let Some(envelope) = &response.state else { return Ok(response); };
-            let id = envelope.state_ref;
-            let (revision, mut task, connection) = engine.store.load_scoped(person, id).await?;
-            anyhow::ensure!(connection == person.connection, "The quote belongs to another connection");
-            if !task.manual_approval_required {
-                task.manual_approval_required = true;
-                engine.store.save(person.owner, id, revision, &task).await?;
-            }
-            // A receipt replay may contain the earlier revision. Return a view
-            // of the durable policy, including after a retry or process restart.
-            engine.view(person, id, req.request_id, None).await
+            engine.prepare_manual_endpoint_answer(person, req.request_id, req.endpoint_id,
+                req.capability.as_deref(), &req.input, req.question.as_deref()).await
         }).await.map_err(|_| problem(StatusCode::SERVICE_UNAVAILABLE, "prepare_unavailable",
             "The quote could not be confirmed. Retry the same request to recover it."))?
             .map_err(|error| unavailable("manual source preparation", &error))?;
