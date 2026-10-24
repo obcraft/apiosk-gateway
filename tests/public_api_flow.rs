@@ -224,6 +224,20 @@ async fn organisation_key_public_api() {
     assert_eq!(workspace.status().as_u16(), 400);
     println!("PASS auth: unknown, expired, missing scope, protocol routes and workspace header refused");
 
+    // Display context uses the authenticated account's existing preference,
+    // including for a source-read-only key, without planning or execution.
+    let (status, body) = api.get("/v2/display-context", "apk_org_live_unknown").await;
+    assert_eq!((status, body["error"]["code"].as_str()), (401, Some("invalid_api_key")));
+    let expected_display = shared.store.money_display(ACCOUNT.parse().unwrap()).await;
+    for key in [KEY, READ_ONLY] {
+        let (status, body) = api.get("/v2/display-context", key).await;
+        assert_eq!(status, 200, "{body}");
+        assert_eq!(body, json!({"money_display": expected_display}));
+    }
+    assert_eq!(fixture.provider.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.plans.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.parses.load(Ordering::SeqCst), 0);
+
     // ── Discovery ─────────────────────────────────────────────────────────
     let (status, body) = api.get("/v2/sources", READ_ONLY).await;
     assert_eq!(status, 200, "{body}");

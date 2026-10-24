@@ -120,6 +120,18 @@ fn parse<T: serde::de::DeserializeOwned>(body: &[u8]) -> Result<T, HttpResponse>
 pub(crate) fn money(atomic: i64) -> Value {
     json!({ "amount": atomic as f64 / 1_000_000.0, "amount_micro_usd": atomic.to_string(), "currency": "USD" })
 }
+
+/// The same account display preference and published rate used by the App.
+/// This context changes presentation only; quotes and authorization stay USD.
+pub async fn display_context(State(state): State<ServerState>, headers: HeaderMap) -> HttpResponse {
+    let ctx = match context(&state, &headers, &["sources:read"]).await {
+        Ok(ctx) => ctx,
+        Err(response) => return response,
+    };
+    let money_display = state.engine.store.money_display(ctx.principal.owner).await;
+    Json(json!({ "money_display": money_display })).into_response()
+}
+
 fn micro(value: &Value) -> Option<i64> {
     value.as_str().and_then(|s| s.parse().ok()).or_else(|| value.as_i64())
 }

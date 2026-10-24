@@ -139,6 +139,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:id/analysis-upgrade", post(analysis_upgrade))
         .route("/v2/tasks/:id/source-selection", post(source_selection))
         // The public API: every credential, one execution and billing path.
+        .route("/v2/display-context", get(crate::public_api::display_context))
         .route("/v2/sources/:source_id", get(crate::public_api::source))
         .route("/v2/sources/:source_id/run", post(crate::public_api::run_source))
         // The shortest paid call: the key pays, the path names the source and
@@ -916,6 +917,40 @@ async fn source_selection(State(state):State<ServerState>,headers:HeaderMap,Path
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn display_context_is_read_only_and_requires_public_api_authentication() {
+        use axum::body::Body;
+        use tower::ServiceExt;
+
+        let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://unused@127.0.0.1:1/unused").unwrap();
+        let http = reqwest::Client::new();
+        let store = crate::store::Store { pool: pool.clone() };
+        let engine = Arc::new(Engine {
+            store: store.clone(),
+            catalog: crate::catalog::CatalogCache::new(pool.clone()),
+            parser: crate::parser::Parser::new(http.clone(), "http://127.0.0.1:1/chat".into(), "unused".into(), "unused".into()),
+            signer: crate::state::Signer::new(vec![7; 32]).unwrap(),
+            executor: crate::execution::Executor { store, http: http.clone(), supabase_url: "http://127.0.0.1:1".into(), enabled: false },
+            app_url: "http://localhost:5173".into(),
+        });
+        let app = router(ServerState {
+            engine,
+            auth: Arc::new(Auth { pool, http, supabase_url: "http://127.0.0.1:1".into(), publishable_key: "unused".into() }),
+            permits: Arc::new(Semaphore::new(4)),
+            executor_compat: None,
+        }, "http://localhost:5173").unwrap();
+
+        let response = app.clone().oneshot(axum::http::Request::get("/v2/display-context").body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let bytes = axum::body::to_bytes(response.into_body(), 4096).await.unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(body["error"]["code"], "invalid_api_key");
+        assert!(body.get("money_display").is_none(), "unauthenticated callers cannot read account preferences");
+
+        let response = app.oneshot(axum::http::Request::post("/v2/display-context").body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
+    }
 
     #[test]
     fn task_access_and_dependency_failures_have_different_http_statuses() {
