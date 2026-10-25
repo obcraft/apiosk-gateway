@@ -72,6 +72,8 @@ pub mod replay;
 
 pub mod recurring;
 pub mod company_checks;
+pub mod monitoring;
+pub mod monitoring_search;
 
 #[cfg(test)]
 mod additional_examples_tests;

@@ -387,16 +387,22 @@ async fn execute(
         let refused_without_charge = charge.is_none() && crate::billing::refused_before_reservation(&body);
         let final_state = match charge {
             Some((ref status, amount, charge)) if status == "charged" => {
-                let saved:Option<Value>=sqlx::query_scalar("select output from call_runs where charge_id=$1 and user_id=$2 and status='succeeded' and output_truncated is not true order by started_at desc limit 1").bind(charge).bind(p.owner).fetch_optional(&e.store.pool).await?;
+                let saved:Option<(Value,DateTime<Utc>)>=sqlx::query_as("select output,started_at from call_runs where charge_id=$1 and user_id=$2 and status='succeeded' and output_truncated is not true order by started_at desc limit 1").bind(charge).bind(p.owner).fetch_optional(&e.store.pool).await?;
+                let retrieved_at=saved.as_ref().map(|(_,at)|*at).unwrap_or_else(Utc::now);
                 let data = if body["ok"] == true && body["result_truncated"] != true {
                     body.get("result").cloned()
                 } else {
                     None
                 }
-                .or(saved);
+                .or_else(||saved.map(|(data,_)|data));
                 if let Some(data) = data {
                     let source = &sources[call.get::<i32, _>("ordinal") as usize].selection;
                     body = json!({"call_id":id,"result_ref":id,"document":{"data":data,"source":{"name":source["name"],"api_slug":source["api_slug"],"endpoint_id":source["candidate_id"],"url":sources[call.get::<i32,_>("ordinal") as usize].service.as_ref().and_then(|s|s.source_url.as_deref()).map(Value::from).unwrap_or_else(||source["resource_url"].clone())},"retrieved_at":Utc::now()},"charged_micro_usd":amount.to_string()});
+                    if workflow.processing == crate::monitoring::VERSION {
+                        body["document"]["source"]["capability"]=source["capability"].clone();
+                        body["document"]["retrieved_at"]=json!(retrieved_at);
+                        if source["capability"]=="company.branch-profile" {body["document"]["source"]["establishment_number"]=source["metadata"]["inputs"]["vestigingsnummer"].clone();}
+                    }
                     if let Some(notice) = sources[call.get::<i32, _>("ordinal") as usize]
                         .service
                         .as_ref()
@@ -436,10 +442,25 @@ async fn execute(
             break;
         }
     }
-    let execution_error = if failed || unresolved {
+    let mut execution_error = if failed || unresolved {
         results.last().and_then(|result| result["message"].as_str()).map(str::to_owned)
     } else { None };
-    let mut result = processing::result(&question, scheduled, results, &workflow.fingerprint);
+    let mut result = if workflow.processing == crate::monitoring::VERSION {
+        let configuration: Value = o.get("configuration");
+        let company = serde_json::from_value(configuration["monitoring"]["company"].clone())?;
+        // The queue serializes one order. Failed lookups never erase the last
+        // valid observations, and every retry reuses its saved source receipts.
+        let previous: Option<Value> = sqlx::query_scalar("select result from billing.recurring_runs where order_id=$1 and id<>$2 and scheduled_at<$3 and state='succeeded' and finished_at is not null and result->'monitoring' is not null order by scheduled_at desc limit 1")
+            .bind(order).bind(run).bind(scheduled).fetch_optional(&e.store.pool).await?;
+        let value = crate::monitoring::result(&company, &configuration["monitoring"]["baseline"], previous.as_ref(), results, scheduled, &question, &workflow.fingerprint);
+        if value["monitoring"]["coverage"].as_array().is_none_or(|rows|rows.iter().any(|c|c["status"] != "checked")) {
+            failed = true;
+            if execution_error.is_none() {
+                execution_error = Some("One or more selected company sources did not return complete coverage for the approved identity. The previous verified baseline is retained; missing results are not clearance.".into());
+            }
+        }
+        value
+    } else { processing::result(&question, scheduled, results, &workflow.fingerprint) };
     if failed || unresolved {
         result["analysis"] = Value::Null;
         result["partial"] = json!(true);
@@ -496,8 +517,10 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
     let question: String = row.get("question");
     let result: Value = row.get("result");
     let url = format!(
-        "{}/recurring-orders?order={}",
+        "{}/{}?{}={}",
         e.app_url,
+        if workflow.processing == crate::monitoring::VERSION {"monitoring"}else{"recurring-orders"},
+        if workflow.processing == crate::monitoring::VERSION {"monitor"}else{"order"},
         row.get::<Uuid, _>("id")
     );
     let limitations = result["analysis"]["limitations"]
@@ -511,6 +534,8 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
         .unwrap_or_default();
     let summary = if row.get::<String, _>("run_state") != "succeeded" {
         format!("The scheduled sequence did not complete. {} Completed source results, if any, remain saved.",row.get::<Option<String>,_>("run_error").unwrap_or_default())
+    } else if workflow.processing == crate::monitoring::VERSION {
+        crate::monitoring::summary(&result)
     } else {
         crate::integrations::report::summary(&result)
     };

@@ -1,5 +1,8 @@
 # Host-scheduled company monitoring
 
+For the standalone app Monitoring page and Gateway-owned recurring schedule, see
+[App company monitoring](monitoring.md). The host workflow below remains separate.
+
 Additive to the frozen Ask flow. Claude/ChatGPT owns its Monday schedule and mail
 connector; Gateway owns fixed company identities, task/occurrence IDs, original
 source evidence, comparisons and delivered-signal state. Existing spending and

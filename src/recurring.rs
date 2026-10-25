@@ -46,7 +46,7 @@ impl LockedWorkflow {
         question: &str,
     ) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.version == 1 && self.processing == processing::VERSION,
+            self.version == 1 && matches!(self.processing.as_str(), processing::VERSION | crate::monitoring::VERSION),
             "Unsupported saved workflow version."
         );
         anyhow::ensure!(
@@ -54,6 +54,11 @@ impl LockedWorkflow {
             "The approved workflow changed."
         );
         self.recipe.validate()?;
+        if self.processing == crate::monitoring::VERSION {
+            crate::monitoring::validate(configuration, sources)?;
+        } else {
+            anyhow::ensure!(configuration.get("monitoring").is_none(), "Unexpected monitoring configuration.");
+        }
         self.delivery.validate(owner)?;
         anyhow::ensure!(
             sources.len() == self.recipe.steps.len()
@@ -292,6 +297,27 @@ fn require_owner(owner: Uuid) -> anyhow::Result<()> {
 }
 
 pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::Result<Value> {
+    quote_configured(engine, p, b, None).await
+}
+
+pub async fn quote_monitor(engine: &Engine, p: &Principal, b: QuoteRequest, company: crate::company_checks::Company, selected_fields: Vec<String>, source_ids: Vec<String>) -> anyhow::Result<Value> {
+    anyhow::ensure!(b.task_ids.len() == 1 && b.change_only, "Choose one company and a supported recurring schedule.");
+    let source_ids=crate::monitoring::sources(source_ids)?;
+    let all_fields=selected_fields.is_empty();
+    let mut baseline = crate::monitoring::baseline(engine, p, b.task_ids[0], &company,&source_ids).await?;
+    let selected_fields:Vec<String> = crate::monitoring::selected_fields(selected_fields)?.into_iter()
+        .filter(|field|!all_fields || baseline["field_coverage"].as_array().is_some_and(|rows|rows.iter().any(|c|c["field"]==*field && c["status"]=="checked"))).collect();
+    anyhow::ensure!(!selected_fields.is_empty() && selected_fields.iter().all(|field|source_ids.iter().any(|source|source==crate::monitoring::field_source(field))),"Select available fields from the retrieved sources.");
+    anyhow::ensure!(selected_fields.iter().all(|field|baseline["field_coverage"].as_array().is_some_and(|rows|rows.iter().any(|c|c["field"]==*field && c["status"]=="checked"))),"A selected field is unavailable in the purchased baseline. Select only verified available fields.");
+    let source_ids:Vec<String>=source_ids.into_iter().filter(|source|source==crate::monitoring::PROVIDER || selected_fields.iter().any(|f|source==crate::monitoring::field_source(f))).collect();
+    baseline["source_ids"]=json!(source_ids);
+    if let Some(coverage)=baseline["coverage"].as_array_mut() {coverage.retain(|c| c["category"]=="registry" || source_ids.iter().any(|source|(source==crate::monitoring::SANCTIONS && c["category"]=="sanctions") || (source==crate::monitoring::GLEIF && c["category"]=="gleif")));}
+    crate::monitoring::select(&mut baseline, &selected_fields);
+    let task_id = b.task_ids[0];
+    quote_configured(engine, p, b, Some(json!({"company":company,"baseline":baseline,"task_id":task_id,"selected_fields":selected_fields,"sources":source_ids}))).await
+}
+
+async fn quote_configured(engine: &Engine, p: &Principal, b: QuoteRequest, monitoring: Option<Value>) -> anyhow::Result<Value> {
     require_owner(p.owner)?;
     engine.store.check_spending(p).await?;
     anyhow::ensure!(
@@ -306,7 +332,8 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
         "Choose a completed order."
     );
     anyhow::ensure!(b.date_overrides.len() <= 100, "Too many date rules.");
-    let config = json!({"schedule":b.schedule,"task_ids":b.task_ids,"date_overrides":b.date_overrides,"billing_mode":b.billing_mode,"change_only":b.change_only});
+    let mut config = json!({"schedule":b.schedule,"task_ids":b.task_ids,"date_overrides":b.date_overrides,"billing_mode":b.billing_mode,"change_only":b.change_only});
+    if let Some(monitoring) = &monitoring { config["monitoring"] = monitoring.clone(); }
     let prior: Option<(Value,Value,String)>=sqlx::query_as("select configuration,delivery,question from billing.recurring_orders where id=$1 and owner_id=$2 and workspace_id is not distinct from $3")
   .bind(b.request_id).bind(p.owner).bind(p.workspace).fetch_optional(&engine.store.pool).await?;
     if let Some((old, delivery, question)) = prior {
@@ -409,26 +436,33 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
             );
             vec![ext.selection_id]
         } else {
-            let plan: crate::resolver::Plan = serde_json::from_value(
+            let mut plan: crate::resolver::Plan = serde_json::from_value(
                 task.proposal
                     .clone()
                     .ok_or_else(|| anyhow::anyhow!("Missing saved order."))?,
             )?;
             anyhow::ensure!(
                 !task.cancelled
-                    && task.execution_error.is_none()
-                    && task.failed_steps.is_empty()
+                    && (monitoring.is_some() || task.execution_error.is_none())
+                    && (monitoring.is_some() || task.failed_steps.is_empty())
                     && task.pending_candidates.is_empty()
                     && task.pending_dispatches.is_empty()
                     && !task.result_refs.is_empty()
                     && plan
                         .steps
                         .iter()
+                        .filter(|step| monitoring.as_ref().is_none_or(|m|m["selected_fields"].as_array().is_some_and(|fields|step.service.contract.capability_slug=="company.registry-profile" || fields.iter().filter_map(Value::as_str).any(|f|crate::monitoring::field_operation(f)==step.service.contract.capability_slug))))
                         .all(|step| task.step_finished(&step.key())),
                 "Wait for all results to finish."
             );
-            let rows=sqlx::query("select e.selection_id,e.response,s.candidate_id,s.capability,r.document #>> '{subject,entity_ref}' as entity_ref from executions e join authorizations a on a.id=e.authorization_id join actions.user_selected_apis s on s.id=e.selection_id join results r on r.execution_id=e.id and r.task_id=e.task_id and r.owner_id=e.owner_id where e.task_id=$1 and e.owner_id=$2 and a.quote_ref=$3 and e.status='succeeded'")
+            let mut rows=sqlx::query("select e.selection_id,e.response,s.candidate_id,s.capability,r.document #>> '{subject,entity_ref}' as entity_ref from executions e join authorizations a on a.id=e.authorization_id join actions.user_selected_apis s on s.id=e.selection_id join results r on r.execution_id=e.id and r.task_id=e.task_id and r.owner_id=e.owner_id where e.task_id=$1 and e.owner_id=$2 and a.quote_ref=$3 and e.status='succeeded'")
                 .bind(task_id).bind(p.owner).bind(plan.quote_ref).fetch_all(&engine.store.pool).await?;
+            if let Some(monitor)=&monitoring {
+                let fields:Vec<String>=serde_json::from_value(monitor["selected_fields"].clone())?;
+                let required=crate::monitoring::operations(&fields);
+                plan.steps.retain(|step|required.contains(&step.service.contract.capability_slug));
+                rows.retain(|row|row.get::<Option<String>,_>("capability").is_some_and(|cap|required.contains(&cap)));
+            }
             let mut ids = Vec::new();
             for (index, step) in plan
                 .steps
@@ -594,12 +628,14 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
         fingerprint: String::new(),
         recipe: recipe::Recipe::combine(&recipes)?,
         delivery: frozen_delivery,
-        processing: processing::VERSION.into(),
+        processing: if monitoring.is_some() {crate::monitoring::VERSION}else{processing::VERSION}.into(),
     };
     workflow.fingerprint = workflow.fingerprint(&config, &sources, &b.question);
     workflow.validate(p.owner, &config, &sources, &b.question)?;
-    sqlx::query("insert into billing.recurring_orders(id,owner_id,workspace_id,question,timezone,configuration,sources,delivery,dates,provider_per_run,total_per_run,approved_micro_usd,billing_mode,change_only,workflow) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)")
-        .bind(b.request_id).bind(p.owner).bind(p.workspace).bind(b.question).bind(b.schedule.timezone).bind(config).bind(serde_json::to_value(sources)?).bind(serde_json::to_value(delivery)?).bind(dates).bind(provider).bind(total).bind(approved).bind(b.billing_mode).bind(b.change_only).bind(serde_json::to_value(workflow)?).execute(&engine.store.pool).await?;
+    let baseline_hash = monitoring.as_ref().map(|m| crate::monitoring::comparison_hash(&m["baseline"]));
+    let baseline_at = monitoring.as_ref().and_then(|m| m["baseline"]["checked_at"].as_str()).map(str::parse::<DateTime<Utc>>).transpose()?;
+    sqlx::query("insert into billing.recurring_orders(id,owner_id,workspace_id,question,timezone,configuration,sources,delivery,dates,provider_per_run,total_per_run,approved_micro_usd,billing_mode,change_only,workflow,baseline_hash,baseline_at) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)")
+        .bind(b.request_id).bind(p.owner).bind(p.workspace).bind(b.question).bind(b.schedule.timezone).bind(config).bind(serde_json::to_value(sources)?).bind(serde_json::to_value(delivery)?).bind(dates).bind(provider).bind(total).bind(approved).bind(b.billing_mode).bind(b.change_only).bind(serde_json::to_value(workflow)?).bind(baseline_hash).bind(baseline_at).execute(&engine.store.pool).await?;
     read(engine, p, b.request_id).await
 }
 

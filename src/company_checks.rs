@@ -163,6 +163,16 @@ pub fn recipe(companies: &[Company]) -> crate::parser::Intent {
     recipe_for(companies, &[0, 1, 2])
 }
 
+/// The dedicated Monitoring page repeats only the official registry profile.
+/// This does not change the existing company-check or Ask recipes.
+pub fn registry_recipe(company: &Company) -> crate::parser::Intent {
+    recipe_for(std::slice::from_ref(company), &[0])
+}
+
+pub fn monitoring_recipe(company: &Company, sanctions: bool) -> crate::parser::Intent {
+    recipe_for(std::slice::from_ref(company), if sanctions { &[0, 1] } else { &[0] })
+}
+
 /// The recipe limited to the requested checks, as indexes into `CHECKS`.
 fn recipe_for(companies: &[Company], checks: &[usize]) -> crate::parser::Intent {
     use crate::parser::{Goal, Intent, Subject};

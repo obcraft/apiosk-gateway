@@ -120,6 +120,7 @@ struct Fake {
     model_calls: Arc<AtomicUsize>,
     control_after_source: Arc<Mutex<Option<String>>>,
     drift_after_source: Arc<Mutex<Option<String>>>,
+    registry_profile: Arc<Mutex<Value>>,
 }
 
 async fn source(State(fake): State<Fake>, headers: HeaderMap) -> Json<Value> {
@@ -141,7 +142,9 @@ async fn source(State(fake): State<Fake>, headers: HeaderMap) -> Json<Value> {
         .lock()
         .unwrap()
         .push((run, ordinal, inputs.clone()));
-    let data = if ordinal == 0 {
+    let data = if inputs["kvkNummer"] == "01234567" {
+        fake.registry_profile.lock().unwrap().clone()
+    } else if ordinal == 0 {
         assert_eq!(inputs, json!({"company.name":"Recurring fixture"}));
         let n = fake.searches.fetch_add(1, Ordering::SeqCst) + 1;
         json!({"companies":[{"id":format!("current-{n}")}]})
@@ -315,6 +318,35 @@ async fn quoted(engine: &Engine, owner: Uuid, task: Uuid, count: usize) -> (Uuid
     quoted_to(engine, owner, task, count, json!({"toolkit":"slack","recipient":"self","connected_account_id":"ca_selected"})).await
 }
 
+async fn seed_registry_baseline(engine: &Engine, owner: Uuid, data: Value) -> Uuid {
+    let service = engine.catalog.fresh().await.unwrap().services.iter()
+        .find(|s| s.api_slug == apiosk_gateway_v2::monitoring::PROVIDER).unwrap().clone();
+    let task_id=Uuid::new_v4();let entity=Uuid::new_v4();let auth=Uuid::new_v4();
+    let selection=Uuid::new_v4();let execution=Uuid::new_v4();let result=Uuid::new_v4();
+    let step=Step {service,entity_ref:entity,goal_index:0,browser_fallback:None};
+    let cap=step.service.total();
+    let plan=Plan {independent_calls:false,compute:None,quote_ref:Uuid::new_v4(),cap_atomic:cap,
+        expires_at:Utc::now()+ChronoDuration::minutes(10),hash:digest(&step),steps:vec![step],fee_bps:1500,workflow_slug:None};
+    let now=Utc::now();
+    let task=Task {proposal:Some(json!(plan)),intent:Some(json!(apiosk_gateway_v2::company_checks::registry_recipe(&apiosk_gateway_v2::company_checks::Company{name:"Registry fixture B.V.".into(),kvk_number:"01234567".into()}))),completed:plan.steps.iter().map(Step::key).collect(),result_refs:vec![result],active_results:vec![result],
+        facts:vec![Fact {entity_ref:entity,semantic_type:"company_registry.kvknummer".into(),value:json!("01234567"),
+            provenance:json!({"kind":"user_input"}),observed_at:now,expires_at:now+ChronoDuration::hours(1),verification:"user_asserted".into()}],..Task::default()};
+    sqlx::query("INSERT INTO gateway_v2.tasks(id,owner_id,document) VALUES($1,$2,$3)").bind(task_id).bind(owner).bind(json!(task)).execute(&engine.store.pool).await.unwrap();
+    sqlx::query("INSERT INTO gateway_v2.authorizations(id,task_id,owner_id,quote_ref,plan_hash,cap_atomic,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7)")
+        .bind(auth).bind(task_id).bind(owner).bind(plan.quote_ref).bind(&plan.hash).bind(cap).bind(plan.expires_at).execute(&engine.store.pool).await.unwrap();
+    let step=&plan.steps[0];
+    sqlx::query("INSERT INTO actions.user_selected_apis(id,user_id,prompt,kind,source,name,capability,api_slug,candidate_id,method,provider_price_micro_usd,charged_micro_usd,metadata) VALUES($1,$2,'Registry baseline','reviewed','apiosk',$3,$4,$5,$6,$7,$8,$9,$10)")
+        .bind(selection).bind(owner).bind(&step.service.name).bind(&step.service.contract.capability_slug).bind(&step.service.api_slug).bind(step.service.endpoint_id).bind(&step.service.method).bind(step.service.list_atomic).bind(cap)
+        .bind(json!({"inputs":{"kvkNummer":"01234567"},"gateway_v2":true,"task_id":task_id,"action_id":execution})).execute(&engine.store.pool).await.unwrap();
+    sqlx::query("INSERT INTO gateway_v2.executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,actual_atomic,status,response) VALUES($1,$2,$3,$1,$4,'registry-fixture',$5,$6,$6,'succeeded',$7)")
+        .bind(execution).bind(owner).bind(task_id).bind(auth).bind(selection).bind(cap).bind(json!({"ok":true,"result":data,"charged_micro_usd":cap})).execute(&engine.store.pool).await.unwrap();
+    sqlx::query("INSERT INTO gateway_v2.results(id,owner_id,task_id,execution_id,document,created_at) VALUES($1,$2,$3,$4,$5,now()-interval '1 day')")
+        .bind(result).bind(owner).bind(task_id).bind(execution).bind(json!({"coverage":"source_response","missing_fields":[],"data":data,"subject":{"entity_ref":entity},"source":step.service.result_source()})).execute(&engine.store.pool).await.unwrap();
+    sqlx::query("INSERT INTO billing.balance_charges(user_id,idempotency_key,status,charged_micro_usd,provider_price_micro_usd,fee_micro_usd,metadata,settled_at) VALUES($1,$2,'charged',$3,$4,$5,'{}',now())")
+        .bind(owner).bind(execution.to_string()).bind(cap).bind(step.service.list_atomic).bind(cap-step.service.list_atomic).execute(&engine.store.pool).await.unwrap();
+    task_id
+}
+
 async fn quoted_to(engine: &Engine, owner: Uuid, task: Uuid, count: usize, delivery: Value) -> (Uuid, i64) {
     let id = Uuid::new_v4();
     let request:recurring::QuoteRequest=serde_json::from_value(json!({
@@ -423,6 +455,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
         model_calls: Arc::new(AtomicUsize::new(0)),
         control_after_source: Default::default(),
         drift_after_source: Default::default(),
+        registry_profile: Default::default(),
     };
     let router=Router::new()
         .route("/functions/v1/recurring-execute",post(source))
@@ -965,7 +998,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
             None
         )
         .await,
-        (200, json!({"enabled":true}))
+        (200, json!({"enabled":true,"management_enabled":true}))
     );
     assert_eq!(
         http(
@@ -977,7 +1010,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
             None
         )
         .await,
-        (200, json!({"enabled":false}))
+        (200, json!({"enabled":false,"management_enabled":false}))
     );
     assert_eq!(
         http(
@@ -1006,7 +1039,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
                     None
                 )
                 .await,
-                (200, json!({"enabled":false}))
+                (200, json!({"enabled":false,"management_enabled":false}))
             );
         }
         for (method, path, body) in [
@@ -1181,6 +1214,63 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
     assert_eq!(summary["spent"],(before_spent + 101*7 + 5).to_string());
     assert_eq!(summary["pending"],"13");
     assert_eq!(summary["refunded"],"23");
+
+    // Monitoring is opt-in: a purchased KVK baseline seeds the existing ledger.
+    // These are local fixtures, not a claim of a live registry change or email.
+    sqlx::raw_sql("INSERT INTO public.fact_types(slug,status,value_schema) VALUES('company_registry.kvknummer','active','{\"type\":\"string\"}') ON CONFLICT DO NOTHING; INSERT INTO public.capabilities(slug,status) VALUES('company.registry-profile','active') ON CONFLICT DO NOTHING;").execute(&pool).await.unwrap();
+    let registry_api:Uuid=sqlx::query_scalar("SELECT api_id FROM public.api_endpoints WHERE id=(SELECT endpoint_id FROM public.capability_execution_contracts WHERE capability_slug='company.accounts' LIMIT 1)").fetch_one(&pool).await.unwrap();
+    sqlx::query("UPDATE public.apis SET slug='kvk-dutch-business-register',name='KVK fixture' WHERE id=$1").bind(registry_api).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE public.capability_execution_contracts SET capability_slug='company.registry-profile',requires=$2,input_map=$3,output_map=$4 WHERE id=$1")
+        .bind(registry_api).bind(json!([{"fact_type":"company_registry.kvknummer","subject_role":"subject","optional":false}]))
+        .bind(json!({"company_registry.kvknummer":{"name":"kvkNummer"}})).bind(json!({"base":"$","produces":{"company_registry.kvknummer":{"path":"$.kvkNummer"}}})).execute(&pool).await.unwrap();
+    let monitor_engine=make_engine();
+    let registry_data=json!({"kvkNummer":"01234567","naam":"Registry fixture B.V.","materieleRegistratie":{"datumAanvang":"20200101"}});
+    *fake.registry_profile.lock().unwrap()=registry_data.clone();
+    let baseline_task=seed_registry_baseline(&monitor_engine,owner,registry_data).await;
+    let monitor_id=Uuid::new_v4();
+    let request:recurring::QuoteRequest=serde_json::from_value(json!({"request_id":monitor_id,"task_ids":[baseline_task],"question":"Fixture company monitor",
+        "schedule":{"start":(Utc::now()+ChronoDuration::days(1)).date_naive(),"time":"09:00:00","timezone":"UTC","frequency":"daily","count":3},
+        "delivery":{"toolkit":"slack","recipient":"self","connected_account_id":"ca_selected"},"billing_mode":"prepaid","change_only":true})).unwrap();
+    let monitor=recurring::quote_monitor(&monitor_engine,&principal,request,apiosk_gateway_v2::company_checks::Company{name:"Registry fixture B.V.".into(),kvk_number:"01234567".into()},vec!["name".into()],vec![apiosk_gateway_v2::monitoring::PROVIDER.into()]).await.unwrap();
+    assert_eq!(monitor["workflow"]["processing"],apiosk_gateway_v2::monitoring::VERSION);
+    let seeded_hash:String=sqlx::query_scalar("SELECT baseline_hash FROM billing.recurring_orders WHERE id=$1").bind(monitor_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(seeded_hash,apiosk_gateway_v2::monitoring::comparison_hash(&monitor["configuration"]["monitoring"]["baseline"]));
+    sqlx::query("SELECT billing.approve_locked_recurring_order($1,$2,$3,$4,$5)").bind(owner).bind(monitor_id)
+        .bind(monitor["total"].as_str().unwrap().parse::<i64>().unwrap()).bind(monitor["total_per_run"].as_str().unwrap().parse::<i64>().unwrap())
+        .bind(monitor["workflow"]["fingerprint"].as_str().unwrap()).execute(&pool).await.unwrap();
+    let monitor_app=gateway_router(ServerState{engine:monitor_engine.clone(),auth:Arc::new(Auth{pool:pool.clone(),http:reqwest::Client::new(),supabase_url:base.clone(),publishable_key:"fixture".into()}),permits:Arc::new(tokio::sync::Semaphore::new(4)),executor_compat:None},"http://localhost").unwrap();
+    let (status,list)=http(&monitor_app,"GET","/v2/monitoring","fixture-person",None,None).await;
+    assert_eq!(status,200);assert!(list["monitors"].as_array().unwrap().iter().any(|m|m["id"]==monitor_id.to_string()));
+    let monitor_path=format!("/v2/monitoring/{monitor_id}");
+    assert_eq!(http(&monitor_app,"GET",&monitor_path,"fixture-person",None,None).await.0,200);
+    assert_ne!(http(&monitor_app,"GET",&monitor_path,"fixture-person",Some(Uuid::new_v4()),None).await.0,200);
+    std::env::set_var("RECURRING_ALLOWED_OWNER_IDS",format!("{owner},{}",Uuid::nil()));
+    assert_ne!(http(&monitor_app,"GET",&monitor_path,"fixture-other",None,None).await.0,200);
+    let (_,other_list)=http(&monitor_app,"GET","/v2/monitoring","fixture-other",None,None).await;
+    assert_eq!(other_list["monitors"],json!([]));
+    std::env::set_var("RECURRING_ALLOWED_OWNER_IDS",owner.to_string());
+    let monitor_runs:Vec<Uuid>=sqlx::query_scalar("SELECT id FROM billing.recurring_runs WHERE order_id=$1 ORDER BY scheduled_at").bind(monitor_id).fetch_all(&pool).await.unwrap();
+    let sends_before=fake.deliveries.lock().unwrap().len();
+    let calls_before=fake.sources.lock().unwrap().len();
+    for (index,run) in monitor_runs.iter().enumerate() {
+        if index==1 {fake.registry_profile.lock().unwrap()["naam"]=json!("Registry changed B.V.");}
+        sqlx::query("UPDATE billing.recurring_runs SET scheduled_at=now()-interval '1 second' WHERE id=$1").bind(run).execute(&pool).await.unwrap();
+        recurring::run_one_pass(&monitor_engine).await.unwrap();
+        let result=recurring::read_run(&monitor_engine,&principal,monitor_id,*run).await.unwrap();
+        assert_eq!(result["processing"],apiosk_gateway_v2::monitoring::VERSION);
+        assert_eq!(result["monitoring"]["new_signal_count"],if index==1 {1}else{0});
+        let deliveries:i64=sqlx::query_scalar("SELECT count(*) FROM billing.recurring_deliveries WHERE run_id=$1").bind(run).fetch_one(&pool).await.unwrap();
+        assert_eq!(deliveries,if index==1 {1}else{0});
+        // A duplicate finish/recovery cannot insert another delivery or source call.
+        sqlx::query("SELECT billing.finish_recurring_run($1,'succeeded',$2,null)").bind(run).bind(result).execute(&pool).await.unwrap();
+        sqlx::query("UPDATE billing.recurring_deliveries SET next_attempt_at=now()+interval '1 day' WHERE run_id IN(SELECT id FROM billing.recurring_runs WHERE order_id<>$1)").bind(monitor_id).execute(&pool).await.unwrap();
+        recurring::deliver_one_pass(&monitor_engine).await.unwrap();
+        recurring::deliver_one_pass(&monitor_engine).await.unwrap();
+    }
+    assert_eq!(fake.sources.lock().unwrap().len(),calls_before+3);
+    assert_eq!(fake.deliveries.lock().unwrap().len(),sends_before+1);
+    let sent=fake.deliveries.lock().unwrap().last().unwrap()["arguments"]["text"].as_str().unwrap().to_owned();
+    assert!(sent.contains("Registry fixture B.V.")&&sent.contains("Registry changed B.V.")&&sent.contains("/data/naam")&&sent.contains("/monitoring?monitor="));
     server.abort();
     pool.close().await;
 }
