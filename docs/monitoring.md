@@ -38,7 +38,7 @@ not claim UBO, insolvency, all registry events or real-time change subscriptions
 
 ## Deployment and evidence
 
-Apply `20261025092233_monitoring_kvk_search_credentials.sql` before deploying the
+Apply `20261025092530_monitoring_kvk_search_credentials.sql` before deploying the
 Gateway. Its private runtime-only function returns a credential only for the
 active, verified official search route; browser and service roles cannot call it.
 Deploy the Gateway before activating any `company_monitor_v1` order, then deploy
