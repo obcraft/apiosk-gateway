@@ -51,18 +51,7 @@ pub(super) async fn prepare(State(s): State<ServerState>, h: HeaderMap, Json(b):
         s.engine.store.check_spending(&p).await?;
         let question = format!("Nulmeting voor bedrijfsmonitoring: {} (KVK {}). Gebruik de geselecteerde bronnen voor dit exacte bedrijf. Sanctiematches zijn mogelijke overeenkomsten die menselijke controle vereisen.", b.company.name, b.company.kvk_number);
         let catalog=s.engine.catalog.fresh().await?;
-        let mut recipe=crate::company_checks::monitoring_recipe(&b.company,sources.iter().any(|s|s==crate::monitoring::SANCTIONS));
-        if sources.iter().any(|s|s==crate::monitoring::GLEIF) {recipe.goals.push(crate::parser::Goal{capability:"company.legal-entity-search".into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(crate::monitoring::GLEIF))])});}
-        let mut gaps=Vec::new();
-        for operation in ["company.registered-names","company.financial-statements","company.branch-profile"] {
-            if operation=="company.branch-profile" && b.establishment_number.is_none() {
-                gaps.push(json!({"source":crate::monitoring::PROVIDER,"capability":operation,"reason":"Choose an exact establishment to retrieve its branch profile."}));continue;
-            }
-            if catalog.services.iter().any(|s|s.api_slug==crate::monitoring::PROVIDER && s.contract.capability_slug==operation) {
-                recipe.goals.push(crate::parser::Goal{capability:operation.into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(crate::monitoring::PROVIDER))])});
-            } else { gaps.push(json!({"source":crate::monitoring::PROVIDER,"capability":operation,"reason":"This operation is not available in the active catalog."})); }
-        }
-        if let Some(number)=b.establishment_number {recipe.subjects[0].values.insert("company.vestigingsnummer".into(),json!(number));}
+        let (recipe,gaps)=crate::monitoring::prepare_recipe(&b.company,&sources,b.establishment_number.as_deref(),&catalog);
         let mut response = s.engine.discover_recipe(&p, DiscoverRequest {request_id:b.request_id, question,
             state:None, context_delta:Default::default()}, recipe).await?;
         response.context_view["monitoring_setup"]=json!({"company":b.company,"sources":sources,"coverage_gaps":gaps});

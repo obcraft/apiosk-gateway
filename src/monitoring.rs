@@ -41,6 +41,26 @@ pub fn sources(input: Vec<String>) -> anyhow::Result<Vec<String>> {
     Ok(sources)
 }
 
+/// The dedicated page's exact selected company is also the search input for
+/// name-based sources. This fact does not prove that a returned match is the
+/// company; source adapters still require their own exact-identity evidence.
+pub fn prepare_recipe(company:&Company, source_ids:&[String], establishment_number:Option<&str>, catalog:&crate::catalog::Catalog) -> (crate::parser::Intent, Vec<Value>) {
+    let mut recipe=crate::company_checks::monitoring_recipe(company,source_ids.iter().any(|s|s==SANCTIONS));
+    recipe.subjects[0].values.insert("company.name".into(),json!(company.name));
+    if source_ids.iter().any(|s|s==GLEIF) {recipe.goals.push(crate::parser::Goal{capability:"company.legal-entity-search".into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(GLEIF))])});}
+    let mut gaps=Vec::new();
+    for operation in ["company.registered-names","company.financial-statements","company.branch-profile"] {
+        if operation=="company.branch-profile" && establishment_number.is_none() {
+            gaps.push(json!({"source":PROVIDER,"capability":operation,"reason":"Choose an exact establishment to retrieve its branch profile."}));continue;
+        }
+        if catalog.services.iter().any(|s|s.api_slug==PROVIDER && s.contract.capability_slug==operation) {
+            recipe.goals.push(crate::parser::Goal{capability:operation.into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(PROVIDER))])});
+        } else { gaps.push(json!({"source":PROVIDER,"capability":operation,"reason":"This operation is not available in the active catalog."})); }
+    }
+    if let Some(number)=establishment_number {recipe.subjects[0].values.insert("company.vestigingsnummer".into(),json!(number));}
+    (recipe,gaps)
+}
+
 pub fn field_source(key: &str) -> &'static str { if key == "sanctions_matches" {SANCTIONS}else if key=="lei" || key.starts_with("gleif_"){GLEIF}else{PROVIDER} }
 pub fn field_operation(key: &str) -> &'static str {match key {
     "sanctions_matches"=>"company.sanctions-screen","registered_names"=>"company.registered-names",
@@ -392,6 +412,42 @@ mod tests {
         json!({"kvkNummer":"01234567","naam":"Fixture B.V.","handelsnamen":[{"naam":"Fixture"},{"naam":"Fixture Bikes"}],
             "statutaireNaam":"Fixture B.V.","sbiActiviteiten":[{"sbiCode":"6201"}],"materieleRegistratie":{"datumAanvang":"20200101"},
             "_embedded":{"eigenaar":{"rechtsvorm":"Besloten Vennootschap"},"hoofdvestiging":{"adressen":[{"indAfgeschermd":"Nee","volledigAdres":"Public 1"}]}}})
+    }
+    #[tokio::test]
+    #[ignore = "reads the authorized current catalog; no task, model, provider call or purchase"]
+    async fn live_catalog_three_source_monitoring_recipe_reaches_one_complete_quote() {
+        dotenvy::dotenv().ok();
+        let pool=sqlx::postgres::PgPoolOptions::new().max_connections(1).after_connect(|connection,_|Box::pin(async move {
+            sqlx::query("SET default_transaction_read_only=on").execute(&mut *connection).await?;Ok(())
+        })).connect(&std::env::var("DATABASE_URL").expect("authorized DATABASE_URL")).await.unwrap();
+        let raw:Value=sqlx::query_scalar(crate::catalog::CATALOG_SQL).fetch_one(&pool).await.unwrap();
+        pool.close().await;
+        let catalog=crate::catalog::Catalog::build(serde_json::from_value(raw).unwrap());
+        let company=Company{name:"Heineken N.V.".into(),kvk_number:"33011433".into()};
+        let ids=vec![PROVIDER.into(),SANCTIONS.into(),GLEIF.into()];
+        let (mut intent,gaps)=prepare_recipe(&company,&ids,Some("000010159975"),&catalog);
+        assert!(gaps.is_empty(),"{gaps:?}");
+        assert_eq!(intent.goals.len(),6);
+        let mut task=crate::state::Task::default();
+        crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+        let plan=match crate::resolver::resolve(&catalog,&task,&intent) {
+            crate::resolver::Resolution::Plan(plan)=>plan,
+            other=>panic!("full monitoring recipe did not reach a quote: {other:?}"),
+        };
+        assert_eq!(plan.steps.len(),6);
+        assert!(crate::parser::plan_coverage::uncovered_inputs(&task,&catalog,&intent,&plan).is_empty());
+        assert!(crate::parser::plan_coverage::uncovered_outputs(&task,&catalog,&intent,&plan).is_empty());
+        let operations: BTreeSet<_>=plan.steps.iter().map(|step|(step.service.api_slug.as_str(),step.service.contract.capability_slug.as_str())).collect();
+        assert_eq!(operations,BTreeSet::from([(PROVIDER,"company.registry-profile"),(PROVIDER,"company.registered-names"),(PROVIDER,"company.financial-statements"),(PROVIDER,"company.branch-profile"),(SANCTIONS,"company.sanctions-screen"),(GLEIF,"company.legal-entity-search")]));
+        let search=plan.steps.iter().find(|step|step.service.api_slug==GLEIF).unwrap();
+        let inputs=search.service.inputs(&task,search.entity_ref,&catalog.vocabulary).unwrap();
+        assert_eq!(inputs["filter[entity.legalName]"],"Heineken N.V.");
+        assert_eq!(inputs["filter[entity.legalAddress.country]"],"NL");
+        let mut prior_intent=intent.clone();prior_intent.subjects[0].values.remove("company.name");
+        let mut prior_task=crate::state::Task::default();prior_intent.subjects[0].entity_ref=None;
+        crate::engine::bind_subjects(&mut prior_task,&catalog,&mut prior_intent).unwrap();
+        assert!(matches!(crate::resolver::resolve(&catalog,&prior_task,&prior_intent),crate::resolver::Resolution::Missing{kind,..} if kind=="company.name"),"fixture must reproduce the reported missing-name blocker");
+        println!("Current catalog: 6 exact source operations, input/output coverage complete, total {} micro USD; no task or purchase.",plan.cap_atomic);
     }
     fn snap(s: &[SavedSource], prior: Option<&Value>) -> Value {
         let mut out=snapshot(&company(),s,prior,"2026-10-25T10:00:00Z");
