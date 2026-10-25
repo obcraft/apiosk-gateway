@@ -153,6 +153,21 @@ pub fn snapshot_for_sources(company: &Company, sources: &[SavedSource], previous
             }
         }
     }
+    // Some successful screening responses omit candidate classifications. A
+    // positive name match without topics is not evidence of an empty sanctions
+    // set. Keep the last observation until the source can classify every match.
+    let unclassified_match = sources.iter().filter(|s|s.kvk_number.as_deref()==Some(&company.kvk_number)
+        && (s.document["source"]["provider"]==SANCTIONS || s.document["source"]["api_slug"]==SANCTIONS))
+        .flat_map(|s|s.document["data"]["responses"].as_object().into_iter().flat_map(|responses|responses.values()))
+        .flat_map(|response|response["results"].as_array().into_iter().flatten())
+        .any(|row|row["match"]==true && !row["properties"]["topics"].as_array().is_some_and(|topics|
+            !topics.is_empty() && topics.iter().all(|topic|topic.as_str().is_some_and(|value|!value.trim().is_empty()))));
+    if unclassified_match {
+        for coverage in out["coverage"].as_array_mut().into_iter().flatten().filter(|c|c["category"]=="sanctions") {
+            coverage["status"]=json!("unknown");
+            coverage["message"]=json!("OpenSanctions returned a potential match without usable topic classification. Sanctions classification is unavailable; the previous observation is retained. This is not clearance.");
+        }
+    }
     if source_ids.iter().any(|s|s==SANCTIONS) && out["coverage"].as_array().is_some_and(|rows|rows.iter().any(|c|c["category"]=="sanctions" && c["status"]=="checked")) {
         let mut matches:Vec<Value> = out["signals"].as_array().into_iter().flatten().filter(|s|s["kind"]=="potential_screening_match" && s["carried_forward"]!=true)
             .map(|s|s["comparison_value"].clone()).collect();
@@ -496,10 +511,12 @@ mod tests {
         let ids=vec![PROVIDER.into(),SANCTIONS.into()];
         let mut baseline=snapshot_for_sources(&company(),&[source(profile()),sanctions(json!([]),0)],None,"2026-10-25T09:05:00Z",&ids);
         select(&mut baseline,&["name".into(),"sanctions_matches".into()]);
+        assert_eq!(baseline["coverage"][1]["status"],"checked");
         let rows=json!([{"id":"example-id","caption":"Potential name overlap","match":true,"score":0.9,"properties":{"topics":["sanction"]},"datasets":["fixture-list"]}]);
         let scheduled=chrono::Utc::now();
         let hit=result(&company(),&baseline,None,vec![recurring_source(source(profile())),recurring_source(sanctions(rows.clone(),1))],scheduled,"Monitor","approved");
         assert_eq!(hit["monitoring"]["new_signal_count"],1);
+        assert_eq!(hit["monitoring"]["coverage"][1]["status"],"checked");
         assert_eq!(hit["monitoring"]["new_signals"][0]["kind"],"sanctions_change");
         assert_eq!(hit["monitoring"]["new_signals"][0]["review_required"],true);
         assert_eq!(hit["monitoring"]["new_signals"][0]["evidence"][0]["pointer"],"/data/responses");
@@ -507,10 +524,36 @@ mod tests {
         assert_eq!(same["monitoring"]["new_signal_count"],0);assert_eq!(same["comparison_hash"],hit["comparison_hash"]);
         let removed=result(&company(),&baseline,Some(&same),vec![recurring_source(source(profile())),recurring_source(sanctions(json!([]),0))],scheduled,"Monitor","approved");
         assert_eq!(removed["monitoring"]["new_signal_count"],1);
+        assert_eq!(removed["monitoring"]["coverage"][1]["status"],"checked");
         assert!(removed["monitoring"]["new_signals"][0]["message"].as_str().unwrap().contains("not a confirmed hit or clearance"));
         let gap=result(&company(),&baseline,Some(&same),vec![recurring_source(source(profile())),recurring_source(sanctions(json!([]),10))],scheduled,"Monitor","approved");
         assert_eq!(gap["monitoring"]["coverage"][1]["status"],"unknown");
         assert_eq!(gap["monitoring"]["new_signal_count"],0);assert_eq!(gap["comparison_hash"],same["comparison_hash"]);
+    }
+    #[test]
+    fn positive_screening_match_without_classification_retains_prior_observation_as_unknown() {
+        let ids=vec![PROVIDER.into(),SANCTIONS.into()];
+        let known=json!({"id":"example-id","schema":"Company","match":true,"properties":{"topics":["sanction"]},"datasets":["fixture-list"]});
+        let mut baseline=snapshot_for_sources(&company(),&[source(profile()),sanctions(json!([known.clone()]),1)],None,"2026-10-25T09:05:00Z",&ids);
+        select(&mut baseline,&["name".into(),"sanctions_matches".into()]);
+        assert_eq!(baseline["observations"]["01234567:opensanctions:sanctions_matches"].as_array().unwrap().len(),1);
+        for topics in [None,Some(Value::Null),Some(json!([])),Some(json!("sanction")),Some(json!(["sanction",1])),Some(json!([" "]))] {
+            let mut candidate=known.clone();
+            candidate["properties"]=json!({});
+            if let Some(topics)=topics {candidate["properties"]["topics"]=topics;}
+            let source=sanctions(json!([candidate.clone()]),1);
+            let first=snapshot_for_sources(&company(),&[self::source(profile()),source.clone()],None,"2026-10-26T09:05:00Z",&ids);
+            assert!(first["observations"].get("01234567:opensanctions:sanctions_matches").is_none());
+            let checked=result(&company(),&baseline,None,vec![recurring_source(self::source(profile())),recurring_source(source)],chrono::Utc::now(),"Monitor","approved");
+            let monitor=&checked["monitoring"];
+            assert_eq!(monitor["coverage"][1]["status"],"unknown");
+            assert!(monitor["coverage"][1]["message"].as_str().unwrap().contains("classification is unavailable"));
+            assert_eq!(monitor["field_coverage"][1]["status"],"unknown");
+            assert_eq!(monitor["observations"],baseline["observations"]);
+            assert_eq!(monitor["new_signal_count"],0);
+            assert_eq!(checked["comparison_hash"],comparison_hash(&baseline));
+            assert_eq!(monitor["sources"][1]["document"]["data"]["responses"]["q1"]["results"][0],candidate);
+        }
     }
     fn extra(field:&str,data:Value)->SavedSource {
         let mut s=source(data);s.document["source"]["capability"]=json!(field_operation(field));
