@@ -99,6 +99,16 @@ fn normalize(document: &Value, query: &str, page: u32, at: &str) -> Result<Value
         "results":candidates}))
 }
 
+fn response_document(status: u16, document: Value) -> Result<Value, SearchError> {
+    // KVK documents IPD5200/404 as an ordinary empty search. Other 404s
+    // include temporary source outages and must never look like no matches.
+    if status == 404 && document["fout"].as_array().is_some_and(|errors|
+        !errors.is_empty() && errors.iter().all(|error|error["code"]=="IPD5200")) {
+        return Ok(json!({"totaal":0,"resultaten":[]}));
+    }
+    if (200..300).contains(&status) { Ok(document) } else { Err(SearchError::Unavailable) }
+}
+
 /// Credentials are read server-side from the existing verified official KVK
 /// registration. A changed host, endpoint, verb or block refuses this route.
 pub async fn search(pool: &PgPool, owner: Uuid, query: &str, page: u32) -> anyhow::Result<Value> {
@@ -126,7 +136,8 @@ pub async fn search(pool: &PgPool, owner: Uuid, query: &str, page: u32) -> anyho
     let mut response = HTTP.get(url).header("apikey", secret).header("Accept", "application/json")
         .send().await.map_err(|_| SearchError::Unavailable)?;
     if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS { return Err(SearchError::RateLimited.into()); }
-    if !response.status().is_success() || response.content_length().is_some_and(|n| n > MAX_BODY as u64) {
+    let status = response.status().as_u16();
+    if (!response.status().is_success() && status != 404) || response.content_length().is_some_and(|n| n > MAX_BODY as u64) {
         return Err(SearchError::Unavailable.into());
     }
     let mut body = Vec::new();
@@ -134,7 +145,7 @@ pub async fn search(pool: &PgPool, owner: Uuid, query: &str, page: u32) -> anyho
         if body.len() + chunk.len() > MAX_BODY { return Err(SearchError::Unavailable.into()); }
         body.extend_from_slice(&chunk);
     }
-    let document: Value = serde_json::from_slice(&body).map_err(|_| SearchError::Unavailable)?;
+    let document = response_document(status, serde_json::from_slice(&body).map_err(|_| SearchError::Unavailable)?)?;
     let output = normalize(&document, &query, page, &chrono::Utc::now().to_rfc3339())?;
     let mut state = STATE.lock().map_err(|_| SearchError::Unavailable)?;
     if state.cache.len() >= 256 { state.cache.clear(); }
@@ -174,5 +185,14 @@ mod tests {
         let out = normalize(&json!({"resultaten":[{"kvkNummer":"12345678","naam":"Hidden","adres":{"indAfgeschermd":"Ja","plaats":"Secret","straatnaam":"Secret"}}]}),"Hidden",1,"now").unwrap();
         assert!(out["results"][0]["city"].is_null()); assert!(out["results"][0]["street"].is_null());
         assert!(normalize(&json!({"error":"not results"}),"Acme",1,"now").is_err());
+    }
+    #[test]
+    fn only_official_no_results_error_becomes_an_empty_search() {
+        let empty=response_document(404,json!({"fout":[{"code":"IPD5200"}]})).unwrap();
+        assert_eq!(normalize(&empty,"Unmatched",1,"now").unwrap()["results"],json!([]));
+        for error in [json!({"fout":[{"code":"IPD1002"}]}),json!({"fout":[]}),json!({"fout":[{"code":"IPD5200"},{"code":"IPD1003"}]})] {
+            assert!(response_document(404,error).is_err());
+        }
+        assert!(response_document(500,json!({"fout":[{"code":"IPD5200"}]})).is_err());
     }
 }
