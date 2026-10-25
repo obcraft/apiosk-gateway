@@ -22,7 +22,9 @@ Other users receive recurring_forbidden from recurring management routes.
 `node gateway/scripts/dev-local.mjs --execute --recurring --no-open` enables workers when configured. Execution requires
 `RECURRING_WORKER_SECRET` in `gateway/.env` (or the inherited environment), matching
 Supabase's `recurring-execute` secret exactly. The launcher must not generate a
-replacement: a local random value is rejected by hosted execution with 401.
+replacement: a local random value is rejected by hosted execution with 401. When
+`gateway/.local/dev-stack/recurring-worker-secret` was provisioned beforehand,
+the launcher can reuse that existing credential; it never creates that file.
 Missing credentials skip recurring workers without blocking startup. The local
 launcher sets `RECURRING_LOCAL_MANAGEMENT_ENABLED=1`; on a loopback bind,
 allowlisted owners can still open Recurring orders and view or stop existing

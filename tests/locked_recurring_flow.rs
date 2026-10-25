@@ -1231,7 +1231,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
     let request:recurring::QuoteRequest=serde_json::from_value(json!({"request_id":monitor_id,"task_ids":[baseline_task],"question":"Fixture company monitor",
         "schedule":{"start":(Utc::now()+ChronoDuration::days(1)).date_naive(),"time":"09:00:00","timezone":"UTC","frequency":"daily","count":3},
         "delivery":{"toolkit":"slack","recipient":"self","connected_account_id":"ca_selected"},"billing_mode":"prepaid","change_only":true})).unwrap();
-    let monitor=recurring::quote_monitor(&monitor_engine,&principal,request,apiosk_gateway_v2::company_checks::Company{name:"Registry fixture B.V.".into(),kvk_number:"01234567".into()},vec!["name".into()],vec![apiosk_gateway_v2::monitoring::PROVIDER.into()]).await.unwrap();
+    let monitor=recurring::quote_monitor(&monitor_engine,&principal,request,apiosk_gateway_v2::company_checks::Company{name:"Registry fixture B.V.".into(),kvk_number:"01234567".into()},vec!["name".into()],vec![apiosk_gateway_v2::monitoring::PROVIDER.into()],"Company change".into(),"A selected value changed.".into()).await.unwrap();
     assert_eq!(monitor["workflow"]["processing"],apiosk_gateway_v2::monitoring::VERSION);
     let seeded_hash:String=sqlx::query_scalar("SELECT baseline_hash FROM billing.recurring_orders WHERE id=$1").bind(monitor_id).fetch_one(&pool).await.unwrap();
     assert_eq!(seeded_hash,apiosk_gateway_v2::monitoring::comparison_hash(&monitor["configuration"]["monitoring"]["baseline"]));

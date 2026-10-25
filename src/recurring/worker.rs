@@ -139,7 +139,7 @@ async fn execute(
             .fetch_one(&e.store.pool)
             .await?;
     if count == 0 {
-        if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery)
+        if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery, o.get::<Value, _>("configuration")["monitoring"].is_object())
             .await
             .is_err()
         {
@@ -496,7 +496,7 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
     let id: Uuid = row.get("id");
     let run: Uuid = row.get("run_id");
     let attempts: i32 = row.get("attempts");
-    let row=sqlx::query("select o.id,o.owner_id,o.workspace_id,o.question,o.delivery,o.workflow,r.result,r.state as run_state,r.error as run_error from billing.recurring_orders o join billing.recurring_runs r on r.order_id=o.id where r.id=$1").bind(run).fetch_one(&e.store.pool).await?;
+    let row=sqlx::query("select o.id,o.owner_id,o.workspace_id,o.question,o.configuration,o.delivery,o.workflow,r.result,r.state as run_state,r.error as run_error from billing.recurring_orders o join billing.recurring_runs r on r.order_id=o.id where r.id=$1").bind(run).fetch_one(&e.store.pool).await?;
     let p = Principal {
         owner: row.get("owner_id"),
         workspace: row.get("workspace_id"),
@@ -507,7 +507,8 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
             .ok_or_else(|| anyhow::anyhow!("Missing frozen delivery."))?,
     )?;
     let delivery: Delivery = serde_json::from_value(row.get("delivery"))?;
-    if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery)
+    let configuration: Value = row.get("configuration");
+    if validate_self_delivery(e, p.owner, &delivery, &workflow.delivery, configuration["monitoring"].is_object())
         .await
         .is_err()
     {
@@ -556,9 +557,12 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
         .into_iter()
         .collect::<Vec<_>>()
         .join("\n\n");
+    let alert = &configuration["monitoring"]["alert"];
+    let alert_title = alert["title"].as_str().unwrap_or(&question);
+    let alert_message = alert["message"].as_str().unwrap_or(&question);
     let text = format!(
         "{}\n\n{}\n{}\n\n{}\n\nFull saved results: {}",
-        question.chars().take(500).collect::<String>(),
+        alert_message.chars().take(500).collect::<String>(),
         summary.chars().take(8000).collect::<String>(),
         limitations.chars().take(2000).collect::<String>(),
         usage_notices,
@@ -578,7 +582,7 @@ pub(super) async fn deliver(e: &Engine) -> anyhow::Result<()> {
                     &workflow.delivery,
                     &workflow
                         .delivery
-                        .arguments(&question.chars().take(180).collect::<String>(), &text),
+                        .arguments(&alert_title.chars().take(180).collect::<String>(), &text),
                 )
                 .await,
             ),

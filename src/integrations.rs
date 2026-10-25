@@ -633,6 +633,21 @@ impl Composio {
         Ok(())
     }
 
+    /// Resolve the provider-verified identity for one active Gmail connection.
+    /// The alias is intentionally ignored: it is user-authored and cannot be a
+    /// delivery authority. Older provider records without an identity keep the
+    /// existing verified Apiosk-email fallback in the recurring service.
+    pub async fn resolve_gmail_recipient(&self, owner: Uuid, id: &str) -> Result<Option<String>, ComposioError> {
+        if !frozen::valid_account_id(id) { return Err(ComposioError::AccountNotFound); }
+        let account = self.call(reqwest::Method::GET, &format!("/connected_accounts/{id}"), None).await?;
+        if !owns_account(&account, owner, "gmail", id) || account["status"] != "ACTIVE" || account["is_disabled"].as_bool() == Some(true) {
+            return Err(ComposioError::AccountNotFound);
+        }
+        Ok(account["state"]["val"]["displayName"].as_str()
+            .filter(|email| email.contains('@') && !email.contains([' ', ',', ';', '<', '>']) && email.len() <= 320)
+            .map(str::to_owned))
+    }
+
     pub async fn rename_account(&self, owner: Uuid, toolkit: &str, id: &str, alias: &str) -> Result<(), ComposioError> {
         let alias = alias.trim();
         if !valid_alias(alias) { return Err(ComposioError::InvalidAlias); }

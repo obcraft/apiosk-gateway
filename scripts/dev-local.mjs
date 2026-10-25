@@ -70,6 +70,17 @@ export function enableLocalRecurring(gateway) {
   return true;
 }
 
+/** Reuse an explicitly provisioned local credential; never create one here. */
+export function readExistingWorkerSecret(file) {
+  try {
+    const secret = readFileSync(file, 'utf8').trim();
+    return secret.length >= 32 ? secret : undefined;
+  } catch (error) {
+    if (error.code === 'ENOENT') return undefined;
+    throw error;
+  }
+}
+
 async function checkPort(port, host) {
   await new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -257,6 +268,9 @@ async function main() {
   if (config.gateway.EMBEDDED_EXECUTOR_ORIGIN) throw new Error('EMBEDDED_EXECUTOR_ORIGIN is set. This launcher uses hosted execution; unset that local override or start its executor separately.');
   if (args.has('--execute') && args.has('--smoke')) throw new Error('--smoke cannot be combined with --execute.');
   if (args.has('--recurring') && !args.has('--execute')) throw new Error('--recurring requires --execute.');
+  if (args.has('--recurring') && !config.gateway.RECURRING_WORKER_SECRET?.trim()) {
+    config.gateway.RECURRING_WORKER_SECRET = readExistingWorkerSecret(path.join(runtime, 'recurring-worker-secret'));
+  }
   if (args.has('--recurring') && !enableLocalRecurring(config.gateway)) {
     console.log('Recurring workers skipped: configuration incomplete. Continuing local startup.');
   }

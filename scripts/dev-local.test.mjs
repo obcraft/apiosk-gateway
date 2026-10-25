@@ -8,7 +8,7 @@ import { EventEmitter, once } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { spawn } from 'node:child_process';
 import { setTimeout as delay } from 'node:timers/promises';
-import { enableLocalRecurring, checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
+import { enableLocalRecurring, readExistingWorkerSecret, checkPorts, installShutdownHandlers, localConfiguration, runServices, stopServices } from './dev-local.mjs';
 
 async function freePort() {
   const socket = net.createServer();
@@ -277,4 +277,17 @@ test('recurring configuration never blocks local startup and stays disabled when
   assert.equal(gateway.RECURRING_WORKER_SECRET, 'shared-with-hosted-executor-1234567890');
   assert.equal(gateway.RECURRING_ORDERS_ENABLED, '1');
   assert.equal(gateway.RECURRING_MANUAL_TRIGGER_ENABLED, '1');
+});
+
+test('local recurring reuses only an existing sufficiently long worker credential', () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'apiosk-recurring-secret-'));
+  try {
+    const file = path.join(dir, 'recurring-worker-secret');
+    assert.equal(readExistingWorkerSecret(file), undefined);
+    writeFileSync(file, 'too-short', { mode: 0o600 });
+    assert.equal(readExistingWorkerSecret(file), undefined);
+    const secret = 's'.repeat(64);
+    writeFileSync(file, secret, { mode: 0o600 });
+    assert.equal(readExistingWorkerSecret(file), secret);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

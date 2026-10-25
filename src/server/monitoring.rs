@@ -89,6 +89,8 @@ pub(super) struct Quote {
     selected_fields: Vec<String>,
     #[serde(default)]
     sources: Vec<String>,
+    alert_title: String,
+    alert_message: String,
 }
 
 pub(super) async fn quote(State(s): State<ServerState>, h: HeaderMap, Json(b): Json<Quote>) -> Response {
@@ -99,7 +101,7 @@ pub(super) async fn quote(State(s): State<ServerState>, h: HeaderMap, Json(b): J
     let request = recurring::QuoteRequest {request_id:b.request_id, task_ids:vec![b.task_id],
         question:format!("Bedrijfsmonitoring: {} (KVK {})", b.company.name, b.company.kvk_number),
         schedule:b.schedule, delivery:b.delivery, date_overrides:vec![], billing_mode:b.billing_mode, change_only:true};
-    reply(recurring::quote_monitor(&s.engine, &p, request, b.company, b.selected_fields,b.sources).await)
+    reply(recurring::quote_monitor(&s.engine, &p, request, b.company, b.selected_fields,b.sources,b.alert_title,b.alert_message).await)
 }
 
 #[derive(Deserialize)]
@@ -167,7 +169,7 @@ pub(super) async fn read(State(s): State<ServerState>, h: HeaderMap, Path(id): P
             .bind(id).fetch_optional(&s.engine.store.pool).await?;
         let next: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar("select min(scheduled_at) from billing.recurring_runs where order_id=$1 and finished_at is null")
             .bind(id).fetch_one(&s.engine.store.pool).await?;
-        detail["monitoring"] = json!({"company":detail["configuration"]["monitoring"]["company"],"task_id":detail["configuration"]["monitoring"]["task_id"],"selected_fields":detail["configuration"]["monitoring"]["selected_fields"],"sources":detail["configuration"]["monitoring"]["sources"],
+        detail["monitoring"] = json!({"company":detail["configuration"]["monitoring"]["company"],"task_id":detail["configuration"]["monitoring"]["task_id"],"selected_fields":detail["configuration"]["monitoring"]["selected_fields"],"sources":detail["configuration"]["monitoring"]["sources"],"alert":detail["configuration"]["monitoring"]["alert"],
             "baseline":detail["configuration"]["monitoring"]["baseline"],"latest":latest,"next_run":next});
         Ok(detail)
     }.await)

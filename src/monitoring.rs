@@ -312,6 +312,10 @@ pub fn validate(configuration: &Value, sources: &[crate::recurring::Source]) -> 
     crate::company_checks::validate_companies(std::slice::from_ref(&company))?;
     let source_ids = self::sources(serde_json::from_value(monitor["sources"].clone())?)?;
     let fields=selected_fields(serde_json::from_value(monitor["selected_fields"].clone())?)?;
+    if !monitor["alert"].is_null() {
+        anyhow::ensure!(monitor["alert"]["title"].as_str().is_some_and(|v|(1..=180).contains(&v.chars().count()))
+            && monitor["alert"]["message"].as_str().is_some_and(|v|(1..=500).contains(&v.chars().count())),"A valid alert preview is required.");
+    }
     let required=operations(&fields);
     anyhow::ensure!(sources.len() == required.len() && required.iter().all(|op|sources.iter().filter(|s|s.selection["capability"]==*op && s.selection["api_slug"]==match op.as_str(){"company.sanctions-screen"=>SANCTIONS,"company.legal-entity-search"=>GLEIF,_=>PROVIDER}).count()==1), "The monitor must use exactly the selected trusted sources and operations.");
     anyhow::ensure!(monitor["baseline"]["companies"] == json!([company])

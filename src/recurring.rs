@@ -195,6 +195,7 @@ async fn validate_self_delivery(
     owner: Uuid,
     delivery: &Delivery,
     action: &crate::integrations::FrozenAction,
+    monitoring: bool,
 ) -> anyhow::Result<()> {
     delivery.validate_frozen(action)?;
     if delivery.recipient == "conversation" {
@@ -204,10 +205,15 @@ async fn validate_self_delivery(
             .await?;
     }
     if delivery.toolkit == "gmail" {
-        let current: Option<String> = sqlx::query_scalar("select billing.recurring_self_email($1)")
-            .bind(owner)
-            .fetch_one(&engine.store.pool)
-            .await?;
+        let current: Option<String> = if monitoring {
+            let composio = crate::integrations::configured().ok_or_else(|| anyhow::anyhow!("Integrations unavailable."))?;
+            match composio.resolve_gmail_recipient(owner, &delivery.connected_account_id).await? {
+                Some(email) => Some(email),
+                None => sqlx::query_scalar("select billing.recurring_self_email($1)").bind(owner).fetch_one(&engine.store.pool).await?,
+            }
+        } else {
+            sqlx::query_scalar("select billing.recurring_self_email($1)").bind(owner).fetch_one(&engine.store.pool).await?
+        };
         anyhow::ensure!(
             current.as_deref() == Some(&delivery.destination),
             "Your account email changed. Review a new delivery plan."
@@ -300,7 +306,7 @@ pub async fn quote(engine: &Engine, p: &Principal, b: QuoteRequest) -> anyhow::R
     quote_configured(engine, p, b, None).await
 }
 
-pub async fn quote_monitor(engine: &Engine, p: &Principal, b: QuoteRequest, company: crate::company_checks::Company, selected_fields: Vec<String>, source_ids: Vec<String>) -> anyhow::Result<Value> {
+pub async fn quote_monitor(engine: &Engine, p: &Principal, b: QuoteRequest, company: crate::company_checks::Company, selected_fields: Vec<String>, source_ids: Vec<String>, alert_title: String, alert_message: String) -> anyhow::Result<Value> {
     anyhow::ensure!(b.task_ids.len() == 1 && b.change_only, "Choose one company and a supported recurring schedule.");
     let source_ids=crate::monitoring::sources(source_ids)?;
     let all_fields=selected_fields.is_empty();
@@ -310,11 +316,16 @@ pub async fn quote_monitor(engine: &Engine, p: &Principal, b: QuoteRequest, comp
     anyhow::ensure!(!selected_fields.is_empty() && selected_fields.iter().all(|field|source_ids.iter().any(|source|source==crate::monitoring::field_source(field))),"Select available fields from the retrieved sources.");
     anyhow::ensure!(selected_fields.iter().all(|field|baseline["field_coverage"].as_array().is_some_and(|rows|rows.iter().any(|c|c["field"]==*field && c["status"]=="checked"))),"A selected field is unavailable in the purchased baseline. Select only verified available fields.");
     let source_ids:Vec<String>=source_ids.into_iter().filter(|source|source==crate::monitoring::PROVIDER || selected_fields.iter().any(|f|source==crate::monitoring::field_source(f))).collect();
+    let alert_title=alert_title.trim().to_owned();
+    let alert_message=alert_message.trim().to_owned();
+    anyhow::ensure!((1..=180).contains(&alert_title.chars().count()) && !alert_title.chars().any(char::is_control),"Enter an alert title up to 180 characters.");
+    anyhow::ensure!((1..=500).contains(&alert_message.chars().count()) && !alert_message.chars().any(|c|c.is_control() && c!='\n' && c!='\r' && c!='\t'),"Enter an alert message up to 500 characters.");
     baseline["source_ids"]=json!(source_ids);
     if let Some(coverage)=baseline["coverage"].as_array_mut() {coverage.retain(|c| c["category"]=="registry" || source_ids.iter().any(|source|(source==crate::monitoring::SANCTIONS && c["category"]=="sanctions") || (source==crate::monitoring::GLEIF && c["category"]=="gleif")));}
     crate::monitoring::select(&mut baseline, &selected_fields);
     let task_id = b.task_ids[0];
-    quote_configured(engine, p, b, Some(json!({"company":company,"baseline":baseline,"task_id":task_id,"selected_fields":selected_fields,"sources":source_ids}))).await
+    quote_configured(engine, p, b, Some(json!({"company":company,"baseline":baseline,"task_id":task_id,"selected_fields":selected_fields,"sources":source_ids,
+        "alert":{"title":alert_title,"message":alert_message}}))).await
 }
 
 async fn quote_configured(engine: &Engine, p: &Principal, b: QuoteRequest, monitoring: Option<Value>) -> anyhow::Result<Value> {
@@ -385,13 +396,18 @@ async fn quote_configured(engine: &Engine, p: &Principal, b: QuoteRequest, monit
     let destination = if let Some(conversation) = &conversation {
         conversation["id"].as_str().unwrap().to_owned()
     } else if b.delivery.toolkit == "gmail" {
-        sqlx::query_scalar::<_, Option<String>>("select billing.recurring_self_email($1)")
-            .bind(p.owner)
-            .fetch_one(&engine.store.pool)
-            .await?
-            .ok_or_else(|| {
-                anyhow::anyhow!("Verify your account email before scheduling delivery.")
-            })?
+        if monitoring.is_some() {
+            match composio.resolve_gmail_recipient(p.owner, &b.delivery.connected_account_id).await? {
+                Some(email) => email,
+                None => sqlx::query_scalar::<_, Option<String>>("select billing.recurring_self_email($1)")
+                    .bind(p.owner).fetch_one(&engine.store.pool).await?
+                    .ok_or_else(|| anyhow::anyhow!("Verify your account email before scheduling delivery."))?,
+            }
+        } else {
+            sqlx::query_scalar::<_, Option<String>>("select billing.recurring_self_email($1)")
+                .bind(p.owner).fetch_one(&engine.store.pool).await?
+                .ok_or_else(|| anyhow::anyhow!("Verify your account email before scheduling delivery."))?
+        }
     } else {
         composio
             .resolve_self_slack_recipient(p.owner, &b.delivery.connected_account_id)
@@ -697,10 +713,11 @@ pub async fn verify(engine: &Engine, p: &Principal, id: Uuid) -> anyhow::Result<
     )?;
     let sources: Vec<Source> = serde_json::from_value(row.get("sources"))?;
     let delivery: Delivery = serde_json::from_value(row.get("delivery"))?;
-    validate_self_delivery(engine, p.owner, &delivery, &workflow.delivery).await?;
+    let configuration: Value = row.get("configuration");
+    validate_self_delivery(engine, p.owner, &delivery, &workflow.delivery, configuration["monitoring"].is_object()).await?;
     workflow.validate(
         p.owner,
-        &row.get("configuration"),
+        &configuration,
         &sources,
         &row.get::<String, _>("question"),
     )?;
