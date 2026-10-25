@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 #[ignore = "requires isolated support-db (TEST_DATABASE_URL, default port 54329); never uses a live database"]
-async fn display_currency_is_owner_scoped_cached_and_invalidated_on_change() {
+async fn every_account_reads_euro_and_the_rate_is_cached_until_invalidated() {
     let pool = PgPoolOptions::new().max_connections(1)
         .connect(&std::env::var("TEST_DATABASE_URL").unwrap_or_else(|_| "postgresql://postgres@127.0.0.1:54329/postgres?sslmode=disable".into())).await.unwrap();
     sqlx::raw_sql("CREATE SCHEMA identity; CREATE SCHEMA billing;
@@ -13,34 +13,20 @@ async fn display_currency_is_owner_scoped_cached_and_invalidated_on_change() {
         ALTER TABLE identity.user_preferences ENABLE ROW LEVEL SECURITY;
         ALTER TABLE billing.fx_rates ENABLE ROW LEVEL SECURITY;
         GRANT USAGE ON SCHEMA billing TO gateway_v2_runtime;
-        INSERT INTO identity.user_preferences VALUES ('00000000-0000-4000-8000-000000000001','EUR'),('00000000-0000-4000-8000-000000000002','GBP');
+        INSERT INTO identity.user_preferences VALUES ('00000000-0000-4000-8000-000000000001','USD'),('00000000-0000-4000-8000-000000000002','GBP');
         INSERT INTO billing.fx_rates VALUES ('EUR',CURRENT_DATE-2,0.91),('EUR',CURRENT_DATE-1,0.92),('EUR',CURRENT_DATE+1,0.99),('GBP',CURRENT_DATE-1,0.80);")
         .execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20260913121701_gateway_display_currency.sql")).execute(&pool).await.unwrap();
     display_money::clear().await;
     sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
     let store = Store { pool: pool.clone() };
-    let first = Uuid::parse_str("00000000-0000-4000-8000-000000000001").unwrap();
-    let eur = store.money_display(first).await;
-    assert_eq!(eur["currency"], "EUR");
-    assert_eq!(eur["rate"], "0.92");
-    let gbp = store.money_display(Uuid::parse_str("00000000-0000-4000-8000-000000000002").unwrap()).await;
-    assert_eq!(gbp["currency"], "GBP");
-    assert_eq!(gbp["rate"], "0.80");
-    let visible: i64 = sqlx::query_scalar("SELECT count(user_id) FROM identity.user_preferences").fetch_one(&pool).await.unwrap();
-    assert_eq!(visible, 0, "transaction-local owner must not leak through the pool");
-    assert_eq!(store.money_display(Uuid::new_v4()).await["currency"], "EUR", "new accounts use the existing EUR default");
-
-    // A changed preference is served from cache until explicitly invalidated,
-    // and only that account's entry is reloaded.
-    sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
-    sqlx::query("UPDATE identity.user_preferences SET display_currency='GBP' WHERE user_id=$1").bind(first).execute(&pool).await.unwrap();
-    sqlx::query("SET ROLE gateway_v2_runtime").execute(&pool).await.unwrap();
-    assert_eq!(store.money_display(first).await["currency"], "EUR", "cached until invalidated");
-    display_money::preference_changed(first).await;
-    let changed = store.money_display(first).await;
-    assert_eq!(changed["currency"], "GBP");
-    assert_eq!(changed["rate"], "0.80");
+    // A stored dollar or pound preference is ignored: amounts read in euro.
+    for owner in ["00000000-0000-4000-8000-000000000001", "00000000-0000-4000-8000-000000000002"] {
+        let display = store.money_display(Uuid::parse_str(owner).unwrap()).await;
+        assert_eq!(display["currency"], "EUR");
+        assert_eq!(display["rate"], "0.92");
+    }
+    assert_eq!(store.money_display(Uuid::new_v4()).await["currency"], "EUR", "new accounts read euro");
 
     sqlx::query("RESET ROLE").execute(&pool).await.unwrap();
     sqlx::query("DELETE FROM billing.fx_rates WHERE quote_currency='EUR'").execute(&pool).await.unwrap();
