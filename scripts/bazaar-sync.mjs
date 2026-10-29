@@ -31,11 +31,11 @@ const BAZAAR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/reso
 const BASE_NETWORK = 'eip155:8453';
 // USDC on Base, the only asset the treasury pays with (resell.rs, Sirenic guard).
 export const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-// wallets.network_tokens row for USDC on Base (legacy-executor migration 103).
+// wallets.network_tokens row for USDC on Base (historical executor migration 103).
 const MAX_PRICE_ATOMIC = 1_000_000n; // $1.00 in USDC atomic units
 const STALE_DAYS = 30;
-const MIN_LISTING_SCORE = 8; // legacy-executor bazaar.rs MIN_LISTING_SCORE
-const MAX_PER_HOST = 40; // legacy-executor bazaar.rs MAX_PER_HOST
+const MIN_LISTING_SCORE = 8; // commerce-runtime/src/bazaar.rs MIN_LISTING_SCORE
+const MAX_PER_HOST = 40; // commerce-runtime/src/bazaar.rs MAX_PER_HOST
 const BATCH_MAX_ROWS = 200;
 const BATCH_MAX_BYTES = 280_000;
 const SERVICE_PREFIX = 'cbz-';
@@ -61,7 +61,7 @@ export function atomicToUsd(atomic) {
 }
 
 // ---------------------------------------------------------------------------
-// Hosts (legacy-executor bazaar.rs lists, matched as domain suffixes)
+// Hosts (commerce-runtime/src/bazaar.rs lists, matched as domain suffixes)
 // ---------------------------------------------------------------------------
 const BAD_HOST_SUFFIXES = ['localhost', 'local', 'test', 'invalid', 'internal', 'onion', 'example.com', 'example.org', 'example.net',
   'ngrok.io', 'ngrok-free.app', 'ngrok-free.dev', 'ngrok.app', 'ngrok.dev', 'trycloudflare.com', 'loca.lt', 'serveo.net', 'nip.io', 'sslip.io', 'xip.io'];
@@ -83,7 +83,7 @@ export function serviceSlug(host) {
 }
 
 // ---------------------------------------------------------------------------
-// Listing quality (ports of legacy-executor bazaar.rs; the same facts, not new judgement)
+// Listing quality (ports of commerce-runtime/src/bazaar.rs; the same facts, not new judgement)
 // ---------------------------------------------------------------------------
 const TOY_MARKERS = ['dice', 'coinflip', 'coin-flip', 'hello world', 'helloworld', 'test endpoint', 'lorem ipsum', 'random number', 'guess the', '8ball', '8-ball', 'fortune cookie'];
 function looksLikeToy(text) {
@@ -226,7 +226,7 @@ function accepts(schema, value) {
 const GROUPS = { pathParams: 'path', queryParams: 'query', body: 'body', bodyFields: 'body' };
 /**
  * The declared call schema, unwrapped from `extensions.bazaar.schema.properties.input`
- * (legacy-executor sources.rs declared_call_shape) and split into locations.
+ * (commerce-runtime/src/sources.rs declared_call_shape) and split into locations.
  * One adaptation of external.rs fields(): `bodyType` (JSON only) and optional-only
  * `headers` are transport metadata like `method`/`type` and are not provider inputs.
  */

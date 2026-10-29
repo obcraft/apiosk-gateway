@@ -119,7 +119,7 @@ mod tests {
                     app_url: "http://localhost:5173".into(),
                 }),
                 permits: Arc::new(tokio::sync::Semaphore::new(0)),
-                executor_compat: None,
+                commerce: None,
             },
             "http://localhost:5173",
         )

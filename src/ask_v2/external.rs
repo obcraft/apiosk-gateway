@@ -1,4 +1,4 @@
-//! Admission for a selected public Bazaar offer. Only the configured executor's
+//! Admission for a selected public Bazaar offer. Only the native commerce
 //! settled source directory is read here; the selected resource is never fetched.
 //! Payment remains in the existing selection/balance/treasury executor.
 use bigdecimal::BigDecimal;
@@ -118,76 +118,43 @@ fn method(value: &str) -> Result<String, Refusal> {
     Ok(method)
 }
 
-/// Read one fixed directory route on the configured embedded executor. The
-/// caller provides a scrubbed capability query, never a question or identifier.
+/// Read one fixed native directory route. The caller provides a scrubbed
+/// capability query, never a question or identifier; no resource is fetched.
 pub async fn resolve(
-    http: &reqwest::Client,
-    directory_origin: &str,
+    directory: &crate::compat::CommerceService,
     selected_resource: &str,
     selected_method: &str,
     generic_query: &str,
 ) -> Result<Offer, Refusal> {
     let target = resource(selected_resource)?;
     let selected_method = method(selected_method)?;
-    let mut directory = url::Url::parse(directory_origin).map_err(|_| {
-        refuse(
-            "external_directory_unavailable",
-            "Source pricing is temporarily unavailable.",
-        )
-    })?;
-    if directory.scheme() != "http"
-        || !matches!(
-            directory.host_str(),
-            Some("127.0.0.1" | "localhost" | "[::1]")
-        )
-        || !directory.username().is_empty()
-        || directory.password().is_some()
-        || directory.query().is_some()
-        || directory.fragment().is_some()
-    {
-        return Err(refuse(
-            "external_directory_unavailable",
-            "Source pricing is temporarily unavailable.",
-        ));
-    }
     if generic_query.trim().is_empty() || generic_query.chars().count() > 300 {
         return Err(refuse(
             "external_query_invalid",
             "Search for this capability again before selecting the source.",
         ));
     }
-    directory.set_path("/");
-    directory
-        .path_segments_mut()
-        .map_err(|_| {
-            refuse(
-                "external_directory_unavailable",
-                "Source pricing is temporarily unavailable.",
-            )
-        })?
-        .clear()
-        .extend(["v1", "sources", SOURCE, "apis", target.host_str().unwrap()]);
-    directory.query_pairs_mut().append_pair("q", generic_query);
-    let response = http
-        .get(directory)
-        .timeout(Duration::from_secs(6))
-        .send()
-        .await
-        .map_err(|_| {
-            refuse(
-                "external_directory_unavailable",
-                "This source could not be priced. Your selection is kept; try again.",
-            )
-        })?;
-    let body = crate::parser::bounded_json_sized(response, MAX_DIRECTORY_BYTES)
-        .await
-        .map_err(|_| {
-            refuse(
-                "external_directory_unavailable",
-                "This source could not be priced. Your selection is kept; try again.",
-            )
-        })?
-        .0;
+    let query = url::form_urlencoded::Serializer::new(String::new())
+        .append_pair("q", generic_query).finish();
+    let request = axum::http::Request::get(format!(
+        "/v1/sources/{SOURCE}/apis/{}?{query}", target.host_str().unwrap()
+    )).body(axum::body::Body::empty()).map_err(|_| refuse(
+        "external_directory_unavailable", "Source pricing is temporarily unavailable."
+    ))?;
+    // Match the previous transport's six-second request/body deadline and
+    // two-MiB response bound while keeping admission and price rules unchanged.
+    let body = tokio::time::timeout(Duration::from_secs(6), async {
+        let response = directory.dispatch(request).await;
+        if let Some(length) = response.headers().get(axum::http::header::CONTENT_LENGTH)
+            .and_then(|value| value.to_str().ok()).and_then(|value| value.parse::<u64>().ok()) {
+            anyhow::ensure!(length <= MAX_DIRECTORY_BYTES as u64, "response exceeds size limit");
+        }
+        let bytes = axum::body::to_bytes(response.into_body(), MAX_DIRECTORY_BYTES).await?;
+        Ok::<Value, anyhow::Error>(serde_json::from_slice(&bytes)?)
+    }).await.ok().and_then(Result::ok).ok_or_else(|| refuse(
+        "external_directory_unavailable",
+        "This source could not be priced. Your selection is kept; try again.",
+    ))?;
     admit(&body, selected_resource, &selected_method)
 }
 
@@ -653,6 +620,44 @@ mod tests {
             "https://registry.example.test/companies/{number}/officers",
             "GET",
         )
+    }
+    #[tokio::test]
+    async fn native_directory_resolution_preserves_query_contract_and_price() {
+        use axum::{extract::{OriginalUri, Query}, http::Method, routing::get, Json, Router};
+        let service = crate::compat::CommerceService::new(Router::new().route(
+            "/v1/sources/coinbase-x402-bazaar/apis/registry.example.test",
+            get(|OriginalUri(uri): OriginalUri, method: Method, Query(query): Query<BTreeMap<String, String>>| async move {
+                assert_eq!(method, Method::GET);
+                assert_eq!(uri.path(), "/v1/sources/coinbase-x402-bazaar/apis/registry.example.test");
+                assert_eq!(query.get("q").unwrap(), "company officers & filings");
+                assert_eq!(query.len(), 1);
+                Json(directory())
+            }),
+        ));
+        let offer = resolve(&service, "https://registry.example.test/companies/{number}/officers",
+            "GET", "company officers & filings").await.unwrap();
+        let expected = admit_fixture(&directory()).unwrap();
+        assert_eq!(serde_json::to_value(offer).unwrap(), serde_json::to_value(expected).unwrap());
+    }
+
+    #[tokio::test]
+    async fn native_directory_keeps_response_bounds_and_rejects_invalid_input_before_dispatch() {
+        use axum::{routing::get, Router};
+        let service = crate::compat::CommerceService::new(Router::new().route(
+            "/v1/sources/coinbase-x402-bazaar/apis/registry.example.test",
+            get(|| async { "x".repeat(MAX_DIRECTORY_BYTES + 1) }),
+        ));
+        let resource = "https://registry.example.test/companies/{number}/officers";
+        assert_eq!(resolve(&service, resource, "GET", "company officers").await.unwrap_err().code,
+            "external_directory_unavailable");
+        let no_dispatch = crate::compat::CommerceService::new(Router::new().fallback(|| async {
+            panic!("invalid selections must never reach the native directory");
+            #[allow(unreachable_code)]
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR
+        }));
+        assert_eq!(resolve(&no_dispatch, resource, "GET", "").await.unwrap_err().code, "external_query_invalid");
+        assert_eq!(resolve(&no_dispatch, "http://127.0.0.1/private", "GET", "company officers").await.unwrap_err().code,
+            "external_offer_invalid");
     }
     #[test]
     fn source_pricing_is_integer_and_separate_from_the_buyer_total() {

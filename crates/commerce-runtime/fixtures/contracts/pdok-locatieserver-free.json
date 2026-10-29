@@ -1,0 +1,25 @@
+{
+  "capability_slug": "geo.forward",
+  "version": 1,
+  "cardinality": "many",
+  "requires": [
+    { "fact_type": "address.text", "subject_role": "subject", "optional": false }
+  ],
+  "input_map": {
+    "address.text": { "in": "query", "name": "q" }
+  },
+  "output_map": {
+    "base": "$.response.docs[*]",
+    "produces": {
+      "address.postal": {
+        "fields": {
+          "street": { "path": "$.straatnaam" },
+          "house_number": { "path": "$.huis_nlt" },
+          "postcode": { "path": "$.postcode" },
+          "city": { "path": "$.woonplaatsnaam" }
+        }
+      }
+    }
+  },
+  "max_fan_out": 1
+}

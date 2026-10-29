@@ -1,0 +1,160 @@
+{
+  "x402Version": 2,
+  "error": "Payment required",
+  "resource": {
+    "url": "https://api.sirenic.eu/v1/facture/verifier",
+    "description": "Invoice verification for France — cross-check the identifiers PRINTED ON an invoice in one call: SIREN against the official registry (existence, active status, live), the VAT number on the invoice against the one computed from the SIREN AND live against VIES, the IBAN (ISO form, key digits, bank identified). Deterministic verdict coherent/incoherent/inverifiable, closed-list reasons. Flags a VAT that belongs to another company or a ceased supplier. Not a payee verification.",
+    "mimeType": "application/json",
+    "serviceName": "Sirenic",
+    "tags": [
+      "france",
+      "invoice-verification",
+      "supplier-verification",
+      "vat-check",
+      "iban-check"
+    ],
+    "iconUrl": "https://api.sirenic.eu/logo.png"
+  },
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "20000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 45,
+      "extra": {
+        "name": "USD Coin",
+        "version": "2"
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "20000",
+      "asset": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 45,
+      "extra": {
+        "name": "EURC",
+        "version": "2"
+      }
+    }
+  ],
+  "extensions": {
+    "bazaar": {
+      "info": {
+        "input": {
+          "type": "http",
+          "method": "GET",
+          "queryParams": {
+            "siren": "552032534",
+            "tva": "FR27552032534",
+            "iban": "FR1420041010050500013M02606"
+          }
+        },
+        "output": {
+          "type": "json",
+          "example": {
+            "siren": "552032534",
+            "etat_administratif": "actif",
+            "controles": {
+              "tva": {
+                "fournie": "FR27552032534",
+                "attendue_pour_ce_siren": "FR27552032534",
+                "correspond_au_siren": true,
+                "vies": {
+                  "statut": "valide"
+                }
+              },
+              "iban": {
+                "valide": true,
+                "exemple_de_documentation": true,
+                "banque": {
+                  "identifiee": true
+                }
+              }
+            },
+            "verdict": "coherent",
+            "raisons": [
+              {
+                "code": "iban_exemple_documentation",
+                "niveau": "information",
+                "source": "IBAN publié comme EXEMPLE de documentation — bien formé ; existence du compte non contrôlée."
+              }
+            ],
+            "non_verifie": [
+              "existence_du_compte",
+              "nom_du_titulaire"
+            ],
+            "source": "Composition Sirenic : INSEE Sirene (état, live), croisement TVA calculée (clé FR déterministe), VIES (Commission européenne, live), contrôle de forme IBAN + registres bancaires officiels",
+            "disclaimer": "Croisement déterministe des identifiants affichés par une facture (raisons en liste fermée, tracées à leur source) — ni un avis de conformité fiscale, ni une Verification of Payee : le volet bancaire contrôle la FORME et identifie la banque, sans vérifier l'existence du compte ni le nom du titulaire — un IBAN valide mais substitué n'est pas détectable ici. / Deterministic cross-check of the identifiers printed on an invoice — neither tax advice nor a Verification of Payee: the bank leg checks FORM and identifies the bank; a valid-but-swapped IBAN cannot be detected here."
+          }
+        }
+      },
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "http"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "GET"
+                ]
+              },
+              "queryParams": {
+                "type": "object",
+                "properties": {
+                  "siren": {
+                    "type": "string",
+                    "description": "9-digit SIREN printed on the invoice (required), e.g. 552032534"
+                  },
+                  "tva": {
+                    "type": "string",
+                    "description": "VAT number printed on the invoice, cross-checked against the one computed from the SIREN (FR key is deterministic) AND live against VIES, e.g. FR27552032534. At least one of tva/iban is required (400 otherwise)"
+                  },
+                  "iban": {
+                    "type": "string",
+                    "description": "IBAN printed on the invoice: ISO 13616 form + key digits + bank identification. NOT a payee verification (no holder name, no account existence). At least one of tva/iban is required"
+                  }
+                },
+                "required": [
+                  "siren"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "method"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "example": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ]
+      }
+    }
+  }
+}

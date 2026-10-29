@@ -43,7 +43,7 @@ with tempfile.TemporaryDirectory(prefix='sirenic-db-') as tmp:
   assert sorted(s['list_atomic'] for s in parsed['services'])==[2000,3000,5000,10000,10000,150000]
   (ROOT/'output/sirenic-20260912/local-catalog.json').write_text(json.dumps(parsed,indent=2)+'\n')
   env=dict(os.environ, SIRENIC_ROUTE_TEST_DATABASE_URL=f'postgres://postgres@127.0.0.1:{port}/postgres?options=-csearch_path%3D'+manifest['search_path'].replace(' ',''))
-  subprocess.run(['cargo','test','--offline','--manifest-path',str(ROOT/'legacy-executor/Cargo.toml'),'--bin','apiosk-gateway','database_resolves_active_templates_and_ignores_retired_literal_routes','--','--ignored'],env=env,check=True)
+  subprocess.run(['cargo','test','--offline','--manifest-path',str(ROOT/'crates/commerce-runtime/Cargo.toml'),'-p','commerce-runtime','--lib','database_resolves_active_templates_and_ignores_retired_literal_routes','--','--ignored'],env=env,check=True)
   print('PASS: actual schema/triggers, repeat-safe migration, stale routes withdrawn, six runtime-visible contracts')
   if '--expansion' in __import__('sys').argv:
    expanded=json.loads((ROOT/'tests/fixtures/sirenic/expanded-catalog.json').read_text())

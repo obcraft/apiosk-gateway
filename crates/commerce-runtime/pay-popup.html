@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Apiosk — confirm payment</title>
+<!--
+  Served at GET /_apiosk/pay. Opened by webmcp.js when a tool call comes back
+  402, and it exists for exactly one reason: to keep the buyer's credentials off
+  the provider's page.
+
+  webmcp.js runs on a THIRD-PARTY site. If the connect token or the Supabase JWT
+  were handed to that page, every provider hosting the script could read them and
+  spend the visitor's credits. So the credentials never leave this origin: this
+  page holds them, this page makes the paid call, and the opener gets only the
+  response body back over postMessage.
+
+  That inverts the usual courier relationship — the provider's page asks, this
+  page pays. It also means any site can open this popup, which is why the
+  confirmation below is not decorative: it names the resource and the price, it
+  is on apiosk.com where the URL bar can be checked, and nothing is spent until
+  the button is clicked.
+-->
+<style>
+  :root { color-scheme: light dark; --fg:#14140f; --muted:#5F5E5A; --line:#D3D1C7; --bg:#fff; --accent:#534AB7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#F1EFE8; --muted:#B4B2A9; --line:#444441; --bg:#1a1a18; --accent:#AFA9EC; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; color:var(--fg); background:var(--bg); }
+  h1 { font-size:17px; font-weight:500; margin:0 0 4px; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:13px; }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .row span:first-child { color:var(--muted); }
+  .row span:last-child { text-align:right; word-break:break-all; }
+  .price { font-size:20px; font-weight:500; }
+  button { font:inherit; padding:9px 16px; border-radius:6px; border:1px solid var(--line); background:transparent; color:var(--fg); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  .actions { display:flex; gap:8px; margin-top:20px; }
+  label { display:block; font-size:12px; color:var(--muted); margin:12px 0 4px; }
+  input { width:100%; padding:8px; font:13px ui-monospace,SFMono-Regular,Menlo,monospace; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--fg); }
+  .status { margin-top:14px; font-size:13px; color:var(--muted); min-height:20px; }
+  .err { color:#A32D2D; }
+  details { margin-top:16px; font-size:12px; color:var(--muted); }
+</style>
+</head>
+<body>
+<h1>Confirm this call</h1>
+<p class="sub">An agent on <strong id="opener">another site</strong> wants to make a paid API call using your Apiosk credits.</p>
+
+<div class="row"><span>Resource</span><span id="resource">—</span></div>
+<div class="row"><span>Method</span><span id="method">—</span></div>
+<div class="row"><span>Price</span><span class="price" id="price">—</span></div>
+
+<div id="creds" hidden>
+  <label for="token">Connect token from your Apiosk buyer portal (aw_live_…)</label>
+  <input id="token" type="password" autocomplete="off" spellcheck="false">
+  <details>
+    <summary>Paying from credits instead of your wallet?</summary>
+    <label for="jwt">Session token — only needed for the credits rail</label>
+    <input id="jwt" type="password" autocomplete="off" spellcheck="false">
+  </details>
+</div>
+
+<div class="actions">
+  <button class="primary" id="pay">Pay and run</button>
+  <button id="cancel">Cancel</button>
+</div>
+<div class="status" id="status"></div>
+
+<details>
+  <summary>Where do these credentials go?</summary>
+  Your connect token is stored on this page's own origin (apiosk.com) and sent
+  only to gateway.apiosk.com. The site that opened this window never receives
+  it — it gets only the response body of the call you approve here. Paying
+  settles from the managed wallet bound to that token; a session token is
+  needed only if you want to fall back to Apiosk credits.
+</details>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORE_JWT = "apiosk.pay.jwt";
+  var STORE_TOKEN = "apiosk.pay.connect_token";
+
+  var params = new URLSearchParams(location.search);
+  var openerOrigin = params.get("origin") || "";
+  var request = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var status = function (text, isError) {
+    $("status").textContent = text || "";
+    $("status").className = "status" + (isError ? " err" : "");
+  };
+
+  // The opener's origin is shown, not trusted. It is echoed back only as the
+  // postMessage target so a reply cannot be redirected to a third party.
+  if (openerOrigin) $("opener").textContent = openerOrigin.replace(/^https?:\/\//, "");
+
+  function reply(payload) {
+    if (window.opener && openerOrigin) {
+      window.opener.postMessage(Object.assign({ source: "apiosk-pay" }, payload), openerOrigin);
+    }
+  }
+
+  function loadCreds() {
+    return {
+      jwt: localStorage.getItem(STORE_JWT) || "",
+      token: localStorage.getItem(STORE_TOKEN) || "",
+    };
+  }
+
+  function renderRequest(req) {
+    request = req;
+    $("resource").textContent = req.url || "—";
+    $("method").textContent = req.method || "GET";
+    $("price").textContent = req.price ? req.price + " USDC" : "see 402";
+  }
+
+  // The opener sends the call it wants made. Only the window that opened this
+  // popup can reach it, and the URL is displayed above before anything is spent.
+  window.addEventListener("message", function (event) {
+    if (openerOrigin && event.origin !== openerOrigin) return;
+    var data = event.data;
+    if (!data || data.source !== "apiosk-webmcp" || data.type !== "request") return;
+    renderRequest(data.request || {});
+  });
+
+  // Only the connect token is required. A funded managed wallet bound to that
+  // token settles on its own (see payment_flow.rs — the connect-token branch
+  // runs before, and independently of, any buyer session). The session token is
+  // the optional extra that unlocks the credits rail as a fallback.
+  var creds = loadCreds();
+  if (!creds.token) {
+    $("creds").hidden = false;
+    status("Paste your connect token once; it stays on this origin.");
+  }
+
+  $("cancel").addEventListener("click", function () {
+    reply({ type: "cancelled" });
+    window.close();
+  });
+
+  $("pay").addEventListener("click", function () {
+    if (!request || !request.url) {
+      status("Nothing to pay for yet.", true);
+      return;
+    }
+
+    var jwt = $("jwt").value.trim() || loadCreds().jwt;
+    var token = $("token").value.trim() || loadCreds().token;
+    if (!token) {
+      $("creds").hidden = false;
+      status("A connect token is required.", true);
+      return;
+    }
+    localStorage.setItem(STORE_TOKEN, token);
+    if (jwt) localStorage.setItem(STORE_JWT, jwt);
+
+    $("pay").disabled = true;
+    status("Calling…");
+
+    var options = {
+      method: request.method || "GET",
+      headers: {},
+    };
+
+    // Header parameters the endpoint documents (X-Client-Id, a trace id) reach
+    // us from the opener, because the same call has to carry them whether it is
+    // paid here or answered without a 402 on the opener's own page.
+    //
+    // Copied under a blocklist, and copied FIRST, so the two lines below always
+    // win: the opener is a provider's page, and the connect token and session
+    // JWT are the buyer's. Nothing the page sends may name, shadow or forge a
+    // credential header — that is the whole reason this window exists on the
+    // gateway origin instead of the call being made over there.
+    var supplied = request.headers;
+    if (supplied && typeof supplied === "object") {
+      Object.keys(supplied).forEach(function (name) {
+        if (/^(x-apiosk-|authorization$|cookie$|host$)/i.test(name)) return;
+        var value = supplied[name];
+        if (value === undefined || value === null) return;
+        options.headers[name] = String(value);
+      });
+    }
+
+    options.headers["X-Apiosk-Connect-Token"] = token;
+    // Sent only when present: without it the gateway settles from the managed
+    // wallet, with it the credits rail becomes available as a fallback.
+    if (jwt) options.headers["X-Apiosk-User-JWT"] = jwt;
+    if (request.body !== undefined && options.method !== "GET" && options.method !== "HEAD") {
+      options.headers["Content-Type"] = "application/json";
+      options.body = typeof request.body === "string" ? request.body : JSON.stringify(request.body);
+    }
+
+    fetch(request.url, options)
+      .then(function (response) {
+        return response.text().then(function (text) {
+          if (response.status === 402) {
+            status("Still unpaid — the credits rail refused this call.", true);
+            $("pay").disabled = false;
+            reply({ type: "error", status: 402, body: text });
+            return;
+          }
+          reply({ type: "result", status: response.status, ok: response.ok, body: text });
+          status(response.ok ? "Done." : "Call returned " + response.status + ".", !response.ok);
+          setTimeout(function () { window.close(); }, response.ok ? 400 : 2500);
+        });
+      })
+      .catch(function (error) {
+        status("Call failed: " + error, true);
+        $("pay").disabled = false;
+        reply({ type: "error", message: String(error) });
+      });
+  });
+
+  // Tell the opener we are ready to receive the request.
+  reply({ type: "ready" });
+})();
+</script>
+</body>
+</html>

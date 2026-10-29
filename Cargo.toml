@@ -1,6 +1,5 @@
 [workspace]
-members = ["crates/catalog-core", "crates/kvk-accounts", "crates/brightdata-linkedin"]
-exclude = ["legacy-executor"]
+members = ["crates/catalog-core", "crates/kvk-accounts", "crates/brightdata-linkedin", "crates/commerce-runtime", "crates/nl-benefits"]
 resolver = "2"
 
 [package]
@@ -13,12 +12,14 @@ default-run = "apiosk-gateway-v2"
 brightdata-linkedin = { path = "crates/brightdata-linkedin" }
 kvk-accounts = { path = "crates/kvk-accounts" }
 catalog-core = { path = "crates/catalog-core" }
+commerce-runtime = { path = "crates/commerce-runtime" }
 anyhow = "1"
 axum = "0.7"
 tokio = { version = "1", features = ["full"] }
 futures-util = "0.3"
 tokio-stream = "0.1"
 tower-http = { version = "0.5", features = ["cors", "trace"] }
+tower = { version = "0.4", features = ["util", "limit"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
 sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json"] }
 serde = { version = "1", features = ["derive"] }
@@ -56,6 +57,3 @@ strip = "none"
 strip = true
 lto = "thin"
 codegen-units = 1
-
-[dev-dependencies]
-tower = { version = "0.4", features = ["util", "limit"] }

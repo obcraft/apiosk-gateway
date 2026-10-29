@@ -1,0 +1,81 @@
+[package]
+name = "commerce-runtime"
+version = "0.1.0"
+edition = "2021"
+publish = false
+autobins = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+nl-benefits = { path = "../nl-benefits" }
+brightdata-linkedin = { path = "../brightdata-linkedin" }
+kvk-accounts = { path = "../kvk-accounts" }
+# Validating a bound value against the `pattern` its provider published, so a
+# company name never reaches a field documented as eight digits. Already in the
+# lock file as a transitive dependency, so naming it here compiles nothing new.
+# See `request_binding::matches_pattern` for why an unreadable pattern passes.
+regex = "1"
+# Web framework
+axum = "0.7"
+futures-util = "0.3"  # streams for the SSE response of /v1/ask
+tokio = { version = "1", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+# Byte-counting body wrapper for telemetry (matches axum 0.7's http-body 1.0)
+http-body = "1"
+bytes = "1"
+
+# HTTP client for proxying
+reqwest = { version = "0.12", features = ["rustls-tls", "json", "stream"], default-features = false }
+url = "2"
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "bigdecimal"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+pem = "1.1"
+simple_asn1 = "0.6"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bigdecimal = { version = "0.4", features = ["serde"] }
+
+# Caching
+moka = { version = "0.12", features = ["future"] }
+
+# Configuration
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry"] }
+sentry = { version = "0.48.3", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "tower", "tower-http", "tracing"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# x402 payment protocol (we use x402-rs directly for dynamic proxy, not x402-axum)
+
+# Base64 for decoding payment response
+base64 = "0.22"
+hex = "0.4"
+sha2 = "0.10"
+
+# Wallet signature verification for management auth
+ethers-core = "2"
+# The `ethers` umbrella crate (with `abigen`) is gone with the ApioskSettlement
+# and ApioskOfframpExecutor contract bindings. Nothing in this binary calls a
+# contract any more: the treasury signs EIP-3009 authorisations for a provider's
+# own 402 and never sends a transaction, so signing (`ethers-signers`) and the
+# primitive types (`ethers-core`) are the whole of what is needed.
+ethers-signers = { version = "2", default-features = false }
+ring = "0.17"
+roxmltree = "=0.20.0"
+
+[dev-dependencies]
+dotenvy = "0.15"

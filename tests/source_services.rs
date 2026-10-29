@@ -34,7 +34,7 @@ async fn start_api(pool: &PgPool) -> Api {
     let app = router(ServerState {
         engine,
         auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: origin.into(), publishable_key: "fixture".into() }),
-        permits: Arc::new(Semaphore::new(4)), executor_compat: None,
+        permits: Arc::new(Semaphore::new(4)), commerce: None,
     }, "http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());

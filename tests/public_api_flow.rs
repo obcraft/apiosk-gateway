@@ -44,9 +44,38 @@ async fn model(State(f): State<Arc<Fixture>>, Json(body): Json<Value>) -> Json<V
     f.plans.fetch_add(1, Ordering::SeqCst);
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("answer_operations").is_some() {
-        let source = &input["sources"][0];
-        let pointer = if source["document"]["data"]["accounts"].is_string() { "/data/accounts" } else { "/data/companies/0/id" };
-        return Json(json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The registry reports {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":pointer}]}],"limitations":[]}).to_string()}}]}));
+        // The real analysis contract requires evidence for every supplied
+        // source, including both providers in the company-profile fixture.
+        let sources = input["sources"].as_array().unwrap();
+        let indexed = sources.iter().all(|source| source["records"].is_array());
+        let observations: Vec<Value> = sources.iter().map(|source| {
+            let evidence = if indexed {
+                let field = source["records"].as_array().unwrap().iter().find_map(|record| {
+                    record["fields"].as_array().unwrap().iter().find(|field| {
+                        field["id"].is_string() && (field["field"] == "accounts"
+                            || (record["path"] == "/data/companies/0" && field["field"] == "id"))
+                    })
+                }).expect("supplied fixture account or company identifier evidence");
+                json!({"fact_id":field["id"]})
+            } else {
+                let pointer = if source["document"]["data"]["accounts"].is_string() { "/data/accounts" } else { "/data/companies/0/id" };
+                json!({"result_ref":source["result_ref"],"pointer":pointer})
+            };
+            json!({"text":"The registry reports {{a}}.","evidence":[evidence]})
+        }).collect();
+        let mut answer = json!({"observations":observations,"limitations":[]});
+        if indexed {
+            // The supplied company-profile requirements are answered by the
+            // fixture's cited registry identifiers, never invented pointers.
+            let answered_by: Vec<String> = (1..=observations.len()).map(|i| format!("o{i}")).collect();
+            answer["requirement_status"] = json!(input["requested_parts"].as_array().unwrap().iter().map(|part| {
+                json!({"requirement_id":part["id"],"status":"answered","answered_by":answered_by,"reason":null})
+            }).collect::<Vec<_>>());
+            answer["follow_up_question"] = Value::Null;
+            answer["presentation"] = json!({"kind":"text"});
+            answer["source_gaps"] = json!([]);
+        }
+        return Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}));
     }
     let ambiguous = input["question"] == "Accounts for Ambiguous";
     let missing = input["question"] == "Search with missing company name";
@@ -134,7 +163,7 @@ impl Api {
     }
 }
 
-async fn start_api(pool: &PgPool, base: &str, shared_ask: bool) -> (Api, Arc<Engine>) {
+async fn start_api(pool: &PgPool, base: &str, shared_ask: bool, commerce: Router) -> (Api, Arc<Engine>) {
     let http = reqwest::Client::new();
     let store = Store { pool: pool.clone() };
     let mut parser = Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into())
@@ -156,7 +185,7 @@ async fn start_api(pool: &PgPool, base: &str, shared_ask: bool) -> (Api, Arc<Eng
         engine,
         auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base.to_owned(), publishable_key: "fixture".into() }),
         permits: Arc::new(Semaphore::new(8)),
-        executor_compat: Some(apiosk_gateway_v2::compat::ExecutorCompat::new(http.clone(), base.to_owned()).unwrap()),
+        commerce: Some(apiosk_gateway_v2::compat::CommerceService::new(commerce)),
     };
     let app = router(state, "http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -208,8 +237,9 @@ async fn organisation_key_public_api() {
         .with_state(fixture.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
+    let commerce = mock.clone();
     tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
-    let (api, shared) = start_api(&pool, &base, false).await;
+    let (api, shared) = start_api(&pool, &base, false, commerce.clone()).await;
 
     // ── Authentication and scopes ────────────────────────────────────────
     let (status, body) = api.get("/v2/balance", "apk_org_live_unknown").await;
@@ -444,7 +474,7 @@ async fn organisation_key_public_api() {
     assert_eq!((status, paused["status"].as_str()), (200, Some("needs_selection")), "{paused}");
     assert_eq!(cost(&paused["usage"]["cost"]), 23);
     assert_eq!(fixture.provider.load(Ordering::SeqCst), before + 1);
-    let (api, restarted) = start_api(&pool, &base, false).await;
+    let (api, restarted) = start_api(&pool, &base, false, commerce.clone()).await;
     let (_, paused) = api.get(&format!("/v2/runs/{id}"), KEY).await;
     let continuation = &paused["continuation"];
     assert_eq!(continuation["actions"][0]["kind"], "select_entity");
@@ -573,7 +603,7 @@ async fn organisation_key_public_api() {
         .bind(sirenic_endpoint).execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model,produces,adapter_version) SELECT $1,$2,'company.eu-registry-search',version,'active',requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,now(),effect,price_model,produces,adapter_version FROM public.capability_execution_contracts WHERE capability_slug='company.search' LIMIT 1")
         .bind(Uuid::new_v4()).bind(sirenic_endpoint).execute(&pool).await.unwrap();
-    let (pilot, _) = start_api(&pool, &base, true).await;
+    let (pilot, _) = start_api(&pool, &base, true, commerce.clone()).await;
     let before_capability = fixture.provider.load(Ordering::SeqCst);
     let input = json!({"capability":"eu.company.profile","country":"NL","input":{"company.name":"Example"}});
     let (status, resolved) = pilot.post("/v2/capabilities/resolve", READ_ONLY, input.clone(), None).await;

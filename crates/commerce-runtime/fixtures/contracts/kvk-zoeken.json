@@ -1,0 +1,31 @@
+{
+  "capability_slug": "company_registry.search",
+  "version": 1,
+  "cardinality": "many",
+  "identifies": "company.registration.nl.kvk",
+  "requires": [
+    {
+      "fact_type": "company.name",
+      "subject_role": "subject",
+      "optional": false
+    }
+  ],
+  "input_map": {
+    "company.name": {
+      "in": "query",
+      "name": "naam"
+    }
+  },
+  "output_map": {
+    "base": "$.resultaten[*]",
+    "produces": {
+      "company.registration.nl.kvk": {
+        "path": "$.kvkNummer"
+      },
+      "company.name": {
+        "path": "$.naam"
+      }
+    }
+  },
+  "max_fan_out": 1
+}

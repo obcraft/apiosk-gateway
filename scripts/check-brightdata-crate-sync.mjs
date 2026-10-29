@@ -1,19 +1,21 @@
-import { readdir, readFile } from 'node:fs/promises';
-const source = new URL('../crates/brightdata-linkedin/', import.meta.url);
-const mirror = new URL('../legacy-executor/crates/brightdata-linkedin/', import.meta.url);
-async function files(root, prefix = '') {
-  const result = [];
-  for (const entry of await readdir(new URL(prefix, root), { withFileTypes: true })) {
-    const name = `${prefix}${entry.name}`;
-    if (entry.isDirectory()) result.push(...await files(root, `${name}/`));
-    else result.push(name);
-  }
-  return result.sort();
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('..', import.meta.url));
+const canonical = realpathSync(new URL('../crates/brightdata-linkedin/', import.meta.url));
+const metadata = JSON.parse(execFileSync('cargo', [
+  'metadata', '--no-deps', '--format-version', '1', '--locked', '--offline',
+], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] }));
+const shared = metadata.packages.find(pkg => pkg.name === 'brightdata-linkedin');
+assert(shared && metadata.workspace_members.includes(shared.id), 'Bright Data must be a workspace member');
+assert.equal(realpathSync(dirname(shared.manifest_path)), canonical, 'Unexpected Bright Data crate location');
+for (const name of ['apiosk-gateway-v2', 'commerce-runtime']) {
+  const consumer = metadata.packages.find(pkg => pkg.name === name);
+  const dependency = consumer?.dependencies.find(dep => dep.name === 'brightdata-linkedin');
+  assert(dependency?.path, `${name} must use the shared Bright Data path dependency`);
+  assert.equal(realpathSync(dependency.path), canonical, `${name} must use the canonical Bright Data crate`);
 }
-const expected = await files(source);
-if (JSON.stringify(expected) !== JSON.stringify(await files(mirror))) throw new Error('Bright Data crate mirror file list differs');
-for (const name of expected) {
-  const [a, b] = await Promise.all([readFile(new URL(name, source)), readFile(new URL(name, mirror))]);
-  if (!a.equals(b)) throw new Error(`Bright Data crate mirror differs: ${name}`);
-}
-console.log(`PASS Bright Data shared crate: ${expected.length} identical files in gateway and executor`);
+console.log('PASS: gateway and commerce-runtime use the same Bright Data workspace crate');

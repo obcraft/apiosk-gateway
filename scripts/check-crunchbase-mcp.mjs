@@ -15,8 +15,8 @@ const url=new URL(database);
 if(url.hostname!=='db.jgjoiyqdyypouskftzeq.supabase.co')throw Error('Unexpected project database');
 if(name==='--adapter-reference'){
  url.hostname='aws-1-eu-west-1.pooler.supabase.com';url.port='5432';url.username='postgres.jgjoiyqdyypouskftzeq';url.pathname='/postgres';
- try{execFileSync('cargo',['test','--offline','--bin','apiosk-gateway','proxy::crunchbase::tests::live_reference_uses_vault_and_the_real_adapter','--','--ignored','--exact'],{
-  cwd:fileURLToPath(new URL('../legacy-executor',import.meta.url)),env:{...process.env,APIOSK_CRUNCHBASE_ACCEPTANCE_DATABASE_URL:url.href},stdio:['ignore','pipe','pipe']});}
+ try{execFileSync('cargo',['test','--offline','-p','commerce-runtime','--lib','proxy::crunchbase::tests::live_reference_uses_vault_and_the_real_adapter','--','--ignored','--exact'],{
+  cwd:fileURLToPath(new URL('..',import.meta.url)),env:{...process.env,APIOSK_CRUNCHBASE_ACCEPTANCE_DATABASE_URL:url.href},stdio:['ignore','pipe','pipe']});}
  catch(error){
   const log=String(error.stdout||'')+String(error.stderr||'');
   const stage=log.match(/operator database connection failed: (io|tls|database|pool_timeout|configuration)/)?.[0]||['Vault credentials available','official adapter reference succeeds','could not compile'].find(s=>log.includes(s))||'test process';

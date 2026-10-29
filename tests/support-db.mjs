@@ -7,6 +7,10 @@ import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 const db=new PGlite();await db.waitReady;
 await db.exec('CREATE ROLE anon; CREATE ROLE authenticated;');
+// Inbound-trigger storage references the App-owned user identity. The local
+// runtime fixture needs its primary key for that foreign key, not live users
+// or Supabase authentication services.
+await db.exec('CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);');
 // The durable-flow fixture needs only the v2 runtime schema. Provider-onboarding
 // migrations target the complete production catalogue and deliberately assert
 // that production-owned provider rows already exist; replaying those into this

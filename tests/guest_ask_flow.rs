@@ -85,7 +85,7 @@ async fn guest_preview_login_approval_and_retry_execute_the_original_question_on
         executor:Executor { store,http:http.clone(),supabase_url:upstream.clone(),enabled:true },
     });
     let app = router(ServerState { engine,auth:Arc::new(Auth { pool:pool.clone(),http:http.clone(),supabase_url:upstream,publishable_key:"fixture".into() }),
-        permits:Arc::new(Semaphore::new(16)),executor_compat:None },"http://localhost:5173").unwrap();
+        permits:Arc::new(Semaphore::new(16)),commerce:None },"http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}",listener.local_addr().unwrap());
     let app_handle = tokio::spawn(async move { axum::serve(listener,app).await.unwrap() });

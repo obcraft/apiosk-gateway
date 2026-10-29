@@ -129,7 +129,7 @@ async fn one_trace_follows_a_question_without_content_or_credentials() {
         engine,
         auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base.clone(), publishable_key: "fixture".into() }),
         permits: Arc::new(tokio::sync::Semaphore::new(8)),
-        executor_compat: None,
+        commerce: None,
     }, "http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let gateway = format!("http://{}", listener.local_addr().unwrap());

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import {source,tools} from './crunchbase-mcp-catalog.mjs';
 const fixture=JSON.parse(await fs.readFile(new URL('../tests/fixtures/crunchbase/official-mcp.json',import.meta.url)));
-const records=JSON.parse(await fs.readFile(new URL('../legacy-executor/tests/fixtures/crunchbase-mcp-live.json',import.meta.url)));
+const records=JSON.parse(await fs.readFile(new URL('../crates/commerce-runtime/tests/fixtures/crunchbase-mcp-live.json',import.meta.url)));
 const q=v=>`'${String(v).replaceAll("'","''")}'`;
 const j=v=>`${q(JSON.stringify(v))}::jsonb`;
 const sql=[`-- Activate only after deploying the authenticated, public-scope MCP adapter.

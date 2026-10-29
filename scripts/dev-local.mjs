@@ -25,7 +25,7 @@ export function localConfiguration(workspace = root, inherited = process.env) {
   const app = { ...envFile(path.join(workspace, 'app/.env')), ...envFile(path.join(workspace, 'app/.env.local')), ...inherited };
   const mcp = { ...envFile(path.join(workspace, 'mcp/.env')), ...envFile(path.join(workspace, 'mcp/.env.v2.local')), ...inherited };
   const modelKey = gateway.OPENROUTER_API_KEY || gateway.INTENT_API_KEY;
-  const required = ['DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'STATE_SIGNING_KEY'];
+  const required = ['DATABASE_URL', 'EXECUTOR_DATABASE_URL', 'SUPABASE_URL', 'SUPABASE_PUBLISHABLE_KEY', 'STATE_SIGNING_KEY'];
   for (const key of required) {
     if (!gateway[key]?.trim()) throw new Error(`Missing ${key}. Set it in gateway/.env.`);
   }
@@ -265,7 +265,6 @@ async function main() {
     if (!existsSync(path.join(root, dir, 'node_modules'))) throw new Error(`Install dependencies first: cd "${path.join(root, dir)}" && npm ci`);
   }
   const config = localConfiguration();
-  if (config.gateway.EMBEDDED_EXECUTOR_ORIGIN) throw new Error('EMBEDDED_EXECUTOR_ORIGIN is set. This launcher uses hosted execution; unset that local override or start its executor separately.');
   if (args.has('--execute') && args.has('--smoke')) throw new Error('--smoke cannot be combined with --execute.');
   if (args.has('--recurring') && !args.has('--execute')) throw new Error('--recurring requires --execute.');
   if (args.has('--recurring') && !config.gateway.RECURRING_WORKER_SECRET?.trim()) {

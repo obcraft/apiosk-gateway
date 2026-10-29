@@ -280,9 +280,9 @@ async fn external_selected(state: &ServerState, headers: &HeaderMap, ctx: &AuthC
     let view = match saved {
         Some(view) => view,
         None => {
-            let directory = state.executor_compat.as_ref()
+            let directory = state.commerce.as_ref()
                 .ok_or_else(|| problem(StatusCode::SERVICE_UNAVAILABLE, "source_unavailable", "Source pricing is temporarily unavailable."))?;
-            let offer = external::resolve(&state.engine.executor.http, directory.directory_origin(), &url, &method, &query).await
+            let offer = external::resolve(directory, &url, &method, &query).await
                 .map_err(|_| problem(StatusCode::UNPROCESSABLE_ENTITY, "source_unavailable", "This selection is no longer executable."))?;
             let bound = external::validate_input(&offer, &input)
                 .map_err(|e| problem(StatusCode::UNPROCESSABLE_ENTITY, "invalid_input", &e.to_string()))?;

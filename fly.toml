@@ -26,11 +26,9 @@ kill_timeout = "120s"
   V2_SINGLE_CALL_MODE = "0"
   ASK_ENGINE_V2 = "true"
   WORKSPACE_CONTEXT_ENABLED = "true"
-  EMBEDDED_EXECUTOR_ORIGIN = "http://127.0.0.1:8080"
-  EMBEDDED_EXECUTOR_PORT = "8080"
   APIOSK_ENGINE_MODEL = "qwen/qwen3-30b-a3b-instruct-2507"
-  # The one embedded executor process shares the 60-connection database with
-  # v2; it gets 4 request + 1 log + 2 telemetry connections.
+  # Native commerce shares v2's process while retaining its separate database
+  # role and budget: 4 request + 1 log + 2 telemetry connections.
   GATEWAY_DB_POOL_SIZE = "4"
   GATEWAY_LOG_POOL_SIZE = "1"
 

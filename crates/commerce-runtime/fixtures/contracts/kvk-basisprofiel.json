@@ -1,0 +1,73 @@
+{
+  "capability_slug": "company.registry-profile",
+  "version": 1,
+  "cardinality": "one",
+  "identifies": "company.registration.nl.kvk",
+  "requires": [
+    {
+      "fact_type": "company.registration.nl.kvk",
+      "subject_role": "subject",
+      "optional": false
+    }
+  ],
+  "input_map": {
+    "company.registration.nl.kvk": {
+      "in": "path_append",
+      "name": "kvkNummer"
+    }
+  },
+  "output_map": {
+    "base": "$",
+    "produces": {
+      "company.registration.nl.kvk": {
+        "path": "$.kvkNummer"
+      },
+      "company.name": {
+        "path": "$.naam"
+      },
+      "company.profile": {
+        "fields": {
+          "legal_name": {
+            "path": "$.statutaireNaam"
+          },
+          "trade_names": {
+            "path": "$.handelsnamen[*].naam",
+            "collect": true
+          },
+          "legal_form": {
+            "path": "$._embedded.eigenaar.rechtsvorm"
+          },
+          "founded_on": {
+            "path": "$.materieleRegistratie.datumAanvang"
+          },
+          "sbi_codes": {
+            "path": "$.sbiActiviteiten[*].sbiCode",
+            "collect": true
+          },
+          "employee_count": {
+            "path": "$.totaalWerkzamePersonen",
+            "cast": "number"
+          }
+        }
+      },
+      "address.postal": {
+        "fields": {
+          "street": {
+            "path": "$._embedded.hoofdvestiging.adressen[0].straatnaam"
+          },
+          "house_number": {
+            "path": "$._embedded.hoofdvestiging.adressen[0].huisnummer",
+            "cast": "string"
+          },
+          "postcode": {
+            "path": "$._embedded.hoofdvestiging.adressen[0].postcode"
+          },
+          "city": {
+            "path": "$._embedded.hoofdvestiging.adressen[0].plaats"
+          }
+        }
+      }
+    }
+  },
+  "max_fan_out": 1
+}

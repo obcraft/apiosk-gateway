@@ -198,7 +198,7 @@ test('local overrides reconnect App and MCP without giving them Gateway secrets'
   const dir = mkdtempSync(path.join(os.tmpdir(), 'apiosk-dev-config-'));
   try {
     for (const folder of ['gateway', 'app', 'mcp']) mkdirSync(path.join(dir, folder));
-    writeFileSync(path.join(dir, 'gateway/.env'), 'DATABASE_URL=postgresql://test:test@localhost/test\nSUPABASE_URL=https://project.example\nSUPABASE_PUBLISHABLE_KEY=public\nSTATE_SIGNING_KEY=' + 'x'.repeat(32) + '\nINTENT_API_KEY=server-only-model-key\nTREASURY_PRIVATE_KEY=server-only-wallet\nV2_EXECUTION_ENABLED=1\n');
+    writeFileSync(path.join(dir, 'gateway/.env'), 'DATABASE_URL=postgresql://test:test@localhost/test\nEXECUTOR_DATABASE_URL=postgresql://commerce:test@localhost/test\nSUPABASE_URL=https://project.example\nSUPABASE_PUBLISHABLE_KEY=public\nSTATE_SIGNING_KEY=' + 'x'.repeat(32) + '\nINTENT_API_KEY=server-only-model-key\nTREASURY_PRIVATE_KEY=server-only-wallet\nV2_EXECUTION_ENABLED=1\n');
     writeFileSync(path.join(dir, 'app/.env.local'), 'VITE_GATEWAY_V2_URL=https://old.example\nAPIOSK_DEV_GATEWAY_TARGET=https://old.example\n');
     const c = localConfiguration(dir, {});
     assert.equal(c.app.VITE_GATEWAY_V2_URL, 'http://127.0.0.1:8082');

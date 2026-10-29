@@ -391,7 +391,7 @@ async fn saved_lookup_and_batched_history_preserve_results() {
             pool: pool.clone(), http: reqwest::Client::new(),
             supabase_url: "http://127.0.0.1:1".into(), publishable_key: "fixture".into(),
         }),
-        permits: Arc::new(tokio::sync::Semaphore::new(4)), executor_compat: None,
+        permits: Arc::new(tokio::sync::Semaphore::new(4)), commerce: None,
     }, "http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());

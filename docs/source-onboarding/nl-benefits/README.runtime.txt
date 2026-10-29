@@ -1,11 +1,12 @@
 Dutch benefits runtime APIs - 2026.1
 =================================
 
-Implemented in legacy-executor/crates/nl-benefits and connected to the existing
-executor preflight, settlement and saved-result flow in proxy/forward.rs.
+Implemented in crates/nl-benefits and connected to native commerce preflight,
+settlement and saved-result flow in crates/commerce-runtime/src/proxy/forward.rs.
+Both crates belong to the gateway workspace and are linked into one server.
 No separate public service or billing bypass. Nibud is deferred and unused.
 
-STATUS (2026-10-13)
+HISTORICAL STATUS (2026-10-13; not evidence of the current deployed revision)
 - Native implementation built; full executor compiles.
 - Registered in production by migration 20261013181301_onboard_nl_benefits_runtime.
 - Two sources, five POST endpoints, five typed execution contracts and discovery
@@ -103,8 +104,12 @@ VERIFICATION
   Five native samples pass the actual catalog-core extraction validator.
 
 REPRODUCE (from gateway)
-  cargo test --offline --manifest-path legacy-executor/crates/nl-benefits/Cargo.toml
-  cargo build --offline --manifest-path legacy-executor/crates/nl-benefits/Cargo.toml --example request
+Run the generator in a disposable checkout when comparing the recorded source
+bundles: it also renders the historical registration migration. Do not publish
+changes to that already-applied migration; use a new migration for new behavior.
+
+  cargo test --locked --offline -p nl-benefits
+  cargo build --locked --offline -p nl-benefits --example request
   node docs/source-onboarding/nl-benefits/build-runtime.mjs
   node docs/source-onboarding/nl-benefits/test-runtime.mjs
   node docs/source-onboarding/nl-benefits/test-catalogue.mjs
@@ -115,5 +120,5 @@ The request example binary reads JSON on stdin and invokes the same native
 dispatcher without billing. Use only synthetic finances in acceptance tests.
 The generated migration is an already-applied immutable registration snapshot;
 subsequent schema/rate changes require a NEW migration, not history replacement.
-Before activation: deploy the executor, verify real Apiosk routing/response
+Before activation: deploy the single gateway image, verify real Apiosk routing/response
 extraction and authorization, then validate/activate the reviewed source records.

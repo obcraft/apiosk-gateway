@@ -915,7 +915,7 @@ async fn durable_flow_and_authorization_boundary() {
                 publishable_key: "fixture".into(),
             }),
             permits: Arc::new(tokio::sync::Semaphore::new(4)),
-            executor_compat: None,
+            commerce: None,
         },
         "http://localhost:5173",
     )

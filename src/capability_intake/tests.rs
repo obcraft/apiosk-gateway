@@ -161,17 +161,12 @@ async fn ungrounded_inputs_get_one_transported_model_correction_and_keep_the_sup
     for corrected in [true, false] {
         let mut second = invalid.clone();
         if corrected {second["capabilities"][0]["inputs"] = json!(["sector","country"]);}
-        let mut replies = VecDeque::from([invalid.clone(),second]);
-        if corrected {
-            replies.push_back(json!({"requirements":[{"quote":question,
-                "capabilities":[{"index":0,"outputs":["records"]}],"operations":[],"format":null,"issue":null}]}));
-        }
-        let queue = Arc::new(Mutex::new(replies));
+        let queue = Arc::new(Mutex::new(VecDeque::from([invalid.clone(),second])));
         let calls = Arc::new(Mutex::new(Vec::new()));
         let capture = calls.clone();
         let app = Router::new().route("/",post(move |Json(body):Json<Value>| {
             capture.lock().unwrap().push(body);
-            let next = queue.lock().unwrap().pop_front().expect("two parse attempts and a successful scope review");
+            let next = queue.lock().unwrap().pop_front().expect("only two parse attempts are allowed");
             async move {
                 let event = json!({"choices":[{"delta":{"content":next.to_string()}}]});
                 ([(axum::http::header::CONTENT_TYPE,"text/event-stream")],format!("data: {event}\n\ndata: [DONE]\n\n"))
@@ -183,10 +178,15 @@ async fn ungrounded_inputs_get_one_transported_model_correction_and_keep_the_sup
         let client = crate::ask_v2::Client::new(reqwest::Client::new(),"fixture".into(),"fixture".into()).with_local_endpoint(endpoint).unwrap();
         let result = client.interpret(question,&[]).await;
         let calls = calls.lock().unwrap();
-        assert_eq!(calls.len(),if corrected {3} else {2});
+        assert_eq!(calls.len(),2);
+        for call in calls.iter() {
+            assert_eq!(call["messages"][1]["content"],question,"the supplied question must survive the correction unchanged");
+        }
         assert!(calls[1]["messages"][0]["content"].as_str().unwrap().contains("input concepts require supplied identifiers or the literal subject: record_type"));
         if corrected {
-            let parsed = &result.unwrap()["parsed_request"];
+            let result = result.unwrap();
+            assert_eq!(result["attempts"],2);
+            let parsed = &result["parsed_request"];
             assert_eq!(parsed["subjects"][0]["identifiers"],invalid["subjects"][0]["identifiers"]);
             assert_eq!(parsed["capabilities"][0]["outputs"],invalid["capabilities"][0]["outputs"]);
             assert_eq!(parsed["capabilities"][0]["inputs"],json!(["sector","country"]));

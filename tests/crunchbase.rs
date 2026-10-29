@@ -19,7 +19,7 @@ fn catalog() -> Catalog {
 #[test]
 fn official_live_company_people_and_funding_are_preserved() {
     let c=Catalog::build(serde_json::from_str(include_str!("fixtures/crunchbase/official-mcp.json")).unwrap());
-    let records:Vec<Value>=serde_json::from_str(include_str!("../legacy-executor/tests/fixtures/crunchbase-mcp-live.json")).unwrap();
+    let records:Vec<Value>=serde_json::from_str(include_str!("../crates/commerce-runtime/tests/fixtures/crunchbase-mcp-live.json")).unwrap();
     for record in &records {
         let envelope=json!({"source":"Crunchbase","transport":"official_mcp","tool":record["name"],"data":record["data"],"retrieved_at":record["at"]});
         for service in c.services.iter().filter(|s| s.path==format!("/mcp/{}",record["name"].as_str().unwrap())

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-const publicSchema=JSON.parse(fs.readFileSync(new URL('../legacy-executor/src/proxy/crunchbase/public-schema.json',import.meta.url),'utf8'));
+const publicSchema=JSON.parse(fs.readFileSync(new URL('../crates/commerce-runtime/src/proxy/crunchbase/public-schema.json',import.meta.url),'utf8'));
 // Documented read-only MCP tools, staged until authenticated discovery and
 // entitlement/pricing validation. One source: never create a Jina listing.
 export const source='apimarket-magicapi-crunchbase-bbcca0a6';

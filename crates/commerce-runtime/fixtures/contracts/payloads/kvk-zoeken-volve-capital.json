@@ -1,0 +1,47 @@
+{
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api.kvk.nl/api/v2/zoeken?naam=Volve Capital&pagina=1&resultatenperpagina=10"
+    }
+  ],
+  "pagina": 1,
+  "totaal": 2,
+  "resultaten": [
+    {
+      "naam": "Volve Capital B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Heemstede",
+          "straatnaam": "Narcissenlaan"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000052675661"
+        }
+      ],
+      "kvkNummer": "86717162",
+      "vestigingsnummer": "000052675661"
+    },
+    {
+      "naam": "Volve Capital B.V.",
+      "type": "rechtspersoon",
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/86717162"
+        }
+      ],
+      "kvkNummer": "86717162"
+    }
+  ],
+  "resultatenPerPagina": 10
+}

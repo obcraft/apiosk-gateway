@@ -1,0 +1,82 @@
+[
+  {
+    "name": "vat.eu.validate",
+    "source": "vies",
+    "method": "GET",
+    "url": "https://ec.europa.eu/taxation_customs/vies/rest-api/ms/NL/vat/004495445B01",
+    "body": {}
+  },
+  {
+    "name": "vat.eu.check",
+    "source": "vies",
+    "method": "POST",
+    "url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-vat-number",
+    "body": {
+      "countryCode": "NL",
+      "vatNumber": "004495445B01"
+    }
+  },
+  {
+    "name": "vat.eu.service-status",
+    "source": "vies",
+    "method": "GET",
+    "url": "https://ec.europa.eu/taxation_customs/vies/rest-api/check-status",
+    "body": {}
+  },
+  {
+    "name": "government.staatscourant.search",
+    "source": "koop",
+    "method": "GET",
+    "url": "https://repository.overheid.nl/sru?q=water&journal=Staatscourant&limit=2",
+    "body": {}
+  },
+  {
+    "name": "government.cvdr.search",
+    "source": "koop",
+    "method": "GET",
+    "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=cvdr&q=water&limit=2",
+    "body": {}
+  },
+  {
+    "name": "government.bwb.search",
+    "source": "koop",
+    "method": "GET",
+    "url": "https://zoekservice.overheid.nl/sru/Search?x-connection=BWB&q=water&limit=2",
+    "body": {}
+  },
+  {
+    "name": "eu_law.sparql.select",
+    "source": "eurlex-cellar",
+    "method": "GET",
+    "url": "https://publications.europa.eu/webapi/rdf/sparql?query=SELECT+%3Fs+WHERE+%7B+%3Fs+%3Fp+%3Fo+%7D+LIMIT+2",
+    "body": {}
+  },
+  {
+    "name": "eu_law.celex.metadata",
+    "source": "eurlex-cellar",
+    "method": "GET",
+    "url": "https://publications.europa.eu/resource/celex/32016R0679",
+    "body": {}
+  },
+  {
+    "name": "eu_funding.calls.search",
+    "source": "eu-funding-tenders",
+    "method": "POST",
+    "url": "https://api.tech.ec.europa.eu/search-api/prod/rest/search?q=energy&limit=2&language=en",
+    "body": {}
+  },
+  {
+    "name": "planning.pdok.feature-info",
+    "source": "pdok-ruimtelijke-plannen",
+    "method": "GET",
+    "url": "https://service.pdok.nl/kadaster/ruimtelijke-plannen/wms/v1_0?BBOX=120900%2C487200%2C121000%2C487300&LAYERS=enkelbestemming",
+    "body": {}
+  },
+  {
+    "name": "soil.bodemloket.feature-info",
+    "source": "bodemloket",
+    "method": "GET",
+    "url": "https://gis.gdngeoservices.nl/standalone/services/blk_gdn/lks_blk_rd_v1/MapServer/WMSServer?BBOX=120900%2C487200%2C121000%2C487300&LAYERS=Beschikbaarheid_gegevens",
+    "body": {}
+  }
+]

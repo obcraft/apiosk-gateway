@@ -61,7 +61,7 @@ async fn recorded_model_fixture(
     planner_reply: Option<Value>,
 ) -> ModelFixture {
     use axum::response::IntoResponse;
-    use axum::{routing::post, Json, Router};
+    use axum::{routing::{get, post}, Json, Router};
     let question = question.to_owned();
     let has_planner = planner_reply.is_some();
     let calls = Arc::new(Mutex::new(Vec::new()));
@@ -101,9 +101,12 @@ async fn recorded_model_fixture(
                     .into_response()
             }
         }),
-    );
+    ).route("/bazaar", get(|| async {
+        Json(serde_json::json!({"resources":[]}))
+    }));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint = format!("http://{}/", listener.local_addr().unwrap());
+    let bazaar_endpoint = format!("{endpoint}bazaar");
     let server = tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
     });
@@ -125,7 +128,10 @@ async fn recorded_model_fixture(
         if has_planner { "fixture-key".into() } else { String::new() },
         "fixture-planner".into(),
     )
-    .with_ask_v2(client);
+    .with_ask_v2(client)
+    // Recorded source contracts must not be supplemented by live discovery.
+    .with_local_bazaar(bazaar_endpoint)
+    .unwrap();
     ModelFixture {
         parser,
         calls,

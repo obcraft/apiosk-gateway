@@ -1,7 +1,7 @@
 use crate::{
     server_events::task_events,
     auth::{Auth, AuthContext, AuthError, KeyRefusal, Principal},
-    compat::ExecutorCompat,
+    compat::CommerceService,
     engine::Engine,
     protocol::{DiscoverRequest, ExecuteRequest, Response, Status},
     telemetry::Phase,
@@ -37,7 +37,7 @@ pub struct ServerState {
     pub engine: Arc<Engine>,
     pub auth: Arc<Auth>,
     pub permits: Arc<Semaphore>,
-    pub executor_compat: Option<ExecutorCompat>,
+    pub commerce: Option<CommerceService>,
 }
 pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
     let origin: HeaderValue = app_origin.parse()?;
@@ -52,7 +52,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
             axum::http::HeaderName::from_static(crate::telemetry::TRACE_HEADER),
         ])
         .max_age(Duration::from_secs(600));
-    let compat = state.executor_compat.clone();
+    let commerce = state.commerce.clone();
     let mut app = Router::new()
         .route("/.well-known/crunchbase-client.json", get(|| async {
             Json(json!({
@@ -68,10 +68,10 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route(
             "/health",
             get({
-                let compat = compat.clone();
+                let commerce = commerce.clone();
                 move || async move {
-                    let executor = match compat {
-                        Some(proxy) if proxy.healthy().await => "ready",
+                    let executor = match commerce {
+                        Some(service) if service.healthy().await => "ready",
                         Some(_) => "unavailable",
                         None => "external",
                     };
@@ -96,7 +96,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         )
         // Retired App Ask routes. Saved tasks open in Ask's task view and
         // questions go through /v2/ask-v2/*; an old tab is told to reload,
-        // never forwarded to the legacy executor by the fallback.
+        // never forwarded to the native commerce routes by the fallback.
         .route("/v2/requests/:request_id", any(ask_moved))
         .route("/v2/discover", post(discover))
         .route("/v2/link-preview", post(link_preview::preview).layer(DefaultBodyLimit::max(8 * 1024)))
@@ -228,8 +228,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:id/events", get(task_events).layer(
             CorsLayer::new().allow_origin(Any).allow_methods([Method::GET])
         ));
-    if compat.is_some() {
-        app = app.fallback(legacy_fallback);
+    if commerce.is_some() {
+        app = app.fallback(commerce_fallback);
     }
     let telemetry = axum::middleware::from_fn_with_state(state.engine.store.pool.clone(), crate::telemetry::middleware);
     Ok(app.layer(telemetry).with_state(state))
@@ -364,7 +364,7 @@ async fn annual_report(
     }
 }
 
-async fn legacy_fallback(
+async fn commerce_fallback(
     State(state): State<ServerState>,
     OriginalUri(uri): OriginalUri,
     method: Method,
@@ -375,8 +375,8 @@ async fn legacy_fallback(
     if token(&headers).is_ok_and(|t|t.starts_with("apk_")) {
         match caller(&state,&headers).await { Ok(p) if p.workspace.is_none()=>{},Ok(_)=>return failure(StatusCode::FORBIDDEN,"workspace_route_required","Use Gateway v2 for workspace requests."),Err(r)=>return r }
     }
-    match state.executor_compat {
-        Some(proxy) => crate::compat::forward_request(proxy, uri, method, headers, body).await,
+    match state.commerce {
+        Some(service) => crate::compat::forward_request(service, uri, method, headers, body).await,
         None => StatusCode::NOT_FOUND.into_response(),
     }
 }
@@ -964,7 +964,7 @@ mod tests {
             engine,
             auth: Arc::new(Auth { pool, http, supabase_url: "http://127.0.0.1:1".into(), publishable_key: "unused".into() }),
             permits: Arc::new(Semaphore::new(4)),
-            executor_compat: None,
+            commerce: None,
         }, "http://localhost:5173").unwrap();
 
         let response = app.clone().oneshot(axum::http::Request::get("/v2/display-context").body(Body::empty()).unwrap()).await.unwrap();
@@ -992,22 +992,18 @@ mod tests {
     }
 
     /// The App's retired Ask routes answer 410 for every method, and never
-    /// reach the legacy executor that the fallback forwards other paths to.
+    /// reach the native commerce routes that the fallback forwards other paths to.
     #[tokio::test]
-    async fn retired_ask_routes_answer_gone_without_the_legacy_fallback() {
+    async fn retired_ask_routes_answer_gone_without_the_commerce_fallback() {
         use axum::body::Body;
         use std::sync::atomic::{AtomicUsize, Ordering::SeqCst};
         use tower::ServiceExt;
 
         let forwarded = Arc::new(AtomicUsize::new(0));
-        let legacy = Router::new().fallback({
+        let native = Router::new().route("/health", get(|| async { StatusCode::OK })).fallback({
             let forwarded = forwarded.clone();
-            move || async move { forwarded.fetch_add(1, SeqCst); (StatusCode::OK, "legacy executor") }
+            move || async move { forwarded.fetch_add(1, SeqCst); (StatusCode::OK, "native commerce routes") }
         });
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let origin = format!("http://{}", listener.local_addr().unwrap());
-        crate::telemetry::spawn(async move { axum::serve(listener, legacy).await.unwrap() });
-
         // Nothing here may touch the database: the pool never connects.
         let pool = sqlx::postgres::PgPoolOptions::new().connect_lazy("postgresql://unused@127.0.0.1:1/unused").unwrap();
         let http = reqwest::Client::new();
@@ -1024,7 +1020,7 @@ mod tests {
             engine,
             auth: Arc::new(Auth { pool, http: http.clone(), supabase_url: "http://127.0.0.1:1".into(), publishable_key: "unused".into() }),
             permits: Arc::new(Semaphore::new(4)),
-            executor_compat: Some(ExecutorCompat::new(http, origin).unwrap()),
+            commerce: Some(CommerceService::new(native)),
         }, "http://localhost:5173").unwrap();
 
         let request = Uuid::new_v4();
@@ -1048,10 +1044,23 @@ mod tests {
             let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
             assert_eq!(body, json!({"errors":[{"code":"ask_moved","message":"This Ask flow moved. Reload Apiosk."}]}), "{method} {path}");
         }
-        assert_eq!(forwarded.load(SeqCst), 0, "no retired Ask route reaches the legacy executor");
+        assert_eq!(forwarded.load(SeqCst), 0, "no retired Ask route reaches the native commerce routes");
+
+        let health = app.clone().oneshot(axum::http::Request::get("/health").body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(health.status(), StatusCode::OK);
+        let health: serde_json::Value = serde_json::from_slice(&axum::body::to_bytes(health.into_body(), 4096).await.unwrap()).unwrap();
+        assert_eq!(health["payment_executor"], "ready");
+        assert_eq!(health["service"], "apiosk-gateway-v2");
+
+        // The native transport keeps the v2 workspace boundary in front of
+        // account-only commerce handlers; it does not create an auth shortcut.
+        let response = app.clone().oneshot(axum::http::Request::get("/v1/commerce-probe")
+            .header("x-apiosk-workspace", Uuid::new_v4().to_string()).body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_eq!(forwarded.load(SeqCst), 0);
 
         // The fallback itself is live in this router: an unknown path is forwarded.
-        let response = app.oneshot(axum::http::Request::get("/v1/legacy-probe").body(Body::empty()).unwrap()).await.unwrap();
+        let response = app.oneshot(axum::http::Request::get("/v1/commerce-probe").body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(forwarded.load(SeqCst), 1);
     }

@@ -2,7 +2,7 @@ use super::*;
 
 /// A local settled directory; no request reaches the selected HTTPS provider.
 async fn external_intake() -> (Intake, Arc<std::sync::atomic::AtomicUsize>) {
-    use apiosk_gateway_v2::compat::ExecutorCompat;
+    use apiosk_gateway_v2::compat::CommerceService;
     let mut intake = Intake::start().await;
     let reads = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let directory = Router::new().route("/v1/sources/coinbase-x402-bazaar/apis/fixture.example", get({
@@ -17,9 +17,6 @@ async fn external_intake() -> (Intake, Arc<std::sync::atomic::AtomicUsize>) {
             }]}))
         }}
     }));
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let directory_origin = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, directory).await.unwrap() });
     let app = router(
         ServerState {
             engine: intake.engine.clone(),
@@ -30,8 +27,8 @@ async fn external_intake() -> (Intake, Arc<std::sync::atomic::AtomicUsize>) {
                 publishable_key: "fixture".into(),
             }),
             permits: Arc::new(tokio::sync::Semaphore::new(16)),
-            executor_compat: Some(
-                ExecutorCompat::new(intake.http.clone(), directory_origin).unwrap(),
+            commerce: Some(
+                CommerceService::new(directory),
             ),
         },
         "http://localhost:5173",

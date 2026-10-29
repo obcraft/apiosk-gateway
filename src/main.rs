@@ -1,7 +1,7 @@
 use apiosk_gateway_v2::{
     auth::Auth,
     catalog::CatalogCache,
-    compat::ExecutorCompat,
+    compat::CommerceService,
     engine::Engine,
     execution::Executor,
     parser::Parser,
@@ -10,8 +10,9 @@ use apiosk_gateway_v2::{
     store::Store,
 };
 use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgSslMode};
-use std::{env, str::FromStr, sync::Arc, time::Duration};
+use std::{env, future::IntoFuture, str::FromStr, sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
+use tracing_subscriber::prelude::*;
 
 fn required(key: &str) -> anyhow::Result<String> {
     env::var(key).map_err(|_| anyhow::anyhow!("missing {key}"))
@@ -33,13 +34,23 @@ fn checked_url(key: &str, value: String) -> anyhow::Result<String> {
     );
     Ok(value.trim_end_matches('/').to_owned())
 }
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-        .json()
+    // Retain commerce error reporting for the lifetime of the single process.
+    // Its SDK must initialize before Tokio, not inside an async main function.
+    let _error_reporting = commerce_runtime::init_error_reporting();
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(commerce_runtime::error_reporting_layer())
+        .with(tracing_subscriber::fmt::layer().json())
         .init();
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run())
+}
+
+async fn run() -> anyhow::Result<()> {
     let database = required("DATABASE_URL")?;
     let database_url = url::Url::parse(&database)?;
     let mut database_options = PgConnectOptions::from_str(&database)?;
@@ -190,15 +201,15 @@ async fn main() -> anyhow::Result<()> {
     });
     apiosk_gateway_v2::recurring::start(engine.clone());
     apiosk_gateway_v2::company_checks::start(engine.clone());
+    // Commerce initializes once in this process with its existing database
+    // role and payment configuration. The public listener serves both routers.
+    let commerce_runtime = commerce_runtime::CommerceRuntime::from_env().await?;
     let app = router(
         ServerState {
             engine,
             auth,
             permits: Arc::new(Semaphore::new(32)),
-            executor_compat: env::var("EMBEDDED_EXECUTOR_ORIGIN")
-                .ok()
-                .map(|origin| ExecutorCompat::new(reqwest::Client::new(), origin))
-                .transpose()?,
+            commerce: Some(CommerceService::with_in_flight(commerce_runtime.router(), commerce_runtime.in_flight())),
         },
         &app_url,
     )?;
@@ -206,13 +217,57 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(&bind).await?;
     apiosk_gateway_v2::start_supporting_news();
     tracing::info!(address=%bind,"gateway v2 listening");
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            tokio::signal::ctrl_c().await.ok();
-        })
-        .await?;
+    let (stop_admission, stopped) = tokio::sync::oneshot::channel();
+    let server = axum::serve(listener, app)
+        .with_graceful_shutdown(async move { let _ = stopped.await; })
+        .into_future();
+    tokio::pin!(server);
+    let deadline = tokio::select! {
+        result = &mut server => {
+            result?;
+            tokio::time::Instant::now() + Duration::from_secs(120)
+        }
+        signal = shutdown_signal() => {
+            signal?;
+            let deadline = tokio::time::Instant::now() + Duration::from_secs(120);
+            let _ = stop_admission.send(());
+            for handle in &kvk_handles { handle.abort(); }
+            // Stop new background jobs while existing HTTP and payment work
+            // drain together, within the existing Fly shutdown budget.
+            let (http, _) = tokio::join!(
+                tokio::time::timeout_at(deadline, &mut server),
+                tokio::time::timeout_at(deadline, commerce_runtime.shutdown(Duration::from_secs(120))),
+            );
+            match http {
+                Ok(result) => result?,
+                Err(_) => tracing::warn!("HTTP drain reached the shutdown deadline"),
+            }
+            deadline
+        }
+    };
+    // A request accepted before shutdown can begin native dispatch after the
+    // first idle observation. Recheck after HTTP admission has fully drained.
+    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+    let drained = tokio::time::timeout_at(deadline, commerce_runtime.shutdown(remaining))
+        .await.unwrap_or(false);
+    if !drained {
+        tracing::warn!("Commerce drain reached the shutdown deadline; durable request status remains authoritative");
+    }
     for handle in kvk_handles {
         handle.abort();
     }
     Ok(())
+}
+
+async fn shutdown_signal() -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        let mut terminate = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())?;
+        tokio::select! {
+            result = tokio::signal::ctrl_c() => result,
+            _ = terminate.recv() => Ok(()),
+        }
+    }
+    #[cfg(not(unix))]
+    tokio::signal::ctrl_c().await
 }
