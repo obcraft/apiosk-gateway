@@ -51,8 +51,7 @@ op. Alleen deployment vereist `FLY_API_TOKEN`: een deploy token beperkt tot
 `apiosk-gateway-v2`, als secret in de GitHub-omgeving `production` of als
 repositorysecret. Alleen de production-job ontvangt dit token.
 
-Een gewone push naar `main` of `codex/gateway-build-pipeline`, een pull request,
-of een handmatige run met `deploy=false` voert de Rust-controles, imagebuild en
+Een gewone push naar `main`, een pull request of een handmatige run met `deploy=false` voert de Rust-controles, imagebuild en
 imageverificatie uit. Er wordt dan niets naar Fly uitgerold. Pull requests
 gebruiken dezelfde controles zonder productiecredentials.
 

@@ -44,9 +44,38 @@ async fn model(State(f): State<Arc<Fixture>>, Json(body): Json<Value>) -> Json<V
     f.plans.fetch_add(1, Ordering::SeqCst);
     let input: Value = serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
     if input.get("answer_operations").is_some() {
-        let source = &input["sources"][0];
-        let pointer = if source["document"]["data"]["accounts"].is_string() { "/data/accounts" } else { "/data/companies/0/id" };
-        return Json(json!({"choices":[{"message":{"content":json!({"observations":[{"text":"The registry reports {{a}}.","evidence":[{"result_ref":source["result_ref"],"pointer":pointer}]}],"limitations":[]}).to_string()}}]}));
+        // The real analysis contract requires evidence for every supplied
+        // source, including both providers in the company-profile fixture.
+        let sources = input["sources"].as_array().unwrap();
+        let indexed = sources.iter().all(|source| source["records"].is_array());
+        let observations: Vec<Value> = sources.iter().map(|source| {
+            let evidence = if indexed {
+                let field = source["records"].as_array().unwrap().iter().find_map(|record| {
+                    record["fields"].as_array().unwrap().iter().find(|field| {
+                        field["id"].is_string() && (field["field"] == "accounts"
+                            || (record["path"] == "/data/companies/0" && field["field"] == "id"))
+                    })
+                }).expect("supplied fixture account or company identifier evidence");
+                json!({"fact_id":field["id"]})
+            } else {
+                let pointer = if source["document"]["data"]["accounts"].is_string() { "/data/accounts" } else { "/data/companies/0/id" };
+                json!({"result_ref":source["result_ref"],"pointer":pointer})
+            };
+            json!({"text":"The registry reports {{a}}.","evidence":[evidence]})
+        }).collect();
+        let mut answer = json!({"observations":observations,"limitations":[]});
+        if indexed {
+            // The supplied company-profile requirements are answered by the
+            // fixture's cited registry identifiers, never invented pointers.
+            let answered_by: Vec<String> = (1..=observations.len()).map(|i| format!("o{i}")).collect();
+            answer["requirement_status"] = json!(input["requested_parts"].as_array().unwrap().iter().map(|part| {
+                json!({"requirement_id":part["id"],"status":"answered","answered_by":answered_by,"reason":null})
+            }).collect::<Vec<_>>());
+            answer["follow_up_question"] = Value::Null;
+            answer["presentation"] = json!({"kind":"text"});
+            answer["source_gaps"] = json!([]);
+        }
+        return Json(json!({"choices":[{"message":{"content":answer.to_string()}}]}));
     }
     let ambiguous = input["question"] == "Accounts for Ambiguous";
     let missing = input["question"] == "Search with missing company name";

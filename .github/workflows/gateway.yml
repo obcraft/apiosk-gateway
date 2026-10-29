@@ -2,7 +2,7 @@ name: Gateway build and deploy
 
 on:
   push:
-    branches: [main, codex/gateway-build-pipeline]
+    branches: [main]
   pull_request:
   workflow_dispatch:
     inputs:
