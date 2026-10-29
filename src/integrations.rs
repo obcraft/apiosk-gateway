@@ -463,6 +463,8 @@ pub struct Composio {
     catalogs: Mutex<HashMap<&'static str, (std::time::Instant, Vec<ToolkitAction>)>>,
 }
 
+pub mod triggers;
+
 impl Composio {
     pub fn new(
         api_key: String,

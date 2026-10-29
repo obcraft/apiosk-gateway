@@ -30,6 +30,7 @@ mod news;
 mod recurring;
 mod company_checks;
 mod monitoring;
+mod triggers;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -191,6 +192,16 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/recurring-orders/:id/control", post(recurring::control))
         .route("/v2/recurring-orders/:id/delivery", post(recurring::update_delivery))
         .route("/v2/recurring-orders/:id/manual-trigger", post(recurring::manual_trigger))
+        .route("/v2/triggers", get(triggers::list).post(triggers::create))
+        .route("/v2/triggers/connect/:source", post(triggers::connect))
+        .route("/v2/triggers/channels", get(triggers::channels).post(triggers::create_conversation))
+        .route("/v2/triggers/members", get(triggers::members))
+        .route("/v2/triggers/events", get(triggers::stream))
+        .route("/v2/triggers/:id/control", post(triggers::control))
+        .route("/v2/triggers/:id/rotate", post(triggers::rotate))
+        .route("/v2/triggers/:id/test", post(triggers::test))
+        .route("/v2/triggers/:id/incoming", post(triggers::webhook))
+        .route("/v2/triggers/composio", post(triggers::composio_webhook))
         .route("/v2/integrations", get(integrations::list))
         .route("/v2/integrations/:toolkit/connect", post(integrations::connect))
         .route("/v2/integrations/:toolkit/disconnect", post(integrations::disconnect))
