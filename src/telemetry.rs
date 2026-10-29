@@ -727,7 +727,7 @@ pub(crate) mod capture {
     //! Collects every log line written while a test runs.
     use std::{
         io::Write,
-        sync::{Arc, Mutex},
+        sync::{Arc, Mutex, OnceLock},
     };
 
     #[derive(Clone, Default)]
@@ -743,6 +743,14 @@ pub(crate) mod capture {
     }
     impl Lines {
         pub fn install(&self) -> tracing::subscriber::DefaultGuard {
+            // tracing-core's single-dispatcher fast path registers a new
+            // callsite using the CURRENT thread's subscriber. A parallel test
+            // without a scoped subscriber can therefore cache Interest::never
+            // before this test emits its first line. Keep an inert dispatcher
+            // registered for the test process so interest is computed across
+            // registered subscribers. It is never installed as a global default.
+            static INTEREST_BASELINE: OnceLock<tracing::Dispatch> = OnceLock::new();
+            INTEREST_BASELINE.get_or_init(|| tracing::Dispatch::new(tracing_subscriber::registry()));
             let writer = self.clone();
             tracing::subscriber::set_default(tracing_subscriber::fmt().json().with_writer(move || writer.clone()).finish())
         }
@@ -758,6 +766,19 @@ pub(crate) mod capture {
                 .map(|line| serde_json::from_str(line["fields"]["telemetry"].as_str().unwrap()).unwrap())
                 .collect()
         }
+    }
+
+    #[test]
+    fn an_unscoped_first_call_cannot_disable_scoped_capture() {
+        // A unique callsite keeps this regression deterministic when run alone.
+        fn probe() {
+            tracing::info!(target: super::TARGET, telemetry = "{\"kind\":\"capture_probe\"}", "telemetry");
+        }
+        let lines = Lines::default();
+        let _guard = lines.install();
+        std::thread::spawn(probe).join().unwrap();
+        probe();
+        assert_eq!(lines.telemetry(), vec![serde_json::json!({"kind": "capture_probe"})]);
     }
 }
 

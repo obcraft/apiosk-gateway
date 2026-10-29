@@ -33,6 +33,13 @@ Cargo-tests hebben daarnaast hun eigen cache voor de volledige workspace. De
 release-image krijgt de volledige gatewaycommit in `GATEWAY_GIT_SHA`. Die waarde
 is ook zichtbaar op `/health`.
 
+Na de Rust-suite start `scripts/test-native-runtime.mjs` de native runtime
+tegen een lokale PGlite-databasefixture. De controle dekt startup, health,
+authenticatie en de bestaande quote- en featuregrenzen. De runner gebruikt een
+afgebakende testomgeving zonder productiecredentials of externe providers.
+Node 24 en `npm ci --ignore-scripts` installeren daarvoor de vastgelegde
+testdependencies uit `package-lock.json`.
+
 ## GitHub Actions instellen
 
 De workflow staat in `.github/workflows/gateway.yml`. Externe actions staan op
@@ -58,7 +65,8 @@ publiceert.
 
 De workflow:
 
-1. Voert `scripts/ci-check.sh` uit en bouwt de Linux-image onafhankelijk daarvan.
+1. Voert `scripts/ci-check.sh` en de lokale native-runtimetest uit en bouwt de
+   Linux-image onafhankelijk daarvan.
 2. Controleert de gebouwde image met `scripts/verify-image.sh`, waaronder de
    verwachte commit. Build en tests moeten beide slagen.
 3. Draagt exact die geverifieerde image als tijdelijk artifact over aan de
@@ -84,13 +92,15 @@ databasewijzigingen uit.
 
 Voer vanuit de gatewaydirectory uit:
 
-Vereist Rust 1.97.1, Python 3.11+, Docker en `pdftotext` voor de PDF-fixtures
+Vereist Rust 1.97.1, Python 3.11+, Node 24 met npm, Docker en `pdftotext` voor de PDF-fixtures
 (`poppler-utils` op Ubuntu, `brew install poppler` op macOS). De workflow
 installeert deze testdependency zelf. Replays gebruiken uitsluitend opgeslagen
 fixtures; het testscript schakelt live replays en het herschrijven van tapes uit.
 
 ```sh
 bash scripts/ci-check.sh
+npm ci --ignore-scripts
+node scripts/test-native-runtime.mjs
 docker buildx build --platform linux/amd64 --load \
   --build-arg "GIT_SHA=$(git rev-parse HEAD)" \
   --tag apiosk-gateway:local .
