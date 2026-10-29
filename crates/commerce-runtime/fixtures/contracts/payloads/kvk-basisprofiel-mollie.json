@@ -1,0 +1,96 @@
+{
+  "naam": "Mollie B.V.",
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+    },
+    {
+      "rel": "vestigingen",
+      "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+    }
+  ],
+  "_embedded": {
+    "eigenaar": {
+      "rsin": "815839091",
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar"
+        },
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+        }
+      ],
+      "rechtsvorm": "Besloten Vennootschap",
+      "uitgebreideRechtsvorm": "Besloten Vennootschap"
+    },
+    "hoofdvestiging": {
+      "links": [
+        {
+          "rel": "self",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging"
+        },
+        {
+          "rel": "vestigingen",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen"
+        },
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188"
+        }
+      ],
+      "adressen": [
+        {
+          "land": "Nederland",
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "postcode": "1015CW",
+          "huisnummer": 126,
+          "straatnaam": "Keizersgracht",
+          "volledigAdres": "Keizersgracht 126 1015CW Amsterdam",
+          "indAfgeschermd": "Nee"
+        }
+      ],
+      "kvkNummer": "30204462",
+      "vestigingsnummer": "000020495188",
+      "eersteHandelsnaam": "Mollie B.V.",
+      "indHoofdvestiging": "Ja",
+      "materieleRegistratie": {
+        "datumAanvang": "20050421"
+      },
+      "totaalWerkzamePersonen": 110,
+      "indCommercieleVestiging": "Ja"
+    }
+  },
+  "kvkNummer": "30204462",
+  "handelsnamen": [
+    {
+      "naam": "Mollie B.V.",
+      "volgorde": 0
+    }
+  ],
+  "indNonMailing": "Ja",
+  "statutaireNaam": "Mollie B.V.",
+  "sbiActiviteiten": [
+    {
+      "sbiCode": "62900",
+      "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer",
+      "indHoofdactiviteit": "Ja"
+    },
+    {
+      "sbiCode": "62100",
+      "sbiOmschrijving": "Ontwerpen van computerprogramma’s",
+      "indHoofdactiviteit": "Nee"
+    }
+  ],
+  "materieleRegistratie": {
+    "datumAanvang": "20050421"
+  },
+  "totaalWerkzamePersonen": 110
+}

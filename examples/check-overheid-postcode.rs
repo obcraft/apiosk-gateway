@@ -1,5 +1,5 @@
 //! Read-only upstream and answer check. Never authorizes an Apiosk purchase.
-#[path = "../legacy-executor/src/proxy/overheid.rs"]
+#[path = "../crates/commerce-runtime/src/proxy/overheid.rs"]
 mod overheid;
 use apiosk_gateway_v2::{catalog::Catalog, parser::Parser};
 use serde_json::{json, Value};

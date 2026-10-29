@@ -950,7 +950,7 @@ fn bind_inputs(matches: &mut Value, parsed: &ParsedRequest) {
 async fn describe_external(matches: &mut Value, state: &ServerState) {
     use futures_util::{stream, StreamExt};
     use crate::ask_v2::external;
-    let Some(directory) = state.executor_compat.as_ref() else { return; };
+    let Some(directory) = state.commerce.as_ref() else { return; };
     let mut selections = BTreeSet::new();
     for found in matches.as_array().into_iter().flatten() {
         for candidate in found["coinbase"].as_array().into_iter().flatten() {
@@ -960,7 +960,7 @@ async fn describe_external(matches: &mut Value, state: &ServerState) {
         }
     }
     let offers: BTreeMap<_, _> = stream::iter(selections).map(|key| async move {
-        let offer = external::resolve(&state.engine.executor.http, directory.directory_origin(), &key.0, &key.1, &key.2).await.ok();
+        let offer = external::resolve(directory, &key.0, &key.1, &key.2).await.ok();
         (key, offer)
     }).buffer_unordered(4).collect().await;
     for found in matches.as_array_mut().into_iter().flatten() {

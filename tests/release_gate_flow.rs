@@ -316,7 +316,7 @@ impl Gate {
             engine: engine.clone(),
             auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base, publishable_key: "fixture".into() }),
             permits: Arc::new(tokio::sync::Semaphore::new(16)),
-            executor_compat: None,
+            commerce: None,
         }, "http://localhost:5173").unwrap();
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let gateway = format!("http://{}", listener.local_addr().unwrap());

@@ -1,0 +1,1922 @@
+[
+  {
+    "at": "2026-10-11T14:45:56.918Z",
+    "name": "cb_entity_autocomplete",
+    "arguments": {
+      "query": "Starbucks",
+      "collection_ids": "organizations",
+      "limit": 3
+    },
+    "data": {
+      "request_id": "d142609ce9952d1646443bd635c406d3",
+      "entities": [
+        {
+          "identifier": {
+            "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/v1488264559/cbgqpe9icin2ntbpguyc.png",
+            "url": "https://crunchbase.com/organization/starbucks",
+            "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+            "entity_def_id": "organization",
+            "permalink": "starbucks",
+            "value": "Starbucks",
+            "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png"
+          },
+          "facet_ids": [
+            "aberdeen",
+            "ai_insight",
+            "apptopia",
+            "bombora",
+            "builtwith",
+            "company",
+            "contact",
+            "investor",
+            "ipqwery",
+            "key_event",
+            "rank",
+            "semrush",
+            "siftery"
+          ],
+          "short_description": "Starbucks is a restaurant chain that serves handcrafted ready-to-drink beverages, including coffee, tea, juices, and snack food items."
+        },
+        {
+          "identifier": {
+            "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/53bc006e72c84e3eb617ee8d49b74e57",
+            "url": "https://crunchbase.com/organization/starbucks-coffee-company-84b5",
+            "uuid": "aefb7126-7ee7-4860-afed-5e01d3e484b5",
+            "entity_def_id": "organization",
+            "permalink": "starbucks-coffee-company-84b5",
+            "value": "Starbucks Coffee Company",
+            "image_id": "53bc006e72c84e3eb617ee8d49b74e57"
+          },
+          "facet_ids": [
+            "ai_insight",
+            "builtwith",
+            "company",
+            "contact",
+            "rank",
+            "semrush"
+          ],
+          "short_description": "Starbucks is a coffeehouse brand that offers handcrafted beverages, food items, and packaged coffee for in-store and at-home consumption."
+        },
+        {
+          "identifier": {
+            "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/6ad6f560bebe40de87164802989fa730",
+            "url": "https://crunchbase.com/organization/starbucks-82a9",
+            "uuid": "25b1039b-522b-41a9-ac68-24ee820782a9",
+            "entity_def_id": "organization",
+            "permalink": "starbucks-82a9",
+            "value": "Starbucks",
+            "image_id": "6ad6f560bebe40de87164802989fa730"
+          },
+          "facet_ids": [
+            "company",
+            "rank"
+          ],
+          "short_description": "Starbucks is a coffeehouse company that operates stores and sells coffee, beverages, food, and related consumer products."
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-11T14:46:41.032Z",
+    "name": "cb_reference",
+    "arguments": {
+      "path": "entities/organization"
+    },
+    "data": {
+      "request_id": "e40d67a630b3174d3f64abf420d52f08",
+      "path": "entities/organization",
+      "content": "# organization (Organization)\n\ncollection_id: `organizations`\n\n## Fields (72)\n\n- `acquirer_identifier`\n- `acquisition_announced_on`\n- `acquisition_identifier`\n- `acquisition_price`\n- `aliases`\n- `bombora_last_updated`\n- `categories`\n- `category_groups`\n- `closed_on`\n- `contact_job_departments`\n- `delisted_on`\n- `diversity_spotlights`\n- `entity_def_id`\n- `equity_funding_total`\n- `exited_on`\n- `facet_ids`\n- `founded_on`\n- `founder_identifiers`\n- `funding_stage`\n- `funding_total`\n- `funds_total`\n- `growth_insight_confidence`\n- `growth_insight_description`\n- `growth_insight_direction`\n- `growth_insight_indicator`\n- `growth_score`\n- `growth_score_delta_d90`\n- `heat_score`\n- `heat_score_delta_d90`\n- `hubs`\n- `identifier`\n- `insight_similar_orgs`\n- `investor_identifiers`\n- `investor_insight_description`\n- `investor_stage`\n- `investor_type`\n- `ipo_amount_raised`\n- `ipo_share_price`\n- `ipo_status`\n- `ipo_valuation`\n- `last_equity_funding_total`\n- `last_funding_at`\n- `last_funding_total`\n- `last_funding_type`\n- `last_growth_insight`\n- `last_investment_fr_money_raised`\n- `last_investor_insight`\n- `last_news_insight`\n- `last_research_insight`\n- `location_identifiers`\n- `news_insight_description`\n- `num_contact_emails`\n- `num_contact_phones`\n- `num_contacts`\n- `num_diversity_spotlight_investments`\n- `num_employees_enum`\n- `num_exits`\n- `num_exits_ipo`\n- `num_investments_funding_rounds`\n- `num_relationships`\n- `rank`\n- `rank_org`\n- `rank_org_company`\n- `rank_org_school`\n- `rank_principal`\n- `rank_principal_investor`\n- `research_insight_description`\n- `short_description`\n- `status`\n- `stock_exchange_symbol`\n- `website_url`\n- `went_public_on`\n\n## Relationships (101)\n\n- `created_siftery_product`\n- `diversity_spot_invested_in`\n- `has_acquired`\n- `has_acquisition_prediction`\n- `has_address`\n- `has_alumni`\n- `has_any_private_note`\n- `has_apptopia_app`\n- `has_award`\n- `has_bankruptcy`\n- `has_closure_prediction`\n- `has_contestant`\n- `has_crm_account`\n- `has_curr_val_est`\n- `has_current_advisor_position`\n- `has_current_position`\n- `has_diversity_spot_external`\n- `has_diversity_spot_internal`\n- `has_earnings_news_event`\n- `has_event`\n- `has_exhibitor`\n- `has_exit`\n- `has_founder`\n- `has_founder_alumni`\n- `has_funding_prediction`\n- `has_funding_round`\n- `has_growth_event`\n- `has_growth_insight`\n- `has_growth_prediction`\n- `has_hq`\n- `has_invested`\n- `has_investment`\n- `has_investor`\n- `has_investor`\n- `has_investor_diversity_spot`\n- `has_investor_insight`\n- `has_ipo_prediction`\n- `has_ipqwery_patent`\n- `has_ipqwery_trademark`\n- `has_key_employee_change`\n- `has_last_acquisition_pred`\n- `has_last_funding_prediction`\n- `has_last_funding_round`\n- `has_last_growth_insight`\n- `has_last_investor_insight`\n- `has_last_ipo_pred`\n- `has_layoff`\n- `has_layoff_prediction`\n- `has_lead_investor`\n- `has_legal_proceeding`\n- `has_mention`\n- `has_news_signal`\n- `has_office`\n- `has_org_last_market_insight`\n- `has_organizer`\n- `has_ownership`\n- `has_parent_organization`\n- `has_parent_organization`\n- `has_partner_investor`\n- `has_partnership_announcement`\n- `has_past_advisor_position`\n- `has_past_position`\n- `has_position`\n- `has_primary_listing`\n- `has_private_note`\n- `has_private_tag`\n- `has_product`\n- `has_product_launch`\n- `has_product_similarity_src_org`\n- `has_profit_margin_news_event`\n- `has_raised_fund`\n- `has_remain_private_pred`\n- `has_research_insight`\n- `has_revenue_news_event`\n- `has_similar_org`\n- `has_similar_org_source`\n- `has_speaker`\n- `has_sponsor`\n- `in_event_appearance`\n- `invested_in`\n- `is_investor_match`\n- `is_org_similarity_source`\n- `is_owned`\n- `lead_participated_in`\n- `not_using_bw_technology`\n- `org_has_any_private_task`\n- `org_has_contact`\n- `org_has_contact_job_title`\n- `org_has_private_file`\n- `org_has_private_task`\n- `org_has_semrush_location`\n- `org_has_xrm_account`\n- `org_has_xrm_deal`\n- `organization_in_category`\n- `participated_in`\n- `surges_bombora_topic`\n- `uses_apptopia_sdk`\n- `uses_siftery_product`\n- `using_bw_technology`\n- `was_acquired`\n- `went_public`\n\nSee `entities/organization/fields` for field details.\nSee `entities/organization/cards` for card details.\n\n**Important:** Before using search tools, drill into `entities/organization/fields/{field_id}` for each field you intend to filter or aggregate on. This is the most valuable way to understand how to use the data — it provides valid operators, real example values, and live aggregation statistics."
+    }
+  },
+  {
+    "at": "2026-10-11T14:48:29.455Z",
+    "name": "cb_search_query",
+    "arguments": {
+      "collection_id": "organizations",
+      "predicates": [
+        {
+          "field_id": "identifier",
+          "operator_id": "eq",
+          "values": [
+            "starbucks"
+          ]
+        }
+      ],
+      "field_ids": [
+        "identifier",
+        "short_description",
+        "funding_total",
+        "num_employees_enum"
+      ],
+      "limit": 1
+    },
+    "data": {
+      "request_id": "b6444e5560faf4cd97425a1a44effdae",
+      "collection_id": "organizations",
+      "count": 1,
+      "entities": [
+        {
+          "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+          "properties": {
+            "short_description": "Starbucks is a restaurant chain that serves handcrafted ready-to-drink beverages, including coffee, tea, juices, and snack food items.",
+            "num_employees_enum": "c_10001_max",
+            "funding_total": {
+              "value_usd": 2650000000,
+              "currency": "USD",
+              "value": 2650000000
+            },
+            "identifier": {
+              "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+              "entity_def_id": "organization",
+              "permalink": "starbucks",
+              "value": "Starbucks",
+              "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png"
+            }
+          },
+          "value": "Starbucks",
+          "url": "https://www.crunchbase.com/organization/starbucks"
+        }
+      ],
+      "response_status": 200
+    }
+  },
+  {
+    "at": "2026-10-11T14:48:30.441Z",
+    "name": "cb_entity_get",
+    "arguments": {
+      "entity_id": "starbucks",
+      "entity_def_id": "organization",
+      "card_ids": [
+        "founders_lookup",
+        "current_employees_image_list",
+        "current_advisors_image_list",
+        "funding_rounds_list",
+        "investors_list",
+        "headquarters_address_lookup"
+      ],
+      "related_entity_limit": 24
+    },
+    "data": {
+      "request_id": "f1c16d433d89c8692ab9b5197e8ee84a",
+      "collection_id": "organizations",
+      "entity_def_id": "organization",
+      "entity_def_label": "Organization",
+      "properties": [
+        {
+          "field_id": "aliases",
+          "label": "Also Known As",
+          "value": [
+            "Pequod",
+            "Cargo House",
+            "Starbucks Coffee Company",
+            "Il Giornale"
+          ]
+        },
+        {
+          "field_id": "identifier",
+          "label": "Organization Name",
+          "value": {
+            "permalink": "starbucks",
+            "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+            "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+            "entity_def_id": "organization",
+            "value": "Starbucks"
+          }
+        },
+        {
+          "field_id": "stock_exchange_symbol",
+          "label": "Stock Exchange",
+          "value": "nasdaq"
+        },
+        {
+          "field_id": "num_relationships",
+          "label": "Number of Relationships",
+          "value": 26022
+        },
+        {
+          "field_id": "num_contact_emails",
+          "label": "Number of contact emails",
+          "value": 15057
+        },
+        {
+          "field_id": "rank_principal_investor",
+          "label": "CB Rank (Investor)",
+          "value": 1653
+        },
+        {
+          "field_id": "bombora_last_updated",
+          "label": "Last Updated",
+          "value": "2026-10-04"
+        },
+        {
+          "field_id": "location_identifiers",
+          "label": "Headquarters Location",
+          "value": [
+            {
+              "permalink": "seattle-washington",
+              "uuid": "d3d40838-4bbb-b094-3865-6c4cf9970090",
+              "location_type": "city",
+              "entity_def_id": "location",
+              "value": "Seattle"
+            },
+            {
+              "permalink": "washington-united-states",
+              "uuid": "86caa7e0-91fb-ce58-6e4c-d58e799dd2bd",
+              "location_type": "region",
+              "entity_def_id": "location",
+              "value": "Washington"
+            },
+            {
+              "permalink": "united-states",
+              "uuid": "f110fca2-1055-99f6-996d-011c198b3928",
+              "location_type": "country",
+              "entity_def_id": "location",
+              "value": "United States"
+            },
+            {
+              "permalink": "north-america",
+              "uuid": "b25caef9-a1b8-3a5d-6232-93b2dfb6a1d1",
+              "location_type": "continent",
+              "entity_def_id": "location",
+              "value": "North America"
+            }
+          ]
+        },
+        {
+          "field_id": "heat_score",
+          "label": "Heat Score",
+          "value": 82
+        },
+        {
+          "field_id": "website_url",
+          "label": "Website",
+          "value": "https://www.starbucks.com"
+        },
+        {
+          "field_id": "entity_def_id",
+          "label": "Type",
+          "value": "organization"
+        },
+        {
+          "field_id": "last_funding_total",
+          "label": "Last Funding Amount",
+          "value": {
+            "value_usd": 1750000000,
+            "currency": "USD",
+            "value": 1750000000
+          }
+        },
+        {
+          "field_id": "num_investments_funding_rounds",
+          "label": "Number of Investments",
+          "value": 10
+        },
+        {
+          "field_id": "founded_on",
+          "label": "Founded Date",
+          "value": {
+            "precision": "day",
+            "value": "1971-03-31"
+          }
+        },
+        {
+          "field_id": "equity_funding_total",
+          "label": "Total Equity Funding Amount",
+          "value": {
+            "value_usd": 900000000,
+            "currency": "USD",
+            "value": 900000000
+          }
+        },
+        {
+          "field_id": "rank_principal",
+          "label": "CB Rank (Org & Person)",
+          "value": 4092
+        },
+        {
+          "field_id": "num_diversity_spotlight_investments",
+          "label": "Number of Diversity Investments",
+          "value": 1
+        },
+        {
+          "field_id": "ipo_status",
+          "label": "IPO Status",
+          "value": "public"
+        },
+        {
+          "field_id": "founder_identifiers",
+          "label": "Founders",
+          "value": [
+            {
+              "permalink": "gordon-bowker",
+              "image_id": "kghtr423lp1ath2ww0bg",
+              "uuid": "48d46a58-e7a3-4177-bb02-e8bce01907e7",
+              "entity_def_id": "person",
+              "value": "Gordon Bowker"
+            },
+            {
+              "entity_def_id": "person",
+              "permalink": "jerry-baldwin",
+              "uuid": "d9f515a8-3623-4a6b-99f0-904eafc2323e",
+              "value": "Jerry Baldwin"
+            },
+            {
+              "permalink": "zev-siegl",
+              "image_id": "omwn2102cgljgeidfo8j",
+              "uuid": "0c8368ed-66ec-4f8c-8ec2-a5ac9a9b3853",
+              "entity_def_id": "person",
+              "value": "Zev Siegl"
+            }
+          ]
+        },
+        {
+          "field_id": "category_groups",
+          "label": "Industry Groups",
+          "value": [
+            {
+              "entity_def_id": "category_group",
+              "permalink": "apps-2683",
+              "uuid": "26833aa6-0585-2aa7-8c69-63b4b14727c5",
+              "value": "Apps"
+            },
+            {
+              "entity_def_id": "category_group",
+              "permalink": "food-and-beverage-5f1e",
+              "uuid": "5f1e20aa-34af-962f-6ded-25385b1cd540",
+              "value": "Food and Beverage"
+            },
+            {
+              "entity_def_id": "category_group",
+              "permalink": "mobile-ec09",
+              "uuid": "ec09d1af-e88f-6a8d-1db8-1dd5e3d49ea0",
+              "value": "Mobile"
+            },
+            {
+              "entity_def_id": "category_group",
+              "permalink": "software-85b6",
+              "uuid": "85b6bca9-930a-11bc-a608-a513b76fb637",
+              "value": "Software"
+            }
+          ]
+        },
+        {
+          "field_id": "growth_score",
+          "label": "Growth Score",
+          "value": 86
+        },
+        {
+          "field_id": "went_public_on",
+          "label": "IPO Date",
+          "value": "1992-07-02"
+        },
+        {
+          "field_id": "heat_score_delta_d90",
+          "label": "Heat Score Delta D90",
+          "value": 14
+        },
+        {
+          "field_id": "rank",
+          "label": "CB Rank",
+          "value": 4092
+        },
+        {
+          "field_id": "short_description",
+          "label": "Description",
+          "value": "Starbucks is a restaurant chain that serves handcrafted ready-to-drink beverages, including coffee, tea, juices, and snack food items."
+        },
+        {
+          "field_id": "hubs",
+          "label": "Related Hubs",
+          "value": [
+            {
+              "permalink": "starbucks-alumni-founded-companies",
+              "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+              "uuid": "d3e4ccac-b6bd-4a98-9a95-1d247b7e77aa",
+              "entity_def_id": "hub",
+              "value": "Starbucks Alumni Founded Companies"
+            }
+          ]
+        },
+        {
+          "field_id": "rank_org",
+          "label": "CB Rank (Organization)",
+          "value": 4092
+        },
+        {
+          "field_id": "growth_score_delta_d90",
+          "label": "Growth Score Delta D90",
+          "value": -9
+        },
+        {
+          "field_id": "num_exits_ipo",
+          "label": "Number of Exits (IPO)",
+          "value": 1
+        },
+        {
+          "field_id": "num_employees_enum",
+          "label": "Number of Employees",
+          "value": "c_10001_max"
+        },
+        {
+          "field_id": "num_contacts",
+          "label": "Number of Contacts",
+          "value": 9921
+        },
+        {
+          "field_id": "status",
+          "label": "Status",
+          "value": "ipo"
+        },
+        {
+          "field_id": "funding_total",
+          "label": "Total Funding Amount",
+          "value": {
+            "value_usd": 2650000000,
+            "currency": "USD",
+            "value": 2650000000
+          }
+        },
+        {
+          "field_id": "investor_identifiers",
+          "label": "Top 5 Investors",
+          "value": [
+            {
+              "permalink": "pershing-square-capital-management",
+              "image_id": "f0ecc47e9e344e2bae9ae21b92463d25",
+              "uuid": "2baa46dc-86a3-ff8d-e026-7d2c8541d84d",
+              "entity_def_id": "organization",
+              "value": "Pershing Square Inc."
+            },
+            {
+              "permalink": "upfront-ventures",
+              "image_id": "e6c2c2d9ddb04af99741ae7f08d5a706",
+              "uuid": "75fea554-2985-a2f0-b825-a0e7ce7d9c86",
+              "entity_def_id": "organization",
+              "value": "Upfront Ventures"
+            },
+            {
+              "permalink": "elliott-management-corp",
+              "image_id": "v1470402414/edljji4w7epobezncsxd.png",
+              "uuid": "b140b494-efd0-e89a-fb3e-bf277f599b3a",
+              "entity_def_id": "organization",
+              "value": "Elliott Management Corp."
+            }
+          ]
+        },
+        {
+          "field_id": "last_funding_type",
+          "label": "Last Funding Type",
+          "value": "post_ipo_debt"
+        },
+        {
+          "field_id": "categories",
+          "label": "Industries",
+          "value": [
+            {
+              "permalink": "coffee-bad7",
+              "image_id": "8d10713d49a245048fdfce8ca7323489",
+              "uuid": "bad7067e-b24d-5c63-a2e9-54a9e059d7cb",
+              "entity_def_id": "category",
+              "value": "Coffee"
+            },
+            {
+              "permalink": "food-and-beverage",
+              "image_id": "98b425ac85b742e7ad2c3f1d4c824b32",
+              "uuid": "14364faa-63f9-0d45-7b6a-7378113364a2",
+              "entity_def_id": "category",
+              "value": "Food and Beverage"
+            },
+            {
+              "permalink": "mobile-apps",
+              "image_id": "5d6e8733e81547d9b5c2beb7cdff60bc",
+              "uuid": "78f709ae-d8fb-cd28-218a-f090789f628f",
+              "entity_def_id": "category",
+              "value": "Mobile Apps"
+            },
+            {
+              "permalink": "restaurants",
+              "image_id": "c032f41c68414602bcf5f6f02a06ef0c",
+              "uuid": "51385655-f802-346b-045d-f44f461989fc",
+              "entity_def_id": "category",
+              "value": "Restaurants"
+            },
+            {
+              "permalink": "tea",
+              "image_id": "7d79ba893e9c4e679b86a46a54d5b29a",
+              "uuid": "91d07503-1e4b-bec1-6115-6df19b26be3c",
+              "entity_def_id": "category",
+              "value": "Tea"
+            }
+          ]
+        },
+        {
+          "field_id": "contact_job_departments",
+          "label": "Contact Job Departments",
+          "value": [
+            "engineering",
+            "finance",
+            "human_resources",
+            "information_technology",
+            "legal",
+            "management",
+            "marketing",
+            "medical_science",
+            "operations",
+            "pro_services",
+            "product",
+            "sales",
+            "support"
+          ]
+        },
+        {
+          "field_id": "last_funding_at",
+          "label": "Last Funding Date",
+          "value": "2025-05-06"
+        },
+        {
+          "field_id": "num_contact_phones",
+          "label": "Number of contact phones",
+          "value": 5252
+        },
+        {
+          "field_id": "exited_on",
+          "label": "Exit Date",
+          "value": {
+            "precision": "day",
+            "value": "1992-07-02"
+          }
+        },
+        {
+          "field_id": "num_exits",
+          "label": "Number of Exits",
+          "value": 3
+        },
+        {
+          "field_id": "rank_org_company",
+          "label": "CB Rank (Company)",
+          "value": 3336
+        },
+        {
+          "field_id": "funding_stage",
+          "label": "Funding Status",
+          "value": "ipo"
+        }
+      ],
+      "cards": [
+        {
+          "card_id": "current_advisors_image_list",
+          "label": "Board Members and Advisors",
+          "entity_def_id": "job",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "1db9bf03-1ad8-4de9-bc41-f41031378b93",
+                    "value": "Cliff Burrows Executive Advisor @ Starbucks",
+                    "permalink": "cliff-burrows-advisor-starbucks--1db9bf03",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "8a09dd73-00b6-ff55-6c88-a70e414b7efe",
+                    "value": "Cliff Burrows",
+                    "image_id": "aeea0956b0b74dbe83aab2b9ccd22ac0",
+                    "permalink": "cliff-burrows",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "advisor"
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2022-04-01",
+                    "precision": "month"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "242d6ece-8bdd-4211-a00c-fb01206e03b4",
+                    "value": "Ritch Allison Board Member @ Starbucks",
+                    "permalink": "ritch-allison-board-member-starbucks--242d6ece",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "b3953485-ce46-447a-92b7-5df1cf8a1ed4",
+                    "value": "Ritch Allison",
+                    "image_id": "fb257e4b8e7c41d48c5467af510575b4",
+                    "permalink": "ritch-allison",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "38bcc485-b6ee-464d-a9c2-566adc8bf3ec",
+                    "value": "Daniel Servitje Board Member @ Starbucks",
+                    "permalink": "daniel-servitje-board-member-starbucks--38bcc485",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "519b724e-b76e-4e15-877d-377d010b847a",
+                    "value": "Daniel Servitje",
+                    "image_id": "d55c4b95d3a449d9bf42d5fa701871a3",
+                    "permalink": "daniel-servitje",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2024-01-01",
+                    "precision": "year"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "478cadf9-062b-4f79-8894-f7aac90e72ce",
+                    "value": "Andrew Campion Board Member @ Starbucks",
+                    "permalink": "andrew-campion-39aa-board-member-starbucks--478cadf9",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "7a473f26-92de-4cd2-aeb7-085fcf6039aa",
+                    "value": "Andrew Campion",
+                    "image_id": "44047fd5ddeb4af18714ecaaa0da93fe",
+                    "permalink": "andrew-campion-39aa",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2019-01-01",
+                    "precision": "year"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "650b6533-912e-43a3-9be6-aac1e55bb922",
+                    "value": "Brian Niccol Chairman of the Board @ Starbucks",
+                    "permalink": "brian-r-niccol-board-member-starbucks--650b6533",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "4ece2c2f-2f7f-44d0-9a70-0be1f9587b3a",
+                    "value": "Brian Niccol",
+                    "image_id": "9d538e062b274ec7aa161ba9a13eb2b8",
+                    "permalink": "brian-r-niccol",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2024-09-01",
+                    "precision": "month"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "76c0d0e4-de23-40e1-b92b-d9effc6f64a8",
+                    "value": "James Sinclair Board Of Directors @ Starbucks",
+                    "permalink": "james-sinclair-ed9a-board-member-starbucks--76c0d0e4",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "31ab4643-3c2d-4718-8ac0-7e0246deed9a",
+                    "value": "James Sinclair",
+                    "image_id": "160951ffdd1c4106822fad48e3d9e697",
+                    "permalink": "james-sinclair-ed9a",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2024-12-01",
+                    "precision": "month"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "8155678d-d6ca-4417-88fc-9267f7737039",
+                    "value": "Wei Zhang Board Member @ Starbucks",
+                    "permalink": "wei-zhang-b90d-board-member-starbucks--8155678d",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "88acd9c0-b78d-4b58-86ad-38ce1e9db90d",
+                    "value": "Wei Zhang",
+                    "image_id": "vwlilehvvjxqzmqdrlej",
+                    "permalink": "wei-zhang-b90d",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "job_type",
+                  "label": "Position",
+                  "value": "board_member"
+                }
+              ]
+            }
+          ],
+          "has_more_entities": true
+        },
+        {
+          "card_id": "founders_lookup",
+          "label": "Founders",
+          "entity_def_id": "person",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Full Name",
+                  "value": {
+                    "uuid": "48d46a58-e7a3-4177-bb02-e8bce01907e7",
+                    "value": "Gordon Bowker",
+                    "image_id": "kghtr423lp1ath2ww0bg",
+                    "permalink": "gordon-bowker",
+                    "entity_def_id": "person"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Full Name",
+                  "value": {
+                    "uuid": "d9f515a8-3623-4a6b-99f0-904eafc2323e",
+                    "value": "Jerry Baldwin",
+                    "permalink": "jerry-baldwin",
+                    "entity_def_id": "person"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Full Name",
+                  "value": {
+                    "uuid": "0c8368ed-66ec-4f8c-8ec2-a5ac9a9b3853",
+                    "value": "Zev Siegl",
+                    "image_id": "omwn2102cgljgeidfo8j",
+                    "permalink": "zev-siegl",
+                    "entity_def_id": "person"
+                  }
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        },
+        {
+          "card_id": "funding_rounds_list",
+          "label": "Funding Rounds",
+          "entity_def_id": "funding_round",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Transaction Name",
+                  "value": {
+                    "uuid": "c68167ba-ffb9-4245-b31c-d1986a2f08e2",
+                    "value": "Post-IPO Debt - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-post-ipo-debt--c68167ba",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "announced_on",
+                  "label": "Announced Date",
+                  "value": "2025-05-06"
+                },
+                {
+                  "field_id": "money_raised",
+                  "label": "Money Raised",
+                  "value": {
+                    "value": 1750000000,
+                    "currency": "USD",
+                    "value_usd": 1750000000
+                  }
+                },
+                {
+                  "field_id": "investment_type",
+                  "label": "Funding Type",
+                  "value": "post_ipo_debt"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Transaction Name",
+                  "value": {
+                    "uuid": "a1a99ed4-f653-49cb-82f6-040a4cf9de48",
+                    "value": "Post-IPO Equity - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-post-ipo-equity--a1a99ed4",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "announced_on",
+                  "label": "Announced Date",
+                  "value": "2024-07-19"
+                },
+                {
+                  "field_id": "num_investors",
+                  "label": "Number of Investors",
+                  "value": 1
+                },
+                {
+                  "field_id": "investment_type",
+                  "label": "Funding Type",
+                  "value": "post_ipo_equity"
+                },
+                {
+                  "field_id": "lead_investor_identifiers",
+                  "label": "Lead Investors",
+                  "value": [
+                    {
+                      "uuid": "b140b494-efd0-e89a-fb3e-bf277f599b3a",
+                      "value": "Elliott Management Corp.",
+                      "image_id": "v1470402414/edljji4w7epobezncsxd.png",
+                      "permalink": "elliott-management-corp",
+                      "entity_def_id": "organization"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Transaction Name",
+                  "value": {
+                    "uuid": "d36fe900-de4b-4181-a0c2-168786af7917",
+                    "value": "Post-IPO Equity - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-post-ipo-equity--d36fe900",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "announced_on",
+                  "label": "Announced Date",
+                  "value": "2018-10-10"
+                },
+                {
+                  "field_id": "money_raised",
+                  "label": "Money Raised",
+                  "value": {
+                    "value": 900000000,
+                    "currency": "USD",
+                    "value_usd": 900000000
+                  }
+                },
+                {
+                  "field_id": "num_investors",
+                  "label": "Number of Investors",
+                  "value": 1
+                },
+                {
+                  "field_id": "investment_type",
+                  "label": "Funding Type",
+                  "value": "post_ipo_equity"
+                },
+                {
+                  "field_id": "lead_investor_identifiers",
+                  "label": "Lead Investors",
+                  "value": [
+                    {
+                      "uuid": "2baa46dc-86a3-ff8d-e026-7d2c8541d84d",
+                      "value": "Pershing Square Inc.",
+                      "image_id": "f0ecc47e9e344e2bae9ae21b92463d25",
+                      "permalink": "pershing-square-capital-management",
+                      "entity_def_id": "organization"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Transaction Name",
+                  "value": {
+                    "uuid": "52069a67-f7d1-ebee-b104-d764ceda5f06",
+                    "value": "Venture Round - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-series-unknown--52069a67",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "announced_on",
+                  "label": "Announced Date",
+                  "value": "1991-02-01"
+                },
+                {
+                  "field_id": "num_investors",
+                  "label": "Number of Investors",
+                  "value": 1
+                },
+                {
+                  "field_id": "investment_type",
+                  "label": "Funding Type",
+                  "value": "series_unknown"
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        },
+        {
+          "card_id": "headquarters_address_lookup",
+          "label": "Headquarters",
+          "entity_def_id": "address",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Address Name",
+                  "value": {
+                    "uuid": "a10e7000-c62e-bb2c-4e9e-96ca81381925",
+                    "value": "Headquarters",
+                    "entity_def_id": "address"
+                  }
+                },
+                {
+                  "field_id": "street_1",
+                  "label": "Address Line 1",
+                  "value": "2401 Utah Ave S"
+                },
+                {
+                  "field_id": "location_identifiers",
+                  "label": "Location",
+                  "value": [
+                    {
+                      "uuid": "d3d40838-4bbb-b094-3865-6c4cf9970090",
+                      "value": "Seattle",
+                      "permalink": "seattle-washington",
+                      "entity_def_id": "location",
+                      "location_type": "city"
+                    },
+                    {
+                      "uuid": "86caa7e0-91fb-ce58-6e4c-d58e799dd2bd",
+                      "value": "Washington",
+                      "permalink": "washington-united-states",
+                      "entity_def_id": "location",
+                      "location_type": "region"
+                    },
+                    {
+                      "uuid": "f110fca2-1055-99f6-996d-011c198b3928",
+                      "value": "United States",
+                      "permalink": "united-states",
+                      "entity_def_id": "location",
+                      "location_type": "country"
+                    },
+                    {
+                      "uuid": "b25caef9-a1b8-3a5d-6232-93b2dfb6a1d1",
+                      "value": "North America",
+                      "permalink": "north-america",
+                      "entity_def_id": "location",
+                      "location_type": "continent"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        },
+        {
+          "card_id": "investors_list",
+          "label": "Received Investments",
+          "entity_def_id": "investment",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "is_lead_investor",
+                  "label": "Lead Investor",
+                  "value": true
+                },
+                {
+                  "field_id": "identifier",
+                  "label": "Investment",
+                  "value": {
+                    "uuid": "5214df8d-4b17-4d16-99a8-6ec7c3e4c5d7",
+                    "value": "Elliott Management Corp. investment in Post-IPO Equity - Starbucks",
+                    "permalink": "elliott-management-corp-invested-in-starbucks-post-ipo-equity--a1a99ed4--5214df8d",
+                    "entity_def_id": "investment"
+                  }
+                },
+                {
+                  "field_id": "funding_round_identifier",
+                  "label": "Funding Round",
+                  "value": {
+                    "uuid": "a1a99ed4-f653-49cb-82f6-040a4cf9de48",
+                    "value": "Post-IPO Equity - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-post-ipo-equity--a1a99ed4",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "investor_identifier",
+                  "label": "Investor Name",
+                  "value": {
+                    "uuid": "b140b494-efd0-e89a-fb3e-bf277f599b3a",
+                    "value": "Elliott Management Corp.",
+                    "image_id": "v1470402414/edljji4w7epobezncsxd.png",
+                    "permalink": "elliott-management-corp",
+                    "entity_def_id": "organization"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "is_lead_investor",
+                  "label": "Lead Investor",
+                  "value": true
+                },
+                {
+                  "field_id": "identifier",
+                  "label": "Investment",
+                  "value": {
+                    "uuid": "7d3fba26-4e95-4a00-b6c1-b3e578a83bb9",
+                    "value": "Pershing Square Inc. investment in Post-IPO Equity - Starbucks",
+                    "permalink": "pershing-square-capital-management-invested-in-starbucks-post-ipo-equity--d36fe900--7d3fba26",
+                    "entity_def_id": "investment"
+                  }
+                },
+                {
+                  "field_id": "funding_round_identifier",
+                  "label": "Funding Round",
+                  "value": {
+                    "uuid": "d36fe900-de4b-4181-a0c2-168786af7917",
+                    "value": "Post-IPO Equity - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-post-ipo-equity--d36fe900",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "investor_identifier",
+                  "label": "Investor Name",
+                  "value": {
+                    "uuid": "2baa46dc-86a3-ff8d-e026-7d2c8541d84d",
+                    "value": "Pershing Square Inc.",
+                    "image_id": "f0ecc47e9e344e2bae9ae21b92463d25",
+                    "permalink": "pershing-square-capital-management",
+                    "entity_def_id": "organization"
+                  }
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Investment",
+                  "value": {
+                    "uuid": "d9fc8c6e-ffba-7993-451a-9409faa4bda7",
+                    "value": "Upfront Ventures investment in Venture Round - Starbucks",
+                    "permalink": "upfront-ventures-invested-in-starbucks-series-unknown--52069a67--d9fc8c6e",
+                    "entity_def_id": "investment"
+                  }
+                },
+                {
+                  "field_id": "funding_round_identifier",
+                  "label": "Funding Round",
+                  "value": {
+                    "uuid": "52069a67-f7d1-ebee-b104-d764ceda5f06",
+                    "value": "Venture Round - Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks-series-unknown--52069a67",
+                    "entity_def_id": "funding_round"
+                  }
+                },
+                {
+                  "field_id": "investor_identifier",
+                  "label": "Investor Name",
+                  "value": {
+                    "uuid": "75fea554-2985-a2f0-b825-a0e7ce7d9c86",
+                    "value": "Upfront Ventures",
+                    "image_id": "e6c2c2d9ddb04af99741ae7f08d5a706",
+                    "permalink": "upfront-ventures",
+                    "entity_def_id": "organization"
+                  }
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        },
+        {
+          "card_id": "current_employees_image_list",
+          "label": "Current Team",
+          "entity_def_id": "job",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "025ca3d3-b709-40f2-8fd5-0ea2416416a0",
+                    "value": "Dominic Carr Executive Vice President, Chief Communications Officer @ Starbucks",
+                    "permalink": "dominic-carr-executive-starbucks--025ca3d3",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "9e44c271-7304-4688-be9e-08607e8e931d",
+                    "value": "Dominic Carr",
+                    "image_id": "441ef1bd2e1f404cbeac77d2301ab48f",
+                    "permalink": "dominic-carr",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "Executive Vice President, Chief Communications Officer"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "03e308e4-1cb2-434f-84fc-27200616134e",
+                    "value": "Sanjay Shah EVP, Chief Supply Chain Officer @ Starbucks",
+                    "permalink": "sanjay-shah-933d-executive-starbucks--03e308e4",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "d5880744-ed30-41d4-b3b7-95178681933d",
+                    "value": "Sanjay Shah",
+                    "image_id": "eb57f7d98f104f4c9bc1a54bfbc23073",
+                    "permalink": "sanjay-shah-933d",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "EVP, Chief Supply Chain Officer"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "0731514d-7284-40a9-9c55-3bb6fb1366ed",
+                    "value": "Ryan Bruels Director, Emerging Technology @ Starbucks",
+                    "permalink": "ryan-bruels-employee-starbucks--0731514d",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "23aacecb-277a-1889-7bdd-6db4cb8afaf8",
+                    "value": "Ryan Bruels",
+                    "image_id": "v1431023398/rl2xiiycaef1upslbalw.jpg",
+                    "permalink": "ryan-bruels",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "Director, Emerging Technology"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "08b786fc-0996-4895-8379-7ca3775004be",
+                    "value": "Carl Mount SVP, Supply Chain Operations & US Retail Supply Chain @ Starbucks",
+                    "permalink": "carl-mount-executive-starbucks--08b786fc",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "f8d6cfeb-6cd7-46bd-eadb-5fde4b1f3551",
+                    "value": "Carl Mount",
+                    "image_id": "v1437627622/hdzglilf8wic9eabxkxo.png",
+                    "permalink": "carl-mount",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "SVP, Supply Chain Operations & US Retail Supply Chain"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "08ede909-eec2-40e1-b92a-080b3dae27ed",
+                    "value": "Bin Yu AI Expert-in-Residence @ Starbucks",
+                    "permalink": "bin-yu-782c-employee-starbucks--08ede909",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "194b0337-70ef-4063-b921-c4875c7c782c",
+                    "value": "Bin Yu",
+                    "image_id": "0968353c2d3e46b5bff9a556a5205696",
+                    "permalink": "bin-yu-782c",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "AI Expert-in-Residence"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "0a363e34-ef2a-4d8a-9366-0f10190af495",
+                    "value": "Brady Brewer evp, Chief Marketing Officer @ Starbucks",
+                    "permalink": "brady-brewer-executive-starbucks--0a363e34",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "719432e8-67d2-4dad-9eba-f9a7d126012a",
+                    "value": "Brady Brewer",
+                    "image_id": "k97ysgfwvx7sdjlb0vmq",
+                    "permalink": "brady-brewer",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "evp, Chief Marketing Officer"
+                }
+              ]
+            },
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "0cc125d4-f20c-4d15-afb1-c1b9a331d247",
+                    "value": "Michelle Burns Executive Vice President - Global Coffee, Social Impact & Sustainability @ Starbucks",
+                    "permalink": "michelle-burns-6558-executive-starbucks--0cc125d4",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "person_identifier",
+                  "label": "Person Name",
+                  "value": {
+                    "uuid": "cfd3fd81-6846-4d05-84cf-7967d6ef6558",
+                    "value": "Michelle Burns",
+                    "image_id": "fb01514f9c874423b8d90d03638c705d",
+                    "permalink": "michelle-burns-6558",
+                    "entity_def_id": "person"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "Executive Vice President - Global Coffee, Social Impact & Sustainability"
+                }
+              ]
+            }
+          ],
+          "has_more_entities": true
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-11T14:49:50.109Z",
+    "name": "cb_entity_get",
+    "arguments": {
+      "entity_id": "dominic-carr",
+      "entity_def_id": "person",
+      "card_ids": [
+        "current_jobs_image_list",
+        "current_board_and_advisory_roles_image_list",
+        "founded_organizations_lookup",
+        "investments_list"
+      ],
+      "related_entity_limit": 4
+    },
+    "data": {
+      "request_id": "db6aa9d4d245ee4de39012d5aebb51f1",
+      "collection_id": "people",
+      "entity_def_id": "person",
+      "entity_def_label": "Person",
+      "properties": [
+        {
+          "field_id": "rank_principal",
+          "label": "CB Rank (Org & Person)",
+          "value": 7495639
+        },
+        {
+          "field_id": "identifier",
+          "label": "Full Name",
+          "value": {
+            "uuid": "9e44c271-7304-4688-be9e-08607e8e931d",
+            "value": "Dominic Carr",
+            "image_id": "441ef1bd2e1f404cbeac77d2301ab48f",
+            "permalink": "dominic-carr",
+            "entity_def_id": "person"
+          }
+        },
+        {
+          "field_id": "num_relationships",
+          "label": "Number of Relationships",
+          "value": 3
+        },
+        {
+          "field_id": "attended_schools",
+          "label": "Schools Attended",
+          "value": [
+            {
+              "uuid": "3e77c467-eb69-8de6-b250-b838da2ff707",
+              "value": "University of Sheffield",
+              "image_id": "v1399445970/t75sf7dkj8rx9m6lgneb.png",
+              "permalink": "university-of-sheffield",
+              "entity_def_id": "organization"
+            }
+          ]
+        },
+        {
+          "field_id": "current_organizations",
+          "label": "Current Organizations",
+          "value": [
+            {
+              "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+              "value": "Starbucks",
+              "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+              "permalink": "starbucks",
+              "entity_def_id": "organization"
+            }
+          ]
+        },
+        {
+          "field_id": "entity_def_id",
+          "label": "Entity Def ID",
+          "value": "person"
+        },
+        {
+          "field_id": "rank",
+          "label": "CB Rank",
+          "value": 7619672
+        },
+        {
+          "field_id": "short_description",
+          "label": "Description",
+          "value": "Dominic Carr is based in the Greater Seattle Area. He is working as Executive Vice President and Chief Communications Officer at Starbucks."
+        },
+        {
+          "field_id": "rank_person",
+          "label": "CB Rank (Person)",
+          "value": 887349
+        },
+        {
+          "field_id": "location_identifiers",
+          "label": "Location",
+          "value": [
+            {
+              "uuid": "e2deb95a-475d-4e2b-86bb-34472629e449",
+              "value": "Greater Seattle Area",
+              "permalink": "greater-seattle-area",
+              "entity_def_id": "location",
+              "location_type": "group"
+            },
+            {
+              "uuid": "86caa7e0-91fb-ce58-6e4c-d58e799dd2bd",
+              "value": "Washington",
+              "permalink": "washington-united-states",
+              "entity_def_id": "location",
+              "location_type": "region"
+            },
+            {
+              "uuid": "f110fca2-1055-99f6-996d-011c198b3928",
+              "value": "United States",
+              "permalink": "united-states",
+              "entity_def_id": "location",
+              "location_type": "country"
+            },
+            {
+              "uuid": "b25caef9-a1b8-3a5d-6232-93b2dfb6a1d1",
+              "value": "North America",
+              "permalink": "north-america",
+              "entity_def_id": "location",
+              "location_type": "continent"
+            }
+          ]
+        }
+      ],
+      "cards": [
+        {
+          "card_id": "current_jobs_image_list",
+          "label": "Current Jobs",
+          "entity_def_id": "job",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Job",
+                  "value": {
+                    "uuid": "025ca3d3-b709-40f2-8fd5-0ea2416416a0",
+                    "value": "Dominic Carr Executive Vice President, Chief Communications Officer @ Starbucks",
+                    "permalink": "dominic-carr-executive-starbucks--025ca3d3",
+                    "entity_def_id": "job"
+                  }
+                },
+                {
+                  "field_id": "organization_identifier",
+                  "label": "Organization Name",
+                  "value": {
+                    "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+                    "value": "Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks",
+                    "entity_def_id": "organization"
+                  }
+                },
+                {
+                  "field_id": "started_on",
+                  "label": "Start Date",
+                  "value": {
+                    "value": "2024-01-01",
+                    "precision": "month"
+                  }
+                },
+                {
+                  "field_id": "title",
+                  "label": "Title At Company",
+                  "value": "Executive Vice President, Chief Communications Officer"
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-11T14:49:50.227Z",
+    "name": "cb_entity_autocomplete",
+    "arguments": {
+      "query": "Dominic Carr",
+      "collection_ids": "people",
+      "limit": 1
+    },
+    "data": {
+      "request_id": "16b5cb49359d3eb2a5b414164732322a",
+      "entities": [
+        {
+          "identifier": {
+            "image_url": "https://images.crunchbase.com/image/upload/c_pad,h_140,w_140/441ef1bd2e1f404cbeac77d2301ab48f",
+            "url": "https://crunchbase.com/person/dominic-carr",
+            "uuid": "9e44c271-7304-4688-be9e-08607e8e931d",
+            "entity_def_id": "person",
+            "permalink": "dominic-carr",
+            "value": "Dominic Carr",
+            "image_id": "441ef1bd2e1f404cbeac77d2301ab48f"
+          },
+          "facet_ids": [
+            "rank"
+          ],
+          "short_description": "Dominic Carr is based in the Greater Seattle Area. He is working as Executive Vice President and Chief Communications Officer at Starbucks."
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-11T14:49:51.159Z",
+    "name": "cb_entity_get",
+    "arguments": {
+      "entity_id": "starbucks-post-ipo-debt--c68167ba",
+      "entity_def_id": "funding_round",
+      "card_ids": [
+        "organization_lookup",
+        "investments_lookup",
+        "lead_investors_image_list"
+      ],
+      "related_entity_limit": 6
+    },
+    "data": {
+      "request_id": "c8471ac9c728e8ff4d9b7dc49853d367",
+      "collection_id": "funding_rounds",
+      "entity_def_id": "funding_round",
+      "entity_def_label": "Funding Round",
+      "properties": [
+        {
+          "field_id": "announced_on",
+          "label": "Announced Date",
+          "value": "2025-05-06"
+        },
+        {
+          "field_id": "num_relationships",
+          "label": "Number of Relationships",
+          "value": 13
+        },
+        {
+          "field_id": "closed_on",
+          "label": "Closed On Date",
+          "value": {
+            "value": "2025-05-08",
+            "precision": "day"
+          }
+        },
+        {
+          "field_id": "funded_organization_identifier",
+          "label": "Organization Name",
+          "value": {
+            "role": "investee",
+            "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+            "value": "Starbucks",
+            "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+            "permalink": "starbucks",
+            "entity_def_id": "organization"
+          }
+        },
+        {
+          "field_id": "title",
+          "label": "SEO Title",
+          "value": "Post-IPO Debt - Starbucks - 2025-05-06"
+        },
+        {
+          "field_id": "entity_def_id",
+          "label": "Entity Def ID",
+          "value": "funding_round"
+        },
+        {
+          "field_id": "identifier",
+          "label": "Transaction Name",
+          "value": {
+            "uuid": "c68167ba-ffb9-4245-b31c-d1986a2f08e2",
+            "value": "Post-IPO Debt - Starbucks",
+            "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+            "permalink": "starbucks-post-ipo-debt--c68167ba",
+            "entity_def_id": "funding_round"
+          }
+        },
+        {
+          "field_id": "rank_funding_round",
+          "label": "CB Rank (Funding Round)",
+          "value": 609366
+        },
+        {
+          "field_id": "money_raised",
+          "label": "Money Raised",
+          "value": {
+            "value": 1750000000,
+            "currency": "USD",
+            "value_usd": 1750000000
+          }
+        },
+        {
+          "field_id": "rank",
+          "label": "CB Rank",
+          "value": 9144201
+        },
+        {
+          "field_id": "short_description",
+          "label": "Description",
+          "value": "Starbucks raised $1750000000 on 2025-05-06 in Post-IPO Debt"
+        },
+        {
+          "field_id": "funded_organization_funding_total",
+          "label": "Total Funding Amount",
+          "value": {
+            "value": 2650000000,
+            "currency": "USD",
+            "value_usd": 2650000000
+          }
+        },
+        {
+          "field_id": "funded_organization_location_groups",
+          "label": "Organization Regions",
+          "value": [
+            {
+              "uuid": "e2deb95a-475d-4e2b-86bb-34472629e449",
+              "value": "Greater Seattle Area",
+              "permalink": "greater-seattle-area",
+              "entity_def_id": "location",
+              "location_type": "group"
+            },
+            {
+              "uuid": "cf97b169-46c9-493f-a20f-3fe590824934",
+              "value": "West Coast",
+              "permalink": "west-coast-united-states",
+              "entity_def_id": "location",
+              "location_type": "group"
+            },
+            {
+              "uuid": "f37257c7-3745-42a1-8e07-b7db80a362ac",
+              "value": "Western US",
+              "permalink": "western-united-states",
+              "entity_def_id": "location",
+              "location_type": "group"
+            }
+          ]
+        },
+        {
+          "field_id": "investment_type",
+          "label": "Funding Type",
+          "value": "post_ipo_debt"
+        }
+      ],
+      "cards": [
+        {
+          "card_id": "organization_lookup",
+          "label": "Funded Organizations",
+          "entity_def_id": "organization",
+          "entities": [
+            {
+              "properties": [
+                {
+                  "field_id": "identifier",
+                  "label": "Organization Name",
+                  "value": {
+                    "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+                    "value": "Starbucks",
+                    "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+                    "permalink": "starbucks",
+                    "entity_def_id": "organization"
+                  }
+                },
+                {
+                  "field_id": "short_description",
+                  "label": "Description",
+                  "value": "Starbucks is a restaurant chain that serves handcrafted ready-to-drink beverages, including coffee, tea, juices, and snack food items."
+                }
+              ]
+            }
+          ],
+          "has_more_entities": false
+        }
+      ]
+    }
+  },
+  {
+    "at": "2026-10-11T14:52:15.170Z",
+    "name": "cb_search_query",
+    "arguments": {
+      "collection_id": "funding_rounds",
+      "predicates": [
+        {
+          "field_id": "identifier",
+          "operator_id": "eq",
+          "values": [
+            "starbucks-post-ipo-debt--c68167ba"
+          ]
+        }
+      ],
+      "field_ids": [
+        "identifier",
+        "announced_on",
+        "money_raised",
+        "funded_organization_identifier"
+      ],
+      "limit": 1
+    },
+    "data": {
+      "request_id": "0e9532ecedc742090c54ed49c17ab0d9",
+      "collection_id": "funding_rounds",
+      "count": 1,
+      "entities": [
+        {
+          "uuid": "c68167ba-ffb9-4245-b31c-d1986a2f08e2",
+          "properties": {
+            "money_raised": {
+              "currency": "USD",
+              "value": 1750000000,
+              "value_usd": 1750000000
+            },
+            "funded_organization_identifier": {
+              "permalink": "starbucks",
+              "role": "investee",
+              "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png",
+              "uuid": "68dd3433-e24d-1885-e987-d769d8ab9b21",
+              "entity_def_id": "organization",
+              "value": "Starbucks"
+            },
+            "announced_on": "2025-05-06",
+            "identifier": {
+              "uuid": "c68167ba-ffb9-4245-b31c-d1986a2f08e2",
+              "entity_def_id": "funding_round",
+              "permalink": "starbucks-post-ipo-debt--c68167ba",
+              "value": "Post-IPO Debt - Starbucks",
+              "image_id": "v1488264559/cbgqpe9icin2ntbpguyc.png"
+            }
+          },
+          "value": "Post-IPO Debt - Starbucks",
+          "url": "https://www.crunchbase.com/funding_round/starbucks-post-ipo-debt--c68167ba"
+        }
+      ],
+      "response_status": 200
+    }
+  },
+  {
+    "at": "2026-10-11T14:52:15.348Z",
+    "name": "cb_search_query",
+    "arguments": {
+      "collection_id": "people",
+      "predicates": [
+        {
+          "field_id": "identifier",
+          "operator_id": "eq",
+          "values": [
+            "dominic-carr"
+          ]
+        }
+      ],
+      "field_ids": [
+        "identifier",
+        "primary_job_title",
+        "primary_organization"
+      ],
+      "limit": 1
+    },
+    "data": {
+      "request_id": "feadc2a07aa4ac45a28d127061c44e12",
+      "collection_id": "people",
+      "count": 1,
+      "entities": [
+        {
+          "uuid": "9e44c271-7304-4688-be9e-08607e8e931d",
+          "properties": {
+            "identifier": {
+              "uuid": "9e44c271-7304-4688-be9e-08607e8e931d",
+              "entity_def_id": "person",
+              "permalink": "dominic-carr",
+              "value": "Dominic Carr",
+              "image_id": "441ef1bd2e1f404cbeac77d2301ab48f"
+            }
+          },
+          "value": "Dominic Carr",
+          "url": "https://www.crunchbase.com/person/dominic-carr"
+        }
+      ],
+      "response_status": 200
+    }
+  }
+]

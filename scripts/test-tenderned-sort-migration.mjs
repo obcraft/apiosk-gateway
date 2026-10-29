@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 
-const fixture = JSON.parse(await fs.readFile(new URL('../legacy-executor/src/fixtures/tenderned-wire-binding.json', import.meta.url), 'utf8'));
+const fixture = JSON.parse(await fs.readFile(new URL('../crates/commerce-runtime/src/fixtures/tenderned-wire-binding.json', import.meta.url), 'utf8'));
 const migration = await fs.readFile(new URL('../supabase/migrations/20261003130359_preserve_tenderned_publication_sort.sql', import.meta.url), 'utf8');
 const original = structuredClone(fixture.query_params);
 delete original.sort;

@@ -3,8 +3,9 @@
 The gateway checks a shared PostgreSQL source cache after approval and before
 creating a buyer payment reservation. A miss creates one job; workers retrieve
 and save the source response independently of the browser request. The gateway
-waits for that job, then continues through its existing payment flow. The embedded
-payment executor reads the same cache and cannot bypass the queue for this source.
+waits for that job, then continues through its existing payment flow. The native
+`commerce-runtime` library reads the same cache inside the gateway process and
+cannot bypass the queue for this source.
 
 ## Deployment and capacity
 
@@ -96,15 +97,20 @@ Both migrations are applied to production and mirrored in the App repository:
 - `20260912111106_kvk_annual_accounts_queue.sql`
 - `20260912112028_kvk_worker_database_role.sql`
 
-The gateway and embedded executor both depend on `crates/kvk-accounts`. Publish
-both the parent changes and the `legacy-executor` submodule changes together.
+The gateway and its `commerce-runtime` library both depend on the single
+`crates/kvk-accounts` workspace crate. `python3 scripts/check-kvk-crate-sync.py`
+verifies those Cargo dependencies resolve to that same source. Publish one
+gateway image; no second repository, submodule or executor process is involved.
+The dedicated source-queue worker remains a separate deployment using this
+same crate, as described above.
 
 Local tests use disposable PostgreSQL and a loopback HTTP fixture:
 
 ```sh
 python3 scripts/test-kvk-accounts.py
+python3 scripts/check-kvk-crate-sync.py
 cargo test --offline --workspace --lib
-cargo check --offline --manifest-path legacy-executor/Cargo.toml --bin apiosk-gateway
+cargo check --locked --offline -p commerce-runtime --lib
 ```
 
 They cover shared production admission across different routes, single-flight,

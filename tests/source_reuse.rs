@@ -1,6 +1,6 @@
 // The legacy module also exposes ledger helpers used by its own binary.
 #[allow(dead_code)]
-#[path = "../legacy-executor/src/fees.rs"]
+#[path = "../crates/commerce-runtime/src/fees.rs"]
 mod legacy_fees;
 
 #[test]

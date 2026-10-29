@@ -9,20 +9,30 @@
 !crates/
 !crates/**
 !deploy/
+deploy/**
 !deploy/certs/
+deploy/certs/**
 !deploy/certs/supabase-prod-ca-2021.crt
-!legacy-executor/
-!legacy-executor/**
 !entrypoint.sh
 
 !assets/
 !assets/**
 !perf/
 !perf/**
-legacy-executor/target/
-legacy-executor/crates/**/target/
-legacy-executor/.git
-legacy-executor/.env*
+# Exclude local state and credentials at every depth.
+**/.git
+**/.git/**
+**/.env*
+**/target
+**/target/**
+**/node_modules
+**/node_modules/**
+**/.local
+**/.local/**
+**/.DS_Store
+**/.cto-toolkit
+**/.cto-toolkit/**
 
 !deploy/kvk-workers/
+deploy/kvk-workers/**
 !deploy/kvk-workers/Dockerfile

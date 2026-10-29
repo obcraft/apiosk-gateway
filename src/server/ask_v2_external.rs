@@ -40,10 +40,10 @@ async fn resolve(state: &ServerState, request: &SourceRequest) -> Result<externa
     if !request.valid() {
         return Err(failure(StatusCode::BAD_REQUEST, "invalid_source", "Choose the source again. Nothing was charged."));
     }
-    let Some(directory) = state.executor_compat.as_ref() else {
+    let Some(directory) = state.commerce.as_ref() else {
         return Err(failure(StatusCode::SERVICE_UNAVAILABLE, "source_unavailable", "Source pricing is temporarily unavailable. Try again shortly."));
     };
-    external::resolve(&state.engine.executor.http, directory.directory_origin(), &request.resource_url, &request.method, &request.query)
+    external::resolve(directory, &request.resource_url, &request.method, &request.query)
         .await.map_err(|error| failure(StatusCode::UNPROCESSABLE_ENTITY, "source_unavailable", &error.to_string()))
 }
 

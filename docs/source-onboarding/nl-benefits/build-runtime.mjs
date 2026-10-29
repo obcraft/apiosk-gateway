@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
-import {fileURLToPath} from 'node:url';
+import {join} from 'node:path';
 import {render} from '../render.mjs';
 const here=new URL('./',import.meta.url);
 const obj=properties=>({type:'object',additionalProperties:false,properties,required:Object.keys(properties)});
@@ -66,7 +66,11 @@ function endpoint(b,{key,name,path,capability,input,output,example,sample,tags,d
  b.offers.push({endpoint_key:key,capability_slug:capability,source:'declared',confidence:1,input_map:Object.fromEntries(inputs.map(([k])=>[k,{in:'body',name:k}])),fixed_params:{},notes});
 }
 const calc=source('nl-toeslagen-rekenservice','Nederlandse toeslagen — rekenservice 2026','Persoonlijke indicatieve berekeningen van zorgtoeslag, huurtoeslag, kindgebonden budget en kinderopvangtoeslag voor 2026. Bevestigde basisvoorwaarden en gelijkblijvende omstandigheden vereist. Geen beschikking of aanvraag.');
-const binary=fileURLToPath(new URL('../../../legacy-executor/crates/nl-benefits/target/debug/examples/request',here));
+// nl-benefits is a workspace member, so Cargo owns one shared target directory.
+// Read metadata to respect an operator's CARGO_TARGET_DIR override as well.
+const metadata=spawnSync('cargo',['metadata','--no-deps','--format-version','1','--locked','--offline'],{cwd:new URL('../../../',here),encoding:'utf8'});
+if(metadata.status!==0)throw Error(metadata.stderr||'Could not read gateway workspace metadata');
+const binary=join(JSON.parse(metadata.stdout).target_directory,'debug','examples',process.platform==='win32'?'request.exe':'request');
 for(const [key,name,input,example,file] of definitions) {
  const path=`/2026/${key}/calculate`;const r=spawnSync(binary,[calc.source.slug,path],{input:JSON.stringify(example),encoding:'utf8'});
  if(r.status!==0)throw Error(r.stderr||'Build the native example first');

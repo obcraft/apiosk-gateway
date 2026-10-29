@@ -354,7 +354,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
         let api_state = apiosk_gateway_v2::server::ServerState {
             engine: engine.clone(),
             auth: Arc::new(apiosk_gateway_v2::auth::Auth {pool:pool.clone(), http:reqwest::Client::new(), supabase_url:engine.executor.supabase_url.clone(), publishable_key:"fixture".into()}),
-            permits: Arc::new(tokio::sync::Semaphore::new(8)), executor_compat:None,
+            permits: Arc::new(tokio::sync::Semaphore::new(8)), commerce:None,
         };
         let gateway_address = browser_env("WORKFLOWS_GATEWAY_ADDRESS", "127.0.0.1:5283");
         let listener = tokio::net::TcpListener::bind(&gateway_address).await.unwrap();
@@ -836,7 +836,7 @@ async fn ten_workflows_quote_approve_complete_recover_and_keep_history() {
     let api_state = apiosk_gateway_v2::server::ServerState {
         engine: engine.clone(),
         auth: Arc::new(apiosk_gateway_v2::auth::Auth { pool: pool.clone(), http: reqwest::Client::new(), supabase_url: engine.executor.supabase_url.clone(), publishable_key: "fixture".into() }),
-        permits: Arc::new(tokio::sync::Semaphore::new(8)), executor_compat: None,
+        permits: Arc::new(tokio::sync::Semaphore::new(8)), commerce: None,
     };
     let api_listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let api_url = format!("http://{}", api_listener.local_addr().unwrap());

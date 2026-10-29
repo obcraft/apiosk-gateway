@@ -1,0 +1,244 @@
+{
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api.kvk.nl/api/v2/zoeken?naam=Mollie BV&inclusiefinactieveregistraties=false&pagina=1&resultatenperpagina=10"
+    }
+  ],
+  "pagina": 1,
+  "totaal": 27,
+  "volgende": "https://api.kvk.nl/api/v2/zoeken?naam=Mollie BV&inclusiefinactieveregistraties=false&pagina=2&resultatenperpagina=10",
+  "resultaten": [
+    {
+      "naam": "Mollie B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Keizersgracht"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188"
+        }
+      ],
+      "kvkNummer": "30204462",
+      "vestigingsnummer": "000020495188"
+    },
+    {
+      "naam": "Mollie B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Eerste Constantijn Huygensstraat"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/92327737"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000057948925"
+        }
+      ],
+      "kvkNummer": "92327737",
+      "vestigingsnummer": "000057948925"
+    },
+    {
+      "naam": "Mollie Pluis B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Utrecht",
+          "straatnaam": "Oudegracht"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/95492437"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000060901268"
+        }
+      ],
+      "kvkNummer": "95492437",
+      "vestigingsnummer": "000060901268"
+    },
+    {
+      "naam": "Mollie Holding B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Keizersgracht"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/63892405"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000032763964"
+        }
+      ],
+      "kvkNummer": "63892405",
+      "vestigingsnummer": "000032763964"
+    },
+    {
+      "naam": "Mollie Holding B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Zuidoostbeemster",
+          "straatnaam": "Zuiderweg"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/58836489"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000028167201"
+        }
+      ],
+      "kvkNummer": "58836489",
+      "vestigingsnummer": "000028167201"
+    },
+    {
+      "naam": "Mollie International B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Keizersgracht"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/85915971"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000051931036"
+        }
+      ],
+      "kvkNummer": "85915971",
+      "vestigingsnummer": "000051931036"
+    },
+    {
+      "naam": "Mollie Media B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Admiraal De Ruijterweg"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/98940406"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000003352072"
+        }
+      ],
+      "kvkNummer": "98940406",
+      "vestigingsnummer": "000003352072"
+    },
+    {
+      "naam": "Mollie Business B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Amsterdam",
+          "straatnaam": "Keizersgracht"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/99776006"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000064824721"
+        }
+      ],
+      "kvkNummer": "99776006",
+      "vestigingsnummer": "000064824721"
+    },
+    {
+      "naam": "Mollie Power B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Eindhoven",
+          "straatnaam": "Hermanus Boexstraat"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/86692143"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000052652920"
+        }
+      ],
+      "kvkNummer": "86692143",
+      "vestigingsnummer": "000052652920"
+    },
+    {
+      "naam": "Margot-Mollie B.V.",
+      "type": "hoofdvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "plaats": "Best",
+          "straatnaam": "de Dommel"
+        }
+      },
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/api/v1/basisprofielen/99497212"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000064564509"
+        }
+      ],
+      "kvkNummer": "99497212",
+      "vestigingsnummer": "000064564509"
+    }
+  ],
+  "resultatenPerPagina": 10
+}

@@ -2,7 +2,7 @@
 //! planning fixtures do not claim to verify AI interpretation. No provider
 //! request or paid replay is made.
 #[allow(dead_code)]
-#[path = "../legacy-executor/src/proxy/public_sources.rs"]
+#[path = "../crates/commerce-runtime/src/proxy/public_sources.rs"]
 mod source_adapter;
 use crate::{
     catalog::{Catalog, Snapshot},

@@ -1,11 +1,11 @@
 // Domain intelligence (RDAP + DNS MX) for the supplier payment check.
 // Samples are the production adapter's normalized output for real registry
-// responses in legacy-executor/src/proxy/fixtures/domain-intel/.
+// responses in crates/commerce-runtime/src/proxy/fixtures/domain-intel/.
 // Usage: node scripts/prepare-domain-intelligence.mjs supabase/migrations/<version>_onboard_domain_intelligence.sql
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
 const root = new URL('../', import.meta.url);
-const fixture = async name => JSON.parse(await fs.readFile(new URL(`legacy-executor/src/proxy/fixtures/domain-intel/${name}`, root), 'utf8'));
+const fixture = async name => JSON.parse(await fs.readFile(new URL(`crates/commerce-runtime/src/proxy/fixtures/domain-intel/${name}`, root), 'utf8'));
 const id = s => { const h = crypto.createHash('sha256').update('domain-intelligence-v1:' + s).digest('hex'); return `${h.slice(0,8)}-${h.slice(8,12)}-4${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`; };
 
 const rdapRaw = await fixture('rdap-nl.json'), dnsRaw = await fixture('dns-mx.json');

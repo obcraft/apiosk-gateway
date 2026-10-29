@@ -2,7 +2,7 @@
 
 Nieuw zelfstandig Rust-project voor de chatbotflow: vraag → voorstel en totaalprijs → toestemming → deterministische uitvoering → bronresultaten → doorvragen met bewaarde context.
 
-De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sources`, `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. De bestaande betaaladministratie en treasury-executor blijven verantwoordelijk voor betalingen. V2 heeft geen tweede saldo-administratie.
+De gateway exposeert drie MCP-tools via de bestaande MCP-repository: `apiosk_sources`, `apiosk_discover` en `apiosk_execute`. De bestaande App is aangesloten met een optionele v2-vraagflow en een aparte toestemmingspagina. Provider- en treasuryhandlers draaien als bibliotheek `crates/commerce-runtime` binnen hetzelfde gatewayproces. De bestaande App-betaaladministratie blijft verantwoordelijk voor het saldo; V2 heeft geen tweede saldo-administratie.
 
 ## Status
 
@@ -36,9 +36,11 @@ staan uitsluitend onder `supabase/migrations/`.
 
 ## Controleren
 
+Zie [Rust-build, caching en deployment](docs/build-and-deploy.md) voor de
+GitHub Actions-pipeline, lokale imagecontroles en de productie-uitrol.
+
 Installeer de Gateway-ontwikkeltools met `npm ci`. `npx knip` (of
-`npm run check:unused`) controleert de JavaScript-scripts van de Gateway en
-de afzonderlijke scriptpakketten in `legacy-executor`. De gedeelde configuratie
+`npm run check:unused`) controleert de JavaScript-scripts van de Gateway. De gedeelde configuratie
 volgt de [Knip-workspaces](https://knip.dev/features/monorepos-and-workspaces).
 PGlite is een eigen Gateway-testdependency; de migratietests laden die niet
 meer uit de App-installatie. De Rust-code wordt met Cargo gecontroleerd.
@@ -46,16 +48,11 @@ meer uit de App-installatie. De Rust-code wordt met Cargo gecontroleerd.
 k6-runtime geleverd. Vendored contractbibliotheken en het bevroren auditrapport
 vallen buiten deze scriptcontrole.
 
-Haal na het clonen eerst de vastgelegde submodules op:
-
-```sh
-git submodule update --init --recursive
-```
-
-De Fly-image bouwt zowel gateway v2 als de ingebouwde provider-/betaalexecutor
-uit `legacy-executor`. Zonder die submodule faalt `fly deploy` met een ontbrekende
-`/executor/Cargo.toml`. De executor draait binnen dezelfde v2-image; er is geen
-aparte gateway-v1-deployment nodig.
+Een normale clone bevat de volledige Rust-workspace, inclusief
+`crates/commerce-runtime` en `crates/nl-benefits`. De Fly-image bouwt één
+gatewayserver waarin provider-, treasury- en directoryhandlers zijn gelinkt.
+Er is geen extra repositorycheckout, submodule, betaalbinary of tweede
+serverproces nodig. `cargo test --workspace` controleert deze code samen.
 
 Vanuit deze directory, met Rust/Cargo en Node geïnstalleerd en de App/MCP-dependencies aanwezig:
 

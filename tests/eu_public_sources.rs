@@ -1,5 +1,5 @@
 #[allow(dead_code)]
-#[path = "../legacy-executor/src/proxy/public_sources.rs"]
+#[path = "../crates/commerce-runtime/src/proxy/public_sources.rs"]
 mod adapter;
 use serde_json::{json, Value};
 fn p(source: &str, method: &str, url: &str) -> adapter::Prepared {

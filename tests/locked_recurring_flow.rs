@@ -981,7 +981,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
                 publishable_key: "fixture".into(),
             }),
             permits: Arc::new(tokio::sync::Semaphore::new(4)),
-            executor_compat: None,
+            commerce: None,
         },
         "http://localhost",
     )
@@ -1238,7 +1238,7 @@ async fn five_locked_runs_bind_current_results_resume_without_repurchase_and_del
     sqlx::query("SELECT billing.approve_locked_recurring_order($1,$2,$3,$4,$5)").bind(owner).bind(monitor_id)
         .bind(monitor["total"].as_str().unwrap().parse::<i64>().unwrap()).bind(monitor["total_per_run"].as_str().unwrap().parse::<i64>().unwrap())
         .bind(monitor["workflow"]["fingerprint"].as_str().unwrap()).execute(&pool).await.unwrap();
-    let monitor_app=gateway_router(ServerState{engine:monitor_engine.clone(),auth:Arc::new(Auth{pool:pool.clone(),http:reqwest::Client::new(),supabase_url:base.clone(),publishable_key:"fixture".into()}),permits:Arc::new(tokio::sync::Semaphore::new(4)),executor_compat:None},"http://localhost").unwrap();
+    let monitor_app=gateway_router(ServerState{engine:monitor_engine.clone(),auth:Arc::new(Auth{pool:pool.clone(),http:reqwest::Client::new(),supabase_url:base.clone(),publishable_key:"fixture".into()}),permits:Arc::new(tokio::sync::Semaphore::new(4)),commerce:None},"http://localhost").unwrap();
     let (status,list)=http(&monitor_app,"GET","/v2/monitoring","fixture-person",None,None).await;
     assert_eq!(status,200);assert!(list["monitors"].as_array().unwrap().iter().any(|m|m["id"]==monitor_id.to_string()));
     let monitor_path=format!("/v2/monitoring/{monitor_id}");

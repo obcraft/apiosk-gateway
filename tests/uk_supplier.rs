@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 #[allow(dead_code)]
-#[path = "../legacy-executor/src/proxy/public_sources.rs"]
+#[path = "../crates/commerce-runtime/src/proxy/public_sources.rs"]
 mod adapter;
 
 fn catalog() -> Catalog {

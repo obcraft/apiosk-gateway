@@ -1,0 +1,263 @@
+{
+  "company.name": {
+    "slug": "company.name",
+    "value_schema": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "match_hints": {
+      "keys": [
+        "naam",
+        "name",
+        "companyname",
+        "statutairenaam",
+        "handelsnaam",
+        "legalname",
+        "eerstehandelsnaam",
+        "bedrijfsnaam"
+      ]
+    }
+  },
+  "company.registration.nl.kvk": {
+    "slug": "company.registration.nl.kvk",
+    "value_schema": {
+      "type": "string",
+      "pattern": "^[0-9]{8}$"
+    },
+    "match_hints": {
+      "identity": true,
+      "keys": [
+        "kvknummer",
+        "kvk",
+        "kvknr",
+        "kvknumber",
+        "chamberofcommercenumber",
+        "dossiernummer"
+      ]
+    }
+  },
+  "company.profile": {
+    "slug": "company.profile",
+    "value_schema": {
+      "type": "object",
+      "required": [
+        "legal_name"
+      ],
+      "properties": {
+        "legal_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trade_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "legal_form": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "founded_on": {
+          "type": "string"
+        },
+        "sbi_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "employee_count": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "match_hints": {
+      "fields": {
+        "legal_name": [
+          "statutairenaam",
+          "legalname",
+          "naam"
+        ],
+        "trade_names": [
+          "handelsnamen",
+          "tradenames"
+        ],
+        "legal_form": [
+          "rechtsvorm",
+          "legalform"
+        ],
+        "status": [
+          "status"
+        ],
+        "founded_on": [
+          "datumaanvang",
+          "foundedon",
+          "startdatum",
+          "oprichtingsdatum"
+        ],
+        "sbi_codes": [
+          "sbicode",
+          "sbicodes",
+          "sbiactiviteiten"
+        ],
+        "employee_count": [
+          "totaalwerkzamepersonen",
+          "employeecount",
+          "werknemers"
+        ]
+      }
+    }
+  },
+  "company.financial_statements": {
+    "slug": "company.financial_statements",
+    "value_schema": {
+      "type": "object",
+      "required": [
+        "financial_year"
+      ],
+      "properties": {
+        "financial_year": {
+          "type": "number"
+        },
+        "filed_on": {
+          "type": "string"
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "equity": {
+          "type": "number"
+        },
+        "total_assets": {
+          "type": "number"
+        },
+        "revenue": {
+          "type": "number"
+        },
+        "result_after_tax": {
+          "type": "number"
+        },
+        "document_url": {
+          "type": "string"
+        }
+      }
+    },
+    "match_hints": {
+      "fields": {
+        "financial_year": [
+          "financialyear",
+          "boekjaar"
+        ],
+        "filed_on": [
+          "documentadoptiondate",
+          "deponeringsdatum"
+        ],
+        "equity": [
+          "equity",
+          "eigenvermogen"
+        ],
+        "total_assets": [
+          "assets",
+          "totaalactiva",
+          "balanstotaal"
+        ],
+        "revenue": [
+          "revenue",
+          "netrevenue",
+          "omzet"
+        ],
+        "result_after_tax": [
+          "resultaftertax",
+          "nettoresultaat"
+        ]
+      },
+      "adapters": [
+        "tree.key-value"
+      ]
+    }
+  },
+  "address.postal": {
+    "slug": "address.postal",
+    "value_schema": {
+      "type": "object",
+      "required": [
+        "postcode"
+      ],
+      "properties": {
+        "street": {
+          "type": "string"
+        },
+        "house_number": {
+          "type": "string"
+        },
+        "postcode": {
+          "type": "string",
+          "pattern": "^[0-9]{4}\\s?[A-Za-z]{2}$"
+        },
+        "city": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}$"
+        }
+      }
+    },
+    "match_hints": {
+      "fields": {
+        "street": [
+          "straatnaam",
+          "street",
+          "straat"
+        ],
+        "house_number": [
+          "huis_nlt",
+          "huisnummer",
+          "housenumber",
+          "huisnummervolledig"
+        ],
+        "postcode": [
+          "postcode",
+          "postalcode",
+          "zip",
+          "zipcode"
+        ],
+        "city": [
+          "plaats",
+          "woonplaatsnaam",
+          "city",
+          "stad"
+        ],
+        "country": [
+          "landcode",
+          "countrycode"
+        ]
+      }
+    }
+  },
+  "address.text": {
+    "slug": "address.text",
+    "value_schema": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "match_hints": {
+      "keys": [
+        "adres",
+        "address",
+        "volledigadres",
+        "weergavenaam",
+        "q",
+        "query",
+        "searchtext"
+      ]
+    }
+  }
+}

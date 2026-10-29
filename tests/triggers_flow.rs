@@ -175,7 +175,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
                     publishable_key: "fixture".into(),
                 }),
                 permits: Arc::new(Semaphore::new(8)),
-                executor_compat: None,
+                commerce: None,
             },
             "http://localhost:5276",
         )

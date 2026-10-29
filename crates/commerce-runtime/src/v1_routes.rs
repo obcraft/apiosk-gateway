@@ -1,0 +1,52 @@
+mod answer;
+mod engine;
+pub use engine::structured_inference;
+mod approvals;
+mod ask;
+mod capabilities;
+mod catalog;
+mod decisions;
+mod discover_schema;
+mod discovery_sources;
+mod do_job;
+mod flow;
+mod jobs;
+mod me;
+pub(crate) mod models;
+mod network;
+mod plans;
+mod preflight;
+mod quote;
+pub(crate) mod render;
+mod search;
+mod select;
+mod source_providers;
+mod sources;
+mod usage;
+
+pub use answer::answer;
+pub use approvals::get_approval;
+pub use ask::ask;
+pub use capabilities::{get_capability, list_capabilities};
+pub use catalog::{
+    get_api_detail, get_provider_apis, list_apis, list_by_type, list_providers, list_types,
+    provider_directory, sitemap_xml,
+};
+pub use decisions::{submit_decision, submit_outcome};
+pub use discover_schema::discover_schema;
+pub use discovery_sources::probe_source;
+pub use do_job::{do_job, do_job_info};
+pub(crate) use flow::{buyer_price_usd, candidate_json};
+pub use flow::{compare, decide, discover, enrich_only, find_all, match_terms, parse_only};
+pub use jobs::{cancel_job, get_job, job_events, job_facts, resolve_job, start_job};
+pub use me::me;
+pub use network::list_network;
+pub use plans::{create_plan, get_plan};
+pub use preflight::{preflight, preflight_get};
+pub use quote::{quote, verify_offer_id};
+pub(crate) use render::render_home_html;
+pub use search::search;
+pub use select::select;
+pub use source_providers::refresh_source_providers;
+pub use sources::{get_source_api, list_all_source_apis, list_source_apis, list_sources};
+pub use usage::{check_balance, usage_stats};

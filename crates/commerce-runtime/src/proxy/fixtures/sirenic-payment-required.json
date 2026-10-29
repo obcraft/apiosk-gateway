@@ -1,0 +1,134 @@
+{
+  "x402Version": 2,
+  "error": "Payment required",
+  "resource": {
+    "url": "https://api.sirenic.eu/v1/recherche",
+    "description": "French company search and company lookup by name or SIREN in the official French company registry (INSEE Sirene / INPI RNE open data). Name search returns the top 10 matches with identity, SIREN, NAF code, city and active/ceased status, plus a score_confiance (0-1 match confidence) that helps disambiguate homonyms. The entry point to official data and company data on France: resolve a trading name to its SIREN identifier before pulling the full company profile, filings or financials.",
+    "mimeType": "application/json",
+    "serviceName": "Sirenic",
+    "tags": [
+      "france",
+      "search",
+      "siren",
+      "sirene",
+      "company-lookup"
+    ],
+    "iconUrl": "https://api.sirenic.eu/logo.png"
+  },
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "2000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 120,
+      "extra": {
+        "name": "USD Coin",
+        "version": "2"
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "2000",
+      "asset": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 120,
+      "extra": {
+        "name": "EURC",
+        "version": "2"
+      }
+    }
+  ],
+  "extensions": {
+    "bazaar": {
+      "info": {
+        "input": {
+          "type": "http",
+          "method": "GET",
+          "queryParams": {
+            "q": "danone"
+          }
+        },
+        "output": {
+          "type": "json",
+          "example": {
+            "total_results": 10,
+            "resultats": [
+              {
+                "siren": "552032534",
+                "denomination": "DANONE",
+                "statut_diffusion": "totale",
+                "etat_administratif": "actif",
+                "activite_principale": "70.10Z",
+                "commune_siege": "PARIS",
+                "code_postal_siege": "75009",
+                "score_confiance": 1
+              }
+            ],
+            "source": "INSEE Sirene / INPI RNE via recherche-entreprises.api.gouv.fr, licence ouverte Etalab 2.0",
+            "disclaimer": "Donn\u00e9es issues de l'open data, fournies en l'\u00e9tat sans garantie. / Open data, provided as is without warranty.",
+            "etages_abandonnes": [],
+            "data_freshness": "stock Sirene mensuel (2026-08-01), dirigeants temps r\u00e9el"
+          }
+        }
+      },
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "http"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "GET"
+                ]
+              },
+              "queryParams": {
+                "type": "object",
+                "properties": {
+                  "q": {
+                    "type": "string",
+                    "description": "Company name, or a French identifier \u2014 SIREN, SIRET or FR VAT number, spaced or labelled (\"SIREN : 552 032 534\"), resolved directly. Unsupported characters are stripped, not rejected; 400 only if nothing searchable is left (1-100 chars once cleaned up)."
+                  }
+                },
+                "required": [
+                  "q"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "method"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "example": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ]
+      }
+    }
+  }
+}

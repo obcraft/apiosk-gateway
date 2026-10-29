@@ -134,7 +134,7 @@ impl Api {
     }
 }
 
-async fn start_api(pool: &PgPool, base: &str, shared_ask: bool) -> (Api, Arc<Engine>) {
+async fn start_api(pool: &PgPool, base: &str, shared_ask: bool, commerce: Router) -> (Api, Arc<Engine>) {
     let http = reqwest::Client::new();
     let store = Store { pool: pool.clone() };
     let mut parser = Parser::new(http.clone(), format!("{base}/chat"), "fixture".into(), "fixture".into())
@@ -156,7 +156,7 @@ async fn start_api(pool: &PgPool, base: &str, shared_ask: bool) -> (Api, Arc<Eng
         engine,
         auth: Arc::new(Auth { pool: pool.clone(), http: http.clone(), supabase_url: base.to_owned(), publishable_key: "fixture".into() }),
         permits: Arc::new(Semaphore::new(8)),
-        executor_compat: Some(apiosk_gateway_v2::compat::ExecutorCompat::new(http.clone(), base.to_owned()).unwrap()),
+        commerce: Some(apiosk_gateway_v2::compat::CommerceService::new(commerce)),
     };
     let app = router(state, "http://localhost:5173").unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -208,8 +208,9 @@ async fn organisation_key_public_api() {
         .with_state(fixture.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
+    let commerce = mock.clone();
     tokio::spawn(async move { axum::serve(listener, mock).await.unwrap() });
-    let (api, shared) = start_api(&pool, &base, false).await;
+    let (api, shared) = start_api(&pool, &base, false, commerce.clone()).await;
 
     // ── Authentication and scopes ────────────────────────────────────────
     let (status, body) = api.get("/v2/balance", "apk_org_live_unknown").await;
@@ -444,7 +445,7 @@ async fn organisation_key_public_api() {
     assert_eq!((status, paused["status"].as_str()), (200, Some("needs_selection")), "{paused}");
     assert_eq!(cost(&paused["usage"]["cost"]), 23);
     assert_eq!(fixture.provider.load(Ordering::SeqCst), before + 1);
-    let (api, restarted) = start_api(&pool, &base, false).await;
+    let (api, restarted) = start_api(&pool, &base, false, commerce.clone()).await;
     let (_, paused) = api.get(&format!("/v2/runs/{id}"), KEY).await;
     let continuation = &paused["continuation"];
     assert_eq!(continuation["actions"][0]["kind"], "select_entity");
@@ -573,7 +574,7 @@ async fn organisation_key_public_api() {
         .bind(sirenic_endpoint).execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO public.capability_execution_contracts(id,endpoint_id,capability_slug,version,status,requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,validated_at,effect,price_model,produces,adapter_version) SELECT $1,$2,'company.eu-registry-search',version,'active',requires,input_map,output_map,identifies,cardinality,max_fan_out,fixed_params,preconditions,pagination,freshness_seconds,sample_payload,now(),effect,price_model,produces,adapter_version FROM public.capability_execution_contracts WHERE capability_slug='company.search' LIMIT 1")
         .bind(Uuid::new_v4()).bind(sirenic_endpoint).execute(&pool).await.unwrap();
-    let (pilot, _) = start_api(&pool, &base, true).await;
+    let (pilot, _) = start_api(&pool, &base, true, commerce.clone()).await;
     let before_capability = fixture.provider.load(Ordering::SeqCst);
     let input = json!({"capability":"eu.company.profile","country":"NL","input":{"company.name":"Example"}});
     let (status, resolved) = pilot.post("/v2/capabilities/resolve", READ_ONLY, input.clone(), None).await;

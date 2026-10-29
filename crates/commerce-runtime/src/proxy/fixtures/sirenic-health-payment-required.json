@@ -1,0 +1,176 @@
+{
+  "x402Version": 2,
+  "error": "Payment required",
+  "resource": {
+    "url": "https://api.sirenic.eu/v1/entreprise/{siren}/sante",
+    "description": "Company health check for a French company: a bilingual risk read-out — verdict, strengths, warning signs, activity trend and confidence level — from official data only (identity, BODACC alerts, filed financials, sanctions screening). A model fills a closed evaluation grid; every figure, date and sentence is assembled by Sirenic, and guards overrule it when the accounts disagree. Entities filing no accounts get an explicit no-conclusion verdict. For KYB and due diligence. Cached 7 days.",
+    "mimeType": "application/json",
+    "serviceName": "Sirenic",
+    "tags": [
+      "france",
+      "company-health",
+      "risk-summary",
+      "risk-grid",
+      "kyb"
+    ],
+    "iconUrl": "https://api.sirenic.eu/logo.png"
+  },
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "150000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 200,
+      "extra": {
+        "name": "USD Coin",
+        "version": "2"
+      }
+    },
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "150000",
+      "asset": "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+      "payTo": "0x76A672EEe56D29D475b0715cc03B8C99D70EC8A2",
+      "maxTimeoutSeconds": 200,
+      "extra": {
+        "name": "EURC",
+        "version": "2"
+      }
+    }
+  ],
+  "extensions": {
+    "bazaar": {
+      "info": {
+        "input": {
+          "type": "http",
+          "method": "GET",
+          "queryParams": {},
+          "pathParams": {
+            "siren": "552032534"
+          }
+        },
+        "output": {
+          "type": "json",
+          "example": {
+            "siren": "552032534",
+            "synthese": {
+              "points_forts": [
+                "Résultats nets positifs récurrents"
+              ],
+              "points_vigilance": [
+                "Ratios incohérents dans la source officielle"
+              ],
+              "donnees_manquantes": [
+                "Structure du passif"
+              ],
+              "verdict": "sous_reserve",
+              "tendance_activite": "croissance",
+              "niveau_confiance": "faible"
+            },
+            "grille": {
+              "verdict": "sous_reserve",
+              "ca_tendance": "croissance_forte",
+              "ca_regularite": "irreguliere",
+              "rentabilite_niveau": "forte",
+              "rentabilite_tendance": "volatile",
+              "endettement_niveau": "eleve",
+              "endettement_tendance": "alourdissement",
+              "autonomie_financiere": "correcte",
+              "liquidite": "echelle_non_etablie",
+              "capacite_remboursement": "correcte",
+              "bfr_exploitation": "atypique_negatif",
+              "structure_synthese": "equilibree",
+              "points_forts": [
+                "resultats_nets_positifs_recurrents"
+              ],
+              "points_vigilance": [
+                "ratios_incoherents"
+              ],
+              "confiance_niveau": "faible",
+              "confiance_motifs": [
+                "incoherences_detectees"
+              ],
+              "donnees_manquantes": [
+                "structure_du_passif"
+              ]
+            },
+            "divergences_modele": [
+              "correspondance de criblage : verdict contraste -> sous_reserve"
+            ],
+            "modele": "claude-sonnet-5",
+            "version_prompt": "sante-v2",
+            "genere_le": "2026-08-11T07:51:02.474Z",
+            "donnees": {
+              "score_completude": 100,
+              "data_freshness": "identité : stock Sirene mensuel (2026-07-01)"
+            },
+            "depuis_cache": true
+          }
+        }
+      },
+      "schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "http"
+              },
+              "method": {
+                "type": "string",
+                "enum": [
+                  "GET"
+                ]
+              },
+              "queryParams": {
+                "type": "object",
+                "properties": {}
+              },
+              "pathParams": {
+                "type": "object",
+                "properties": {
+                  "siren": {
+                    "type": "string",
+                    "description": "9-digit SIREN (Luhn-checked; 400 otherwise), e.g. 552032534"
+                  }
+                },
+                "required": [
+                  "siren"
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "method"
+            ],
+            "additionalProperties": false
+          },
+          "output": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string"
+              },
+              "example": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        },
+        "required": [
+          "input"
+        ]
+      },
+      "routeTemplate": "/v1/entreprise/:siren/sante"
+    }
+  }
+}

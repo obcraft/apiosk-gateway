@@ -138,7 +138,7 @@ mod tests {
                 executor:crate::execution::Executor { store,http,supabase_url:"http://127.0.0.1:1".into(),enabled:false },
                 app_url:"http://localhost:5173".into(),
             }),
-            permits:Arc::new(Semaphore::new(0)), executor_compat:None,
+            permits:Arc::new(Semaphore::new(0)), commerce:None,
         }
     }
 

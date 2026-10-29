@@ -56,7 +56,7 @@ async fn resolve(
     method: &str,
     query: &str,
 ) -> Result<external::Offer, HttpResponse> {
-    let directory = state.executor_compat.as_ref().ok_or_else(|| {
+    let directory = state.commerce.as_ref().ok_or_else(|| {
         problem(
             StatusCode::SERVICE_UNAVAILABLE,
             "source_unavailable",
@@ -64,8 +64,7 @@ async fn resolve(
         )
     })?;
     external::resolve(
-        &state.engine.executor.http,
-        directory.directory_origin(),
+        directory,
         resource,
         method,
         query,
