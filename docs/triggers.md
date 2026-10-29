@@ -17,8 +17,15 @@ paid research, supplier verification, or reply to Slack occurs.
 
 Production status on 2026-10-29: migration `20261029161428_inbound_triggers`
 is applied to `apiosk-production` (`jgjoiyqdyypouskftzeq`). Both tables have RLS
-enabled and grant access to the gateway runtime only. The app and gateway changes
-still need deployment; the Composio project has no outbound webhook subscription.
+enabled and grant access to the gateway runtime only. Gateway release 307 is live
+as `c732afb-triggers-bf8d3bdee6`; the frontend was not deployed in this step. The
+runtime image is 60.3 MB compressed (registry layer sizes). Composio now
+has a V3 subscription for `composio.trigger.message` pointing to
+`https://apiosk-gateway-v2.fly.dev/v2/triggers/composio`, with the matching signing
+secret deployed on Fly. Live checks passed for health, session enforcement,
+`https://app.apiosk.com` CORS, invalid/expired signature rejection, and a valid
+signed database lookup that deliberately matched no trigger. A real Slack message
+has not yet been tested.
 The existing Slack auth configurations use Composio-managed OAuth, so the custom
 OAuth ingress setup in step 4 is not needed for those configurations.
 
