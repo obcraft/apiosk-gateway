@@ -258,7 +258,7 @@ pub fn enabled() -> bool {
 
 /// A private rollout is granted to immutable authenticated owners, never an
 /// email or a browser flag. A partly malformed setting grants nobody access.
-fn parse_allowed_owners(setting: Option<&str>) -> Vec<Uuid> {
+pub(crate) fn parse_allowed_owners(setting: Option<&str>) -> Vec<Uuid> {
     let Some(setting) = setting else {
         return Vec::new();
     };

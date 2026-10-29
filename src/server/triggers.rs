@@ -1,6 +1,45 @@
 //! Isolated Hello world triggers, plus a short model reply in Slack when a
 //! message mentions Apiosk. Never calls Ask, planning, or billing.
 mod reply;
+mod slack;
+mod tools;
+
+pub(super) use tools::{slack_interactions, tool_test};
+
+/// Whether this person has added Apiosk to their Slack workspace.
+pub(super) async fn apiosk_bot(State(state): State<ServerState>, headers: HeaderMap) -> Response {
+    let owner = match app_person(&state, &headers).await {
+        Ok(p) => p.owner,
+        Err(r) => return r,
+    };
+    if integrations::triggers::apiosk_bot_config().is_none() {
+        return Json(json!({"configured": false, "connected": false})).into_response();
+    }
+    let composio = match client() {
+        Ok(c) => c,
+        Err(r) => return r,
+    };
+    match composio.apiosk_bot_accounts(owner).await {
+        Ok(accounts) => Json(json!({"configured": true, "connected": !accounts.is_empty()})).into_response(),
+        Err(e) => provider_error(e),
+    }
+}
+
+pub(super) async fn apiosk_bot_connect(State(state): State<ServerState>, headers: HeaderMap) -> Response {
+    let owner = match app_person(&state, &headers).await {
+        Ok(p) => p.owner,
+        Err(r) => return r,
+    };
+    let composio = match client() {
+        Ok(c) => c,
+        Err(r) => return r,
+    };
+    match composio.apiosk_bot_connect(owner).await {
+        Ok(v) => Json(v).into_response(),
+        Err(ComposioError::NeedsSetup) => error(StatusCode::SERVICE_UNAVAILABLE, "Apiosk for Slack is not set up on this server yet."),
+        Err(e) => provider_error(e),
+    }
+}
 
 use super::{app_person, failure, ServerState};
 use crate::integrations::{self, Composio, ComposioError};
@@ -124,7 +163,8 @@ pub(super) async fn list(State(state): State<ServerState>, headers: HeaderMap) -
     };
     match events(pool, owner, None).await {
         Ok(events) => Json(json!({"triggers":triggers,"cursor":events.first().and_then(|e|e["id"].as_str()).unwrap_or("0"),"events":events,
-            "slack_delivery_ready": configured_secret().is_some(),"composio_configured":integrations::configured().is_some()})).into_response(),
+            "slack_delivery_ready": configured_secret().is_some(),"composio_configured":integrations::configured().is_some(),
+            "tool_tests": tools::enabled_for(owner), "apiosk_bot_configured": integrations::triggers::apiosk_bot_config().is_some()})).into_response(),
         Err(e) => db_error(e),
     }
 }
@@ -222,6 +262,11 @@ pub(super) struct Conversation {
     name: String,
     #[serde(default)]
     users: Vec<String>,
+    /// A new channel's description (Slack's purpose) and the people to invite.
+    #[serde(default)]
+    description: String,
+    #[serde(default)]
+    members: Vec<String>,
 }
 pub(super) async fn create_conversation(
     State(state): State<ServerState>,
@@ -238,25 +283,43 @@ pub(super) async fn create_conversation(
             .name
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-' || b == b'_');
+    let slack_user = |s: &String| valid_id(s) && s.starts_with(['U', 'W']);
     if !valid_name
         || (!body.users.is_empty()
             && (!(2..=8).contains(&body.users.len())
-                || body
-                    .users
-                    .iter()
-                    .any(|s| !valid_id(s) || !s.starts_with(['U', 'W']))))
+                || !body.users.iter().all(slack_user)))
     {
         return error(
             StatusCode::BAD_REQUEST,
             "Use a lowercase channel name, or 2–8 Slack user IDs for a group chat.",
         );
     }
+    let description = body.description.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut members = body.members;
+    if description.chars().count() > 250
+        || members.len() > 50
+        || !members.iter().all(slack_user)
+        || (!body.users.is_empty() && (!description.is_empty() || !members.is_empty()))
+    {
+        return error(
+            StatusCode::BAD_REQUEST,
+            "Use a channel description of at most 250 characters and at most 50 people to invite.",
+        );
+    }
     let composio = match client() {
         Ok(c) => c,
         Err(r) => return r,
     };
+    // Apiosk joins every new channel so it can answer there.
+    if body.users.is_empty() {
+        match composio.apiosk_bot(owner, None).await {
+            Ok(Some(bot)) if !bot.user.is_empty() && !members.contains(&bot.user) => members.push(bot.user),
+            Ok(_) => {}
+            Err(e) => tracing::warn!(error = %e, "Apiosk bot not identified"),
+        }
+    }
     match composio
-        .trigger_create_conversation(owner, &body.account, &body.name, &body.users)
+        .trigger_create_conversation(owner, &body.account, &body.name, &body.users, &description, &members)
         .await
     {
         Ok(v) => Json(v).into_response(),
@@ -654,11 +717,28 @@ pub(super) async fn composio_webhook(
     }
     // Paused triggers and redelivered events get no reply. The reply is written
     // after the event commits, so Composio's webhook is answered without waiting.
-    if fresh && reply::mentions(&text) {
-        if let Ok(composio) = client() {
-            let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).unwrap_or(&ts).to_owned();
-            tokio::spawn(reply::send(composio, owner, account, channel, thread, text));
-        }
+    // Apiosk answers from its own bot in this workspace with a normal channel
+    // message that tags the asker, or in the thread a question was asked in.
+    // "@Apiosk" arrives as a mention of the bot's Slack user. Looked up after
+    // the webhook is answered.
+    if let (true, Ok(composio)) = (fresh, client()) {
+        let team = data["team_id"].as_str().filter(|s| valid_id(s)).map(str::to_owned);
+        let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
+        let asker = data["user"].as_str().filter(|s| valid_id(s) && s.starts_with(['U', 'W'])).map(str::to_owned);
+        tokio::spawn(async move {
+            let bot = match composio.apiosk_bot(owner, team.as_deref()).await {
+                Ok(bot) => bot,
+                Err(e) => return tracing::warn!(error = %e, "Apiosk bot lookup failed"),
+            };
+            let named = bot.as_ref().is_some_and(|b| !b.user.is_empty() && text.contains(&format!("<@{}>", b.user)));
+            if !reply::mentions(&text) && !named {
+                return;
+            }
+            match bot {
+                Some(bot) => reply::send(composio, owner, bot.account, channel, thread, asker, text).await,
+                None => tracing::warn!(surface = "trigger-reply", reason = "no_apiosk_bot", "trigger reply skipped"),
+            }
+        });
     }
     Json(json!({"accepted":!ids.is_empty()})).into_response()
 }

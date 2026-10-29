@@ -1,6 +1,9 @@
 //! A short written reply in Slack when a trigger message mentions Apiosk.
 //! Conversation only: it cannot plan, quote, look anything up or execute, so a
 //! data question gets a pointer to the App instead of an answer.
+//! It is posted by the workspace's Apiosk bot connection, never from the
+//! person's own account; without that connection there is no reply.
+use super::slack;
 use crate::{
     integrations::Composio,
     telemetry::{self, ErrorClass, Outcome},
@@ -84,9 +87,18 @@ fn model() -> Option<&'static Model> {
         .as_ref()
 }
 
-/// Writes the reply and posts it in the message's thread. Runs after the event
-/// is committed, so a retried delivery is a duplicate and never replied to twice.
-pub(super) async fn send(composio: &'static Composio, owner: Uuid, account: String, channel: String, thread: String, message: String) {
+/// Writes the reply and posts it as Apiosk, tagging the asker. Runs after the
+/// event is committed, so a retried delivery is a duplicate and never replied
+/// to twice.
+pub(super) async fn send(
+    composio: &'static Composio,
+    owner: Uuid,
+    bot: String,
+    channel: String,
+    thread: Option<String>,
+    asker: Option<String>,
+    message: String,
+) {
     static LIMITER: OnceLock<Limiter> = OnceLock::new();
     let Some(model) = model() else {
         tracing::warn!(surface = "trigger-reply", reason = "unconfigured", "trigger reply skipped");
@@ -103,9 +115,19 @@ pub(super) async fn send(composio: &'static Composio, owner: Uuid, account: Stri
             return;
         }
     };
-    if let Err(error) = composio.trigger_reply(owner, &account, &channel, &thread, &text).await {
+    // Escaped: a model reply could otherwise ping @channel or disguise a link.
+    let text = match asker {
+        Some(asker) => format!("<@{asker}> {}", slack::esc(&text)),
+        None => slack::esc(&text),
+    };
+    if let Err(error) = composio.apiosk_bot_post(owner, &bot, &channel, thread.as_deref(), &text, None).await {
         tracing::warn!(surface = "trigger-reply", error = %error, "trigger reply not delivered");
     }
+}
+
+/// The chat reply alone, for the owner's test tools.
+pub(super) async fn compose(message: &str) -> Result<String> {
+    write(model().ok_or_else(|| anyhow!("unconfigured"))?, message).await
 }
 
 /// One bounded attempt. Errors carry a fixed reason, never the prompt, reply,

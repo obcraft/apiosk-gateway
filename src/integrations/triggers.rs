@@ -1,11 +1,70 @@
-//! Explicit trigger setup and trigger replies only. Does not add tools to Ask
-//! or run its actions.
+//! Explicit trigger setup and the Apiosk bot's replies only. Does not add
+//! tools to Ask or run its actions.
 use super::{composio_user_id, frozen, owns_account, Composio, ComposioError};
 use reqwest::Method;
 use serde_json::{json, Value};
+use std::{
+    collections::HashMap,
+    sync::{Mutex, OnceLock},
+};
 use uuid::Uuid;
 
 pub const SLACK_TRIGGER: &str = "SLACK_CHANNEL_MESSAGE_RECEIVED";
+
+/// The Apiosk Slack app as a bot connection, one per workspace: Composio keeps
+/// each workspace's bot token, and the auth config holds our own app's OAuth
+/// client, so replies come from Apiosk and never from the person's account.
+pub const APIOSK_BOT: &str = "slackbot";
+
+/// `APIOSK_SLACKBOT_AUTH_CONFIG`. Never created or defaulted here: a
+/// Composio-managed config would post as Composio's own app.
+pub fn apiosk_bot_config() -> Option<String> {
+    std::env::var("APIOSK_SLACKBOT_AUTH_CONFIG")
+        .ok()
+        .map(|v| v.trim().to_owned())
+        .filter(|id| {
+            id.starts_with("ac_")
+                && (4..=67).contains(&id.len())
+                && id.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+        })
+}
+
+/// The Apiosk bot in one workspace. `user` is its Slack user, for recognising
+/// "@Apiosk"; both are empty when Slack could not be asked.
+#[derive(Clone, Debug)]
+pub struct ApioskBot {
+    pub account: String,
+    pub team: String,
+    pub user: String,
+}
+
+fn apiosk_bot_account(account: &Value, owner: Uuid, id: &str, config: &str) -> bool {
+    owns_account(account, owner, APIOSK_BOT, id)
+        && account["status"] == "ACTIVE"
+        && account["is_disabled"] != true
+        && account["auth_config"]["id"].as_str().is_none_or(|c| c == config)
+}
+
+/// Slack's own error code for a failed action, when it is one we explain.
+fn slack_failure(value: &Value) -> &'static str {
+    let said = [&value["data"]["error"], &value["error"]]
+        .iter()
+        .filter_map(|v| v.as_str().or(v["message"].as_str()))
+        .collect::<Vec<_>>()
+        .join(" ");
+    [
+        "not_in_channel",
+        "channel_not_found",
+        "missing_scope",
+        "user_not_found",
+        "invalid_auth",
+        "account_inactive",
+        "token_revoked",
+    ]
+    .into_iter()
+    .find(|code| said.contains(code))
+    .unwrap_or("slack_action_failed")
+}
 
 impl Composio {
     pub async fn trigger_connect(
@@ -18,6 +77,10 @@ impl Composio {
             return Err(ComposioError::InvalidAlias);
         }
         let config = self.auth_config(toolkit).await?;
+        self.consent_link(owner, config, alias).await
+    }
+
+    async fn consent_link(&self, owner: Uuid, config: String, alias: Option<&str>) -> Result<Value, ComposioError> {
         let mut body = json!({
             "auth_config_id": config, "user_id": composio_user_id(owner),
             "callback_url": format!("{}/triggers", self.app_origin)
@@ -60,6 +123,16 @@ impl Composio {
         arguments: Value,
     ) -> Result<Value, ComposioError> {
         self.trigger_account(owner, id).await?;
+        self.execute_slack(owner, id, tool, arguments).await
+    }
+
+    async fn execute_slack(
+        &self,
+        owner: Uuid,
+        id: &str,
+        tool: &str,
+        arguments: Value,
+    ) -> Result<Value, ComposioError> {
         let value = self
             .call(
                 Method::POST,
@@ -71,9 +144,126 @@ impl Composio {
             )
             .await?;
         if value["successful"] != true || value["data"]["ok"] == false {
-            return Err(ComposioError::Invalid("slack_action_failed"));
+            return Err(ComposioError::Invalid(slack_failure(&value)));
         }
         Ok(value["data"].clone())
+    }
+
+    /// Consent to add Apiosk to the person's workspace.
+    pub async fn apiosk_bot_connect(&self, owner: Uuid) -> Result<Value, ComposioError> {
+        let config = apiosk_bot_config().ok_or(ComposioError::NeedsSetup)?;
+        self.consent_link(owner, config, None).await
+    }
+
+    /// The owner's active Apiosk bot connections, newest first.
+    pub async fn apiosk_bot_accounts(&self, owner: Uuid) -> Result<Vec<String>, ComposioError> {
+        let Some(config) = apiosk_bot_config() else {
+            return Ok(Vec::new());
+        };
+        Ok(self
+            .accounts(&composio_user_id(owner))
+            .await?
+            .iter()
+            .filter_map(|a| a["id"].as_str().filter(|id| apiosk_bot_account(a, owner, id, &config)))
+            .map(str::to_owned)
+            .collect())
+    }
+
+    async fn apiosk_bot_tool(&self, owner: Uuid, id: &str, tool: &str, arguments: Value) -> Result<Value, ComposioError> {
+        let config = apiosk_bot_config().ok_or(ComposioError::NeedsSetup)?;
+        if !frozen::valid_account_id(id) {
+            return Err(ComposioError::AccountNotFound);
+        }
+        let account = self.call(Method::GET, &format!("/connected_accounts/{id}"), None).await?;
+        if !apiosk_bot_account(&account, owner, id, &config) {
+            return Err(ComposioError::AccountNotFound);
+        }
+        self.execute_slack(owner, id, tool, arguments).await
+    }
+
+    /// `auth.test` through Composio's proxy, cached per connection. Only called
+    /// for connections `apiosk_bot_accounts` already matched to the owner.
+    async fn apiosk_bot_identity(&self, id: &str) -> Result<ApioskBot, ComposioError> {
+        static SEEN: OnceLock<Mutex<HashMap<String, ApioskBot>>> = OnceLock::new();
+        let seen = SEEN.get_or_init(Default::default);
+        if let Some(bot) = seen.lock().unwrap_or_else(|p| p.into_inner()).get(id) {
+            return Ok(bot.clone());
+        }
+        let value = self
+            .call(
+                Method::POST,
+                "/tools/execute/proxy",
+                Some(json!({"endpoint": "https://slack.com/api/auth.test", "method": "POST", "connected_account_id": id})),
+            )
+            .await?;
+        let data = if value["data"].is_object() { &value["data"] } else { &value };
+        let field = |key: &str| {
+            data[key]
+                .as_str()
+                .filter(|s| (3..=24).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_alphanumeric()))
+                .map(str::to_owned)
+        };
+        let (Some(team), Some(user)) = (field("team_id"), field("user_id")) else {
+            return Err(ComposioError::Invalid("bot_identity"));
+        };
+        let bot = ApioskBot { account: id.to_owned(), team, user };
+        seen.lock().unwrap_or_else(|p| p.into_inner()).insert(id.to_owned(), bot.clone());
+        Ok(bot)
+    }
+
+    /// The owner's Apiosk bot for a workspace, or the only one when the
+    /// workspace is unknown or Slack cannot be asked.
+    pub async fn apiosk_bot(&self, owner: Uuid, team: Option<&str>) -> Result<Option<ApioskBot>, ComposioError> {
+        let accounts = self.apiosk_bot_accounts(owner).await?;
+        for id in &accounts {
+            match self.apiosk_bot_identity(id).await {
+                Ok(bot) if team.is_none_or(|t| t == bot.team) => return Ok(Some(bot)),
+                Ok(_) => {}
+                Err(e) => tracing::warn!(error = %e, "Apiosk bot identity unavailable"),
+            }
+        }
+        Ok(match accounts.as_slice() {
+            [only] if team.is_none() || self.apiosk_bot_identity(only).await.is_err() => {
+                Some(ApioskBot { account: only.clone(), team: String::new(), user: String::new() })
+            }
+            _ => None,
+        })
+    }
+
+    /// Posts as Apiosk without link previews and returns the message `ts`.
+    /// `text` is mrkdwn; without `blocks` it becomes the only section.
+    pub async fn apiosk_bot_post(
+        &self,
+        owner: Uuid,
+        bot: &str,
+        channel: &str,
+        thread: Option<&str>,
+        text: &str,
+        blocks: Option<&Value>,
+    ) -> Result<String, ComposioError> {
+        let blocks = blocks
+            .cloned()
+            .unwrap_or_else(|| json!([{"type": "section", "text": {"type": "mrkdwn", "text": text}}]));
+        let mut arguments = json!({
+            "channel": channel, "blocks": blocks, "fallback_text": text,
+            "unfurl_links": false, "unfurl_media": false
+        });
+        if let Some(thread) = thread {
+            arguments["thread_ts"] = json!(thread);
+        }
+        let sent = self.apiosk_bot_tool(owner, bot, "SLACKBOT_SEND_MESSAGE", arguments).await?;
+        Ok(sent["ts"].as_str().or(sent["message"]["ts"].as_str()).unwrap_or_default().to_owned())
+    }
+
+    /// Apiosk's direct-message conversation with one person.
+    pub async fn apiosk_bot_dm(&self, owner: Uuid, bot: &str, user: &str) -> Result<String, ComposioError> {
+        let opened = self
+            .apiosk_bot_tool(owner, bot, "SLACKBOT_OPEN_DM", json!({"users": user, "return_im": true}))
+            .await?;
+        opened["channel"]["id"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or(ComposioError::Invalid("channel_id"))
     }
 
     pub async fn trigger_channels(
@@ -148,12 +338,17 @@ impl Composio {
         )
     }
 
+    /// A private channel (with an optional description and invitations) or a
+    /// group chat. Setup after creation is best effort: the channel exists, so
+    /// what failed is reported in `incomplete` instead of failing the request.
     pub async fn trigger_create_conversation(
         &self,
         owner: Uuid,
         account: &str,
         name: &str,
         users: &[String],
+        description: &str,
+        members: &[String],
     ) -> Result<Value, ComposioError> {
         let data = if users.is_empty() {
             self.trigger_tool(
@@ -175,31 +370,24 @@ impl Composio {
         let id = data["channel"]["id"]
             .as_str()
             .ok_or(ComposioError::Invalid("channel_id"))?;
+        let mut incomplete = Vec::new();
+        if users.is_empty() && !description.is_empty() {
+            let set = self.trigger_tool(owner, account, "SLACK_SET_CONVERSATION_PURPOSE", json!({"channel":id,"purpose":description})).await;
+            if let Err(e) = set {
+                tracing::warn!(error = %e, "trigger channel description not set");
+                incomplete.push("description");
+            }
+        }
+        if users.is_empty() && !members.is_empty() {
+            let invited = self.trigger_tool(owner, account, "SLACK_INVITE_USERS_TO_A_SLACK_CHANNEL", json!({"channel":id,"users":members.join(","),"force":true})).await;
+            if let Err(e) = invited {
+                tracing::warn!(error = %e, "trigger channel invitations not sent");
+                incomplete.push("members");
+            }
+        }
         Ok(
-            json!({"id":id, "name":data["channel"]["name"].as_str().unwrap_or(name), "is_private":true,"is_mpim":!users.is_empty()}),
+            json!({"id":id, "name":data["channel"]["name"].as_str().unwrap_or(name), "is_private":true,"is_mpim":!users.is_empty(),"incomplete":incomplete}),
         )
-    }
-
-    /// A plain reply in the triggering message's thread, without link previews.
-    pub async fn trigger_reply(
-        &self,
-        owner: Uuid,
-        account: &str,
-        channel: &str,
-        thread_ts: &str,
-        text: &str,
-    ) -> Result<(), ComposioError> {
-        self.trigger_tool(
-            owner,
-            account,
-            "SLACK_SEND_MESSAGE",
-            json!({
-                "channel": channel, "markdown_text": text, "thread_ts": thread_ts,
-                "unfurl_links": false, "unfurl_media": false
-            }),
-        )
-        .await
-        .map(|_| ())
     }
 
     pub async fn trigger_subscribe(

@@ -70,6 +70,61 @@ Slack creation stays disabled when the delivery signing secret is absent. OAuth
 connection and generic webhooks remain available. Successful subscription creation
 does not prove a real provider event has arrived; verify step 5 before claiming it.
 
+## Apiosk Slack app and replies
+
+A message that names Apiosk (the word, or a mention of the Apiosk bot) gets a
+short model reply: a normal channel message that tags the asker, or a thread
+reply when the question was asked in a thread. It is always posted by that
+workspace's **Apiosk bot**, never from the person's own account; without one
+there is no reply. New private channels get an optional description and
+invitations, and the Apiosk bot is invited automatically.
+
+Each workspace adds Apiosk once with **Add Apiosk to Slack** on `/triggers`.
+That is a Composio `slackbot` connection made with our own Slack app, so
+Composio keeps one bot token per workspace and messages come from Apiosk.
+Setup, once:
+
+1. Create the Slack app from the manifest below at api.slack.com/apps and turn
+   on **Manage Distribution → Public Distribution** so other workspaces can
+   install it. No App Directory listing is needed.
+2. In Composio, create a **Slackbot** auth config with the app's own Client ID
+   and Client Secret (scopes `chat:write,im:write`). Never use a
+   Composio-managed one: it would post as Composio's app.
+3. Set `APIOSK_SLACKBOT_AUTH_CONFIG=ac_…` (gateway environment) and the app's
+   Signing Secret as the Fly secret `SLACK_SIGNING_SECRET`, for button clicks.
+
+```yaml
+display_information:
+  name: Apiosk
+  description: Checkt bedrijven en leveranciers tegen officiële bronnen.
+  background_color: "#111111"
+features:
+  bot_user:
+    display_name: Apiosk
+    always_online: true
+oauth_config:
+  redirect_urls:
+    - https://backend.composio.dev/api/v1/auth-apps/add
+  scopes:
+    bot: [chat:write, im:write]
+settings:
+  interactivity:
+    is_enabled: true
+    request_url: https://apiosk-gateway-v2.fly.dev/v2/triggers/slack/interactions
+```
+
+The bot's Slack user and workspace come from `auth.test` through Composio's
+proxy; with several workspaces, the event's `team_id` picks the bot. Existing
+channels need `/invite @Apiosk` once.
+
+Owners in `TRIGGER_TOOL_TEST_OWNER_IDS` see **Test tools** on `/triggers`. They
+post each Slack agent response (chat reply, screening, approval request,
+monitoring) through their Apiosk bot with labelled test data. Only the chat reply calls
+a model; nothing is screened, bought, scheduled or stored. Approval buttons work
+and post the decision in the channel thread; the decision is not persisted.
+Monitoring is shown as a demo simulation: production monitoring is paused and
+has no news source yet.
+
 ## Generic webhook and Teams
 
 Webhook creation returns a UUID endpoint and a random bearer key shown once.
