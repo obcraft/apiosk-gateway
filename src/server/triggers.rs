@@ -1,4 +1,7 @@
-//! Isolated, free Hello world triggers. Never calls Ask, planning, or billing.
+//! Isolated Hello world triggers, plus a short model reply in Slack when a
+//! message mentions Apiosk. Never calls Ask, planning, or billing.
+mod reply;
+
 use super::{app_person, failure, ServerState};
 use crate::integrations::{self, Composio, ComposioError};
 use axum::{
@@ -632,8 +635,9 @@ pub(super) async fn composio_webhook(
         return Json(json!({"accepted":false})).into_response();
     };
     let ids:Vec<Uuid>=match sqlx::query_scalar("SELECT id FROM gateway_v2.inbound_triggers WHERE owner_id=$1 AND provider_trigger_id=$2 AND connected_account_id=$3 AND channel_id=$4 AND source='slack'").bind(owner).bind(&trigger).bind(&account).bind(&channel).fetch_all(&state.engine.store.pool).await {Ok(v)=>v,Err(e)=>return db_error(e)};
+    let mut fresh = false;
     for id in &ids {
-        if let Err(r) = record(
+        match record(
             &state.engine.store.pool,
             *id,
             owner,
@@ -644,7 +648,16 @@ pub(super) async fn composio_webhook(
         )
         .await
         {
-            return r;
+            Ok(v) => fresh |= v["accepted"] == true && v["duplicate"] != true,
+            Err(r) => return r,
+        }
+    }
+    // Paused triggers and redelivered events get no reply. The reply is written
+    // after the event commits, so Composio's webhook is answered without waiting.
+    if fresh && reply::mentions(&text) {
+        if let Ok(composio) = client() {
+            let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).unwrap_or(&ts).to_owned();
+            tokio::spawn(reply::send(composio, owner, account, channel, thread, text));
         }
     }
     Json(json!({"accepted":!ids.is_empty()})).into_response()

@@ -1,4 +1,5 @@
-//! Explicit trigger setup only. Does not add tools to Ask or run its actions.
+//! Explicit trigger setup and trigger replies only. Does not add tools to Ask
+//! or run its actions.
 use super::{composio_user_id, frozen, owns_account, Composio, ComposioError};
 use reqwest::Method;
 use serde_json::{json, Value};
@@ -177,6 +178,28 @@ impl Composio {
         Ok(
             json!({"id":id, "name":data["channel"]["name"].as_str().unwrap_or(name), "is_private":true,"is_mpim":!users.is_empty()}),
         )
+    }
+
+    /// A plain reply in the triggering message's thread, without link previews.
+    pub async fn trigger_reply(
+        &self,
+        owner: Uuid,
+        account: &str,
+        channel: &str,
+        thread_ts: &str,
+        text: &str,
+    ) -> Result<(), ComposioError> {
+        self.trigger_tool(
+            owner,
+            account,
+            "SLACK_SEND_MESSAGE",
+            json!({
+                "channel": channel, "markdown_text": text, "thread_ts": thread_ts,
+                "unfurl_links": false, "unfurl_media": false
+            }),
+        )
+        .await
+        .map(|_| ())
     }
 
     pub async fn trigger_subscribe(
