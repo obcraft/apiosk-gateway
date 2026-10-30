@@ -1,16 +1,10 @@
-name: Gateway build and deploy
+name: Gateway CI
 
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-    inputs:
-      deploy:
-        description: Deploy this main revision after all checks pass
-        type: boolean
-        required: true
-        default: false
 
 permissions:
   contents: read
@@ -81,70 +75,15 @@ jobs:
           EXPECTED_REVISION: ${{ github.sha }}
         run: bash scripts/verify-image.sh apiosk-gateway:ci "$EXPECTED_REVISION"
       - name: Save the verified image for deployment
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         run: docker save --output "$RUNNER_TEMP/gateway-image.tar" apiosk-gateway:ci
       - name: Upload the verified image
-        if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: gateway-image-${{ github.sha }}
           path: ${{ runner.temp }}/gateway-image.tar
-          retention-days: 1
+          retention-days: 7
           compression-level: 0
           if-no-files-found: error
-          overwrite: true
-
-  production:
-    name: Deploy verified image
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
-    needs: [tests, build]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    environment: production
-    concurrency:
-      group: gateway-production
-      cancel-in-progress: false
-    env:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-    steps:
-      - name: Check out deployment tools
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - name: Require the application deploy token
-        run: |
-          if [[ -z "$FLY_API_TOKEN" ]]; then
-            echo 'Missing FLY_API_TOKEN in the production environment or repository secrets. Configure an app-scoped deploy token for apiosk-gateway-v2; see docs/build-and-deploy.md.' >&2
-            exit 1
-          fi
-      - name: Download the verified image
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: gateway-image-${{ github.sha }}
-          path: ${{ runner.temp }}/gateway-image
-      - name: Load and verify the image
-        run: |
-          docker load --input "$RUNNER_TEMP/gateway-image/gateway-image.tar"
-          bash scripts/verify-image.sh apiosk-gateway:ci "$GITHUB_SHA"
-      - name: Install pinned flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
-        with:
-          version: 0.5.0
-      - name: Push the verified image and deploy its digest
-        run: |
-          flyctl auth docker
-          image_tag="registry.fly.io/apiosk-gateway-v2:$GITHUB_SHA"
-          docker tag apiosk-gateway:ci "$image_tag"
-          docker push "$image_tag"
-          image_digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$image_tag")
-          [[ "$image_digest" =~ ^registry\.fly\.io/apiosk-gateway-v2@sha256:[0-9a-f]{64}$ ]]
-          python3 scripts/deploy-image.py --image "$image_digest" --revision "$GITHUB_SHA" --evidence release-evidence.json
-      - name: Preserve deployment evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: gateway-release-${{ github.sha }}
-          path: release-evidence.json
-          retention-days: 30
-          if-no-files-found: warn
           overwrite: true

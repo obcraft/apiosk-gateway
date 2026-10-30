@@ -30,4 +30,5 @@ fi
 
 # The deploy helper's tests use mocked Fly/HTTP responses, never credentials.
 python3 -m unittest discover -s scripts -p 'test_deploy_image.py' -v || result=1
+python3 -m unittest discover -s scripts -p 'test_find_verified_image.py' -v || result=1
 exit "$result"
