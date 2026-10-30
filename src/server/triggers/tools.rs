@@ -161,7 +161,7 @@ fn hint(error: &anyhow::Error) -> &'static str {
     } else if has("invalid_auth") || has("account_inactive") || has("token_revoked") || has("connected account not found") {
         "Apiosk's Slack connection no longer works. Add Apiosk to Slack again."
     } else if has("missing_scope") {
-        "The Apiosk Slack app needs the chat:write and im:write scopes."
+        "The Apiosk Slack app needs the chat:write scope. Add Apiosk to Slack again."
     } else if has("user_not_found") {
         "That approver is not in Apiosk's workspace."
     } else if has("unconfigured") {
@@ -173,7 +173,7 @@ fn hint(error: &anyhow::Error) -> &'static str {
 
 /// Posts each test response through the owner's Apiosk bot.
 struct Poster<'a> {
-    composio: &'static Composio,
+    composio: &'a Composio,
     owner: Uuid,
     bot: &'a str,
 }
@@ -195,12 +195,24 @@ async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()
             to.post(channel, None, &text, &blocks).await?;
         }
         ToolTest::RequestApproval { company, approver, signals } => {
-            let line = format!("Ik heb *{}* ter goedkeuring gestuurd naar <@{approver}>.", esc(&company));
+            let line = format!("Goedkeuring voor *{}* wordt aangevraagd bij <@{approver}>. DM wordt verstuurd…", esc(&company));
             let thread = to.post(channel, None, &line, &json!([section(line.clone()), note()])).await?;
+            anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
             let value = json!({"o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": 1}).to_string();
             let (text, blocks) = approval_card(&company, channel, signals, &value);
-            let dm = to.composio.apiosk_bot_dm(to.owner, to.bot, &approver).await?;
-            to.post(&dm, None, &text, &blocks).await?;
+            // Slack chat.postMessage opens the bot's DM when channel is a user
+            // ID. conversations.open would unnecessarily require im:write.
+            let delivered = to.post(&approver, None, &text, &blocks).await;
+            let line = if delivered.is_ok() {
+                format!("Ik heb *{}* ter goedkeuring gestuurd naar <@{approver}> via DM.", esc(&company))
+            } else {
+                format!("⚠️ De goedkeuringsaanvraag voor *{}* kon niet via DM worden bezorgd bij <@{approver}>. Er is geen aanvraag verstuurd.", esc(&company))
+            };
+            if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &thread, &line, &json!([section(line.clone()), note()])).await {
+                tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
+                // A delivered DM must not look failed and invite a duplicate.
+            }
+            delivered?;
         }
         ToolTest::CreateMonitor { company, frequency, negative_news } => {
             let (text, blocks) = monitor(&company, frequency, negative_news);
@@ -226,21 +238,29 @@ pub(in crate::server) async fn tool_test(
     if !test.valid() {
         return error(StatusCode::BAD_REQUEST, "Check the test input and try again.");
     }
-    let channel: Option<Option<String>> = match sqlx::query_scalar("SELECT channel_id FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 AND source='slack'")
+    let connection: Option<(Option<String>, Option<String>)> = match sqlx::query_as("SELECT channel_id, connected_account_id FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 AND source='slack'")
         .bind(id).bind(owner).fetch_optional(&state.engine.store.pool).await
     {
         Ok(v) => v,
         Err(e) => return db_error(e),
     };
-    let Some(channel) = channel.flatten() else {
+    let Some((Some(channel), Some(account))) = connection else {
         return error(StatusCode::NOT_FOUND, "Slack trigger not found.");
     };
     let composio = match client() {
         Ok(c) => c,
         Err(r) => return r,
     };
-    let bot = match composio.apiosk_bot(owner, None).await {
-        Ok(Some(bot)) => bot,
+    let info = match composio.trigger_channel(owner, &account, &channel).await {
+        Ok(info) => info,
+        Err(e) => return super::provider_error(e),
+    };
+    let Some(team) = info["channel"]["context_team_id"].as_str().or(info["channel"]["team_id"].as_str()) else {
+        return error(StatusCode::BAD_GATEWAY, "Slack's workspace could not be verified. Try again.");
+    };
+    let bot = match composio.apiosk_bot(owner, Some(team)).await {
+        Ok(Some(bot)) if bot.team == team => bot,
+        Ok(Some(_)) => return error(StatusCode::CONFLICT, "Add Apiosk to this Slack workspace first."),
         Ok(None) => return error(StatusCode::CONFLICT, "Add Apiosk to Slack first."),
         Err(e) => {
             tracing::warn!(surface = "trigger-tool-test", error = %e, "Apiosk bot lookup failed");
@@ -361,6 +381,57 @@ pub(in crate::server) async fn slack_interactions(headers: HeaderMap, body: Byte
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn approval_notifies_selected_user_and_reports_delivery_truthfully() {
+        use axum::{routing::{get, post}, Router};
+        use std::sync::Arc;
+        std::env::set_var("APIOSK_SLACKBOT_AUTH_CONFIG", "ac_test_approval");
+        for delivered in [true, false] {
+            let calls = Arc::new(Mutex::new(Vec::<Value>::new()));
+            let owner = Uuid::nil();
+            let app = Router::new()
+                .route("/connected_accounts/:id", get(move |Path(id): Path<String>| async move {
+                    if id == "ca_deleted" { return StatusCode::NOT_FOUND.into_response(); }
+                    Json(json!({"id":id,"user_id":format!("apiosk_user_{owner}"),"status":"ACTIVE",
+                        "toolkit":{"slug":"slackbot"},"auth_config":{"id":"ac_test_approval"}})).into_response()
+                }))
+                .route("/tools/execute/:tool", post({ let calls = calls.clone(); move |Path(tool): Path<String>, Json(body): Json<Value>| { let calls = calls.clone(); async move {
+                    assert_eq!(tool, "SLACKBOT_SEND_MESSAGE", "no conversations.open or extra im:write permission");
+                    let args = body["arguments"].clone();
+                    let dm = args["channel"] == "USELECTED";
+                    calls.lock().unwrap().push(args);
+                    Json(if dm && !delivered { json!({"successful":false,"data":{"ok":false,"error":"user_not_found"}}) }
+                        else { json!({"successful":true,"data":{"ok":true,"ts":if dm {"2.0"} else {"1.0"}}}) })
+                }}}))
+                .route("/tools/execute/proxy", post({ let calls = calls.clone(); move |Json(body): Json<Value>| { let calls = calls.clone(); async move {
+                    assert_eq!(body["endpoint"], "https://slack.com/api/chat.update");
+                    assert_eq!(body["connected_account_id"], "ca_bot");
+                    calls.lock().unwrap().push(body["body"].clone());
+                    Json(json!({"data":{"ok":true}}))
+                }}}));
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let base = format!("http://{}", listener.local_addr().unwrap());
+            let task = tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+            let composio = Composio::new("fixture".into(), base, "https://app.apiosk.com".into(), Default::default());
+            assert!(matches!(composio.trigger_members(owner, "ca_deleted", "").await, Err(ComposioError::AccountNotFound)));
+            let result = run(Poster { composio: &composio, owner, bot: "ca_bot" }, "CCHANNEL",
+                ToolTest::RequestApproval { company: "Test BV".into(), approver: "USELECTED".into(), signals: false }).await;
+            assert_eq!(result.is_ok(), delivered);
+            let calls = calls.lock().unwrap();
+            assert_eq!(calls.len(), 3);
+            assert_eq!(calls[0]["channel"], "CCHANNEL");
+            assert!(calls[0]["fallback_text"].as_str().unwrap().contains("wordt verstuurd"));
+            assert_eq!(calls[1]["channel"], "USELECTED");
+            let payload: Value = serde_json::from_str(calls[1]["blocks"][3]["elements"][0]["value"].as_str().unwrap()).unwrap();
+            assert_eq!(payload["a"], "USELECTED");
+            assert_eq!(payload["t"], "1.0");
+            assert_eq!(calls[2]["ts"], "1.0");
+            assert_eq!(calls[2]["text"].as_str().unwrap().contains("geen aanvraag verstuurd"), !delivered);
+            task.abort();
+        }
+        std::env::remove_var("APIOSK_SLACKBOT_AUTH_CONFIG");
+    }
 
     #[test]
     fn inputs_are_bounded_and_approvers_are_slack_user_ids() {

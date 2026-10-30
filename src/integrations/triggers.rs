@@ -105,7 +105,11 @@ impl Composio {
         }
         let account = self
             .call(Method::GET, &format!("/connected_accounts/{id}"), None)
-            .await?;
+            .await
+            .map_err(|e| match e {
+                ComposioError::Status(404) => ComposioError::AccountNotFound,
+                other => other,
+            })?;
         if !owns_account(&account, owner, "slack", id)
             || account["status"] != "ACTIVE"
             || account["is_disabled"] == true
@@ -252,18 +256,23 @@ impl Composio {
             arguments["thread_ts"] = json!(thread);
         }
         let sent = self.apiosk_bot_tool(owner, bot, "SLACKBOT_SEND_MESSAGE", arguments).await?;
-        Ok(sent["ts"].as_str().or(sent["message"]["ts"].as_str()).unwrap_or_default().to_owned())
+        sent["ts"].as_str().or(sent["message"]["ts"].as_str())
+            .filter(|ts| !ts.is_empty()).map(str::to_owned)
+            .ok_or(ComposioError::Invalid("missing_message_ts"))
     }
 
-    /// Apiosk's direct-message conversation with one person.
-    pub async fn apiosk_bot_dm(&self, owner: Uuid, bot: &str, user: &str) -> Result<String, ComposioError> {
-        let opened = self
-            .apiosk_bot_tool(owner, bot, "SLACKBOT_OPEN_DM", json!({"users": user, "return_im": true}))
-            .await?;
-        opened["channel"]["id"]
-            .as_str()
-            .map(str::to_owned)
-            .ok_or(ComposioError::Invalid("channel_id"))
+    /// Update our own channel notice after DM delivery. Uses only chat:write.
+    pub async fn apiosk_bot_update(&self, owner: Uuid, bot: &str, channel: &str, ts: &str, text: &str, blocks: &Value) -> Result<(), ComposioError> {
+        let config = apiosk_bot_config().ok_or(ComposioError::NeedsSetup)?;
+        if !frozen::valid_account_id(bot) { return Err(ComposioError::AccountNotFound); }
+        let account = self.call(Method::GET, &format!("/connected_accounts/{bot}"), None).await?;
+        if !apiosk_bot_account(&account, owner, bot, &config) { return Err(ComposioError::AccountNotFound); }
+        let value = self.call(Method::POST, "/tools/execute/proxy", Some(json!({
+            "endpoint":"https://slack.com/api/chat.update", "method":"POST", "connected_account_id":bot,
+            "body":{"channel":channel,"ts":ts,"text":text,"blocks":blocks}
+        }))).await?;
+        if value["data"]["ok"] != true { return Err(ComposioError::Invalid(slack_failure(&value))); }
+        Ok(())
     }
 
     pub async fn trigger_channels(
