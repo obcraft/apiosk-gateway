@@ -537,6 +537,32 @@ pub(super) async fn rotate(
         Ok(_) => StatusCode::NOT_FOUND.into_response(), Err(e)=>db_error(e)
     }
 }
+/// Adds Apiosk to a Slack trigger's conversation, replacing `/invite @Apiosk`.
+pub(super) async fn invite_bot(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Response {
+    let owner = match app_person(&state, &headers).await {
+        Ok(p) => p.owner,
+        Err(r) => return r,
+    };
+    let row: Option<(String, String)> = match sqlx::query_as("SELECT connected_account_id,channel_id FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 AND source='slack'")
+        .bind(id).bind(owner).fetch_optional(&state.engine.store.pool).await {
+            Ok(v) => v, Err(e) => return db_error(e),
+        };
+    let Some((account, channel)) = row else { return StatusCode::NOT_FOUND.into_response() };
+    let composio = match client() {
+        Ok(c) => c,
+        Err(r) => return r,
+    };
+    match composio.trigger_invite_bot(owner, &account, &channel).await {
+        Ok(invited) => Json(json!({"invited": invited})).into_response(),
+        Err(ComposioError::NeedsSetup) => error(StatusCode::CONFLICT, "Add Apiosk to this Slack workspace first."),
+        Err(ComposioError::Invalid("not_in_channel")) => error(StatusCode::CONFLICT, "Join this channel in Slack first, then add Apiosk."),
+        Err(e) => provider_error(e),
+    }
+}
 
 /// Signature validation uses the exact bytes received, a five-minute replay window,
 /// and constant-time MAC comparison. Composio's secret is used literally (not base64-decoded).
@@ -726,6 +752,13 @@ pub(super) async fn composio_webhook(
     else {
         return Json(json!({"accepted":false})).into_response();
     };
+    // Slack's `ts` is when the message was posted, so the logs separate
+    // Composio's delivery delay from Apiosk's own reply time.
+    let received = std::time::Instant::now();
+    if let Ok(posted) = ts.parse::<f64>() {
+        let lag = chrono::Utc::now().timestamp_millis() - (posted * 1000.0) as i64;
+        tracing::info!(surface = "trigger-ingress", delivery_lag_ms = lag, "Slack event received");
+    }
     let ids:Vec<Uuid>=match sqlx::query_scalar("SELECT id FROM gateway_v2.inbound_triggers WHERE owner_id=$1 AND provider_trigger_id=$2 AND connected_account_id=$3 AND channel_id=$4 AND source='slack'").bind(owner).bind(&trigger).bind(&account).bind(&channel).fetch_all(&state.engine.store.pool).await {Ok(v)=>v,Err(e)=>return db_error(e)};
     let mut fresh_ids = Vec::new();
     let mut reviews = Vec::new();
@@ -754,8 +787,9 @@ pub(super) async fn composio_webhook(
     }
     // Paused triggers and redelivered events get no reply. The reply is written
     // after the event commits, so Composio's webhook is answered without waiting.
-    // Apiosk answers from its own bot in this workspace with a normal channel
-    // message that tags the asker, or in the thread a question was asked in.
+    // Apiosk answers from its own bot in this workspace with a new channel
+    // message that tags the asker, never as a thread reply to the question,
+    // unless the question itself was asked in a thread.
     // "@Apiosk" arrives as a mention of the bot's Slack user. Looked up after
     // the webhook is answered.
     if let (true, Ok(composio)) = (!fresh_ids.is_empty(), client()) {
@@ -786,12 +820,12 @@ pub(super) async fn composio_webhook(
             if named || reply::mentions(&text) || thread.is_some() {
                 if let Some(ref bot) = bot {
                     let root = thread.as_deref().unwrap_or(&event_ts);
-                    match dossiers::handle(&dossier_engine,composio,owner,fresh_ids[0],&bot.team,&bot.account,&channel,root,&text,named || reply::mentions(&text)).await {
-                        Ok(true) => return,
+                    match dossiers::handle(&dossier_engine,composio,owner,fresh_ids[0],&bot.team,&bot.account,&channel,root,thread.as_deref(),asker.as_deref(),&text,named || reply::mentions(&text)).await {
+                        Ok(true) => return tracing::info!(surface = "trigger-dossier", reply_ms = received.elapsed().as_millis() as u64, "dossier reply posted"),
                         Ok(false) => {},
                         Err(error) => {
                             tracing::warn!(%error,"Slack dossier request failed");
-                            let _=composio.apiosk_bot_post(owner,&bot.account,&channel,Some(root),"The dossier request could not be completed. Retry in this same thread to recover it; no new purchase has been authorized.",None).await;
+                            let _=composio.apiosk_bot_post(owner,&bot.account,&channel,thread.as_deref(),"The dossier request could not be completed. Mention me again to retry; no purchase has been authorized.",None).await;
                             return;
                         }
                     }
@@ -812,7 +846,10 @@ pub(super) async fn composio_webhook(
                 return;
             }
             match bot {
-                Some(bot) => reply::send(composio, pool, fresh_ids, owner, bot.account, channel, thread, asker, text).await,
+                Some(bot) => {
+                    reply::send(composio, pool, fresh_ids, owner, bot.account, channel, thread, asker, text).await;
+                    tracing::info!(surface = "trigger-reply", reply_ms = received.elapsed().as_millis() as u64, "trigger reply finished");
+                }
                 None => tracing::warn!(surface = "trigger-reply", reason = "no_apiosk_bot", "trigger reply skipped"),
             }
         });

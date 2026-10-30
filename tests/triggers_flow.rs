@@ -139,6 +139,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .await
         .unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030110340_slack_dossiers.sql")).execute(&pool).await.unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261030170000_slack_dossier_company_hint.sql")).execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030133913_trigger_approval_mode.sql")).execute(&pool).await.unwrap();
     let calls = Arc::new(Mutex::new(vec![]));
     let provider=serve(Router::new().route("/auth/v1/user",get(auth))
@@ -551,6 +552,10 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     let manual = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456","approval_mode":"on_request"})).send().await.unwrap()).await;
     assert_eq!(manual["trigger"]["approver_id"],"U456");
     assert_eq!(manual["trigger"]["approval_mode"],"on_request");
+    // Apiosk joins the trigger's channel through the owner's own connection.
+    let invited = value(http.post(format!("{endpoint}/{slack_id}/invite")).bearer_auth("owner").json(&json!({})).send().await.unwrap()).await;
+    assert_eq!(invited["invited"],true);
+    assert_eq!(http.post(format!("{endpoint}/{slack_id}/invite")).bearer_auth("other").json(&json!({})).send().await.unwrap().status(),404);
     // A real screening request creates a durable dossier, not a demo result or a paid call.
     let mut screening = event.clone();
     screening["data"]["ts"] = json!("2000.001");
@@ -586,12 +591,25 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     assert!(linked,"thread follow-up must use the saved dossier");
+    // A top-level follow-up continues the channel's latest dossier.
+    let mut latest=event.clone();
+    latest["data"]["ts"]=json!("2000.0025");
+    latest["data"]["text"]=json!("<@UBOT> status");
+    value(send(latest).await.unwrap()).await;
+    let mut continued=false;
+    for _ in 0..100 {
+        let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.inbound_trigger_events WHERE activity->>'dossier_id'=$1").bind(dossier.to_string()).fetch_one(&pool).await.unwrap();
+        if count>=3 {continued=true;break}
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(continued,"a top-level follow-up must use the channel's latest dossier");
     let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.slack_dossiers").fetch_one(&pool).await.unwrap();
-    assert_eq!(count,1,"retries and thread follow-ups must not duplicate dossiers");
+    assert_eq!(count,1,"retries and follow-ups must not duplicate dossiers");
     let posts=calls.lock().unwrap().clone();
-    let posts:Vec<_>=posts.iter().filter(|v|v["thread_ts"]=="2000.001").collect();
-    assert_eq!(posts.len(),2,"one initial card and one status response");
-    assert!(posts.iter().all(|v|v.to_string().contains(&format!("dossier={dossier}"))));
+    assert!(posts.iter().any(|v|v["channel"]=="C123" && v["thread_ts"].is_null() && v.to_string().contains("Yes, I'll set up a screening dossier")),"a new request is acknowledged with a new channel message");
+    let posts:Vec<_>=posts.iter().filter(|v|v.to_string().contains(&format!("dossier={dossier}"))).collect();
+    assert_eq!(posts.len(),3,"one initial card and two status responses");
+    assert_eq!(posts.iter().filter(|v|v["thread_ts"]=="2000.001").count(),1,"only a question asked in a thread is answered there");
     assert!(posts.iter().all(|v|!v.to_string().contains("No issues identified")));
     for role in ["anon","authenticated"] {
         let allowed:bool=sqlx::query_scalar("SELECT has_table_privilege($1,'gateway_v2.slack_dossiers','SELECT')").bind(role).fetch_one(&pool).await.unwrap();

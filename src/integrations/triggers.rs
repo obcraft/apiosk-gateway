@@ -6,10 +6,23 @@ use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     sync::{Mutex, OnceLock},
+    time::{Duration, Instant},
 };
 use uuid::Uuid;
 
 pub const SLACK_TRIGGER: &str = "SLACK_CHANNEL_MESSAGE_RECEIVED";
+
+/// Bot connection lookups reused for a minute. Each costs a Composio round
+/// trip, and a Slack reply otherwise pays them again before every post.
+const RECENT_FOR: Duration = Duration::from_secs(60);
+type Recent<T> = Mutex<HashMap<String, (Instant, T)>>;
+fn recent<T: Clone>(cache: &Recent<T>, key: &str) -> Option<T> {
+    let cache = cache.lock().unwrap_or_else(|p| p.into_inner());
+    cache.get(key).filter(|(at, _)| at.elapsed() < RECENT_FOR).map(|(_, v)| v.clone())
+}
+fn remember<T>(cache: &Recent<T>, key: String, value: T) {
+    cache.lock().unwrap_or_else(|p| p.into_inner()).insert(key, (Instant::now(), value));
+}
 
 /// The Apiosk Slack app as a bot connection, one per workspace: Composio keeps
 /// each workspace's bot token, and the auth config holds our own app's OAuth
@@ -53,6 +66,7 @@ fn slack_failure(value: &Value) -> &'static str {
         .collect::<Vec<_>>()
         .join(" ");
     [
+        "already_in_channel",
         "not_in_channel",
         "channel_not_found",
         "missing_scope",
@@ -161,26 +175,42 @@ impl Composio {
 
     /// The owner's active Apiosk bot connections, newest first.
     pub async fn apiosk_bot_accounts(&self, owner: Uuid) -> Result<Vec<String>, ComposioError> {
+        static RECENT: OnceLock<Recent<Vec<String>>> = OnceLock::new();
         let Some(config) = apiosk_bot_config() else {
             return Ok(Vec::new());
         };
-        Ok(self
+        let cache = RECENT.get_or_init(Default::default);
+        if let Some(ids) = recent(cache, &owner.to_string()) {
+            return Ok(ids);
+        }
+        let ids: Vec<String> = self
             .accounts(&composio_user_id(owner))
             .await?
             .iter()
             .filter_map(|a| a["id"].as_str().filter(|id| apiosk_bot_account(a, owner, id, &config)))
             .map(str::to_owned)
-            .collect())
+            .collect();
+        // None found is not kept, so a bot that was just added is seen at once.
+        if !ids.is_empty() {
+            remember(cache, owner.to_string(), ids.clone());
+        }
+        Ok(ids)
     }
 
     async fn apiosk_bot_tool(&self, owner: Uuid, id: &str, tool: &str, arguments: Value) -> Result<Value, ComposioError> {
+        static VERIFIED: OnceLock<Recent<()>> = OnceLock::new();
         let config = apiosk_bot_config().ok_or(ComposioError::NeedsSetup)?;
         if !frozen::valid_account_id(id) {
             return Err(ComposioError::AccountNotFound);
         }
-        let account = self.call(Method::GET, &format!("/connected_accounts/{id}"), None).await?;
-        if !apiosk_bot_account(&account, owner, id, &config) {
-            return Err(ComposioError::AccountNotFound);
+        let verified = VERIFIED.get_or_init(Default::default);
+        let key = format!("{owner}:{id}");
+        if recent(verified, &key).is_none() {
+            let account = self.call(Method::GET, &format!("/connected_accounts/{id}"), None).await?;
+            if !apiosk_bot_account(&account, owner, id, &config) {
+                return Err(ComposioError::AccountNotFound);
+            }
+            remember(verified, key, ());
         }
         self.execute_slack(owner, id, tool, arguments).await
     }
@@ -322,6 +352,24 @@ impl Composio {
             json!({"channel":channel}),
         )
         .await
+    }
+
+    /// Invites the Apiosk bot of the channel's workspace with the person's own
+    /// Slack connection, which also reaches their private channels. False when
+    /// the bot was already a member.
+    pub async fn trigger_invite_bot(&self, owner: Uuid, account: &str, channel: &str) -> Result<bool, ComposioError> {
+        let info = self.trigger_channel(owner, account, channel).await?;
+        let team = info["channel"]["context_team_id"].as_str().or(info["channel"]["team_id"].as_str());
+        let bot = self
+            .apiosk_bot(owner, team)
+            .await?
+            .filter(|b| !b.user.is_empty())
+            .ok_or(ComposioError::NeedsSetup)?;
+        match self.trigger_tool(owner, account, "SLACK_INVITE_USERS_TO_A_SLACK_CHANNEL", json!({"channel":channel,"users":bot.user})).await {
+            Ok(_) => Ok(true),
+            Err(ComposioError::Invalid("already_in_channel")) => Ok(false),
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn trigger_members(

@@ -213,7 +213,8 @@ fn review_card(message: &str, channel: &str, value: &str) -> (String, Value) {
 async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: String, approver: String,
     approver_name: Option<String>, signals: bool, test: bool, review: Option<&str>, dossier: Option<(Uuid, &str)>) -> anyhow::Result<Posted> {
     let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
-    let notice_ts = to.post(channel, dossier.map(|(_,root)|root), &line, &notice(&line, test)).await?;
+    // A new channel message, never a reply in the dossier's thread.
+    let notice_ts = to.post(channel, None, &line, &notice(&line, test)).await?;
     let thread=dossier.map(|(_,root)|root.to_owned()).unwrap_or_else(||notice_ts.clone());
     anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
     let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": if test { 1 } else { 0 }, "d":dossier.map(|(id,_)|id)}).to_string();
@@ -270,7 +271,7 @@ pub(super) async fn request_dossier_review(pool:&sqlx::PgPool,c:&Composio,owner:
     sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,30102026))").bind(id.to_string()).execute(&mut *lock).await?;
     // One review decision per immutable first check, including after restarts.
     let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.inbound_trigger_events WHERE owner_id=$1 AND trigger_id=$2 AND activity->>'dossier_id'=$3 AND activity->>'kind' IN ('request_approval','approval_decision') AND activity->>'status'<>'delivery_failed')").bind(owner).bind(trigger).bind(id.to_string()).fetch_one(pool).await?;
-    if exists {c.apiosk_bot_post(owner,bot,channel,Some(thread),"This dossier already has a review request. Its decision is recorded in Activity and the dossier.",None).await?;return Ok(())}
+    if exists {c.apiosk_bot_post(owner,bot,channel,None,"This dossier already has a review request. Its decision is recorded in Activity and the dossier.",None).await?;return Ok(())}
     let company=d["company"]["name"].as_str().unwrap_or("Company dossier");
     let message=format!("Review the saved source evidence for {} (KVK {}). This decision records your review; it does not authorize purchases or activate monitoring.\n{}",company,d["company"]["kvk_number"].as_str().unwrap_or_default(),super::dossiers::url(id));
     let posted=send_approval(Poster{composio:c,owner,bot},channel,trigger,company.into(),approver.into(),Some(name.into()),false,false,Some(&message),Some((id,thread))).await?;
@@ -449,7 +450,7 @@ async fn decide(pool: sqlx::PgPool, composio: &'static Composio, d: Decision) {
     if let Err(e) = slack::respond(&d.response_url, &card).await {
         tracing::warn!(surface = "trigger-approval", error = %e, "approval card not updated");
     }
-    if let Err(e) = composio.apiosk_bot_post(d.owner, &d.bot, &d.channel, Some(&d.thread), &line, Some(&blocks)).await {
+    if let Err(e) = composio.apiosk_bot_post(d.owner, &d.bot, &d.channel, None, &line, Some(&blocks)).await {
         tracing::warn!(surface = "trigger-approval", error = %e, "approval confirmation not delivered");
     }
 }
