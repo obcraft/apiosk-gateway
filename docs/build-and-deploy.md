@@ -42,39 +42,57 @@ testdependencies uit `package-lock.json`.
 
 ## GitHub Actions instellen
 
-De workflow staat in `.github/workflows/gateway.yml`. Externe actions staan op
-vaste commithashes en flyctl op **0.5.0**.
+**Gateway CI** (`.github/workflows/gateway.yml`) bouwt en test.
+**Gateway release** (`.github/workflows/gateway-release.yml`) rolt een al
+geverifieerde image uit. Externe actions staan op vaste commithashes en flyctl
+op **0.5.0**.
 
 Voor build en tests zijn geen eigen secrets nodig. Eén normale checkout bevat
 de volledige workspace; de pipeline haalt geen andere repository of submodule
 op. Alleen deployment vereist `FLY_API_TOKEN`: een deploy token beperkt tot
 `apiosk-gateway-v2`, als secret in de GitHub-omgeving `production` of als
-repositorysecret. Alleen de production-job ontvangt dit token.
+repositorysecret. Alleen de push/deploy-stap in de production-job ontvangt dit token.
 
-Een gewone push naar `main`, een pull request of een handmatige run met `deploy=false` voert de Rust-controles, imagebuild en
-imageverificatie uit. Er wordt dan niets naar Fly uitgerold. Pull requests
-gebruiken dezelfde controles zonder productiecredentials.
+Een gewone push naar `main`, een pull request of een handmatige **Gateway CI**-run
+voert de Rust-controles, imagebuild en imageverificatie uit. CI rolt niets naar
+Fly uit. Pull requests gebruiken dezelfde controles zonder productiecredentials.
+Alleen een CI-run op `main` bewaart de geverifieerde image als
+`gateway-image-<volledige commit>`, gedurende zeven dagen. De release gebruikt
+dit artifact alleen wanneer de volledige CI-run succesvol is afgerond,
+inclusief de Rust-suite en native-runtimetest.
 
 ## Een productieversie uitrollen
 
-Open **Actions → Gateway build and deploy → Run workflow**, selecteer `main`
-en zet `deploy` aan. Alleen deze combinatie kan de production-job starten. Dit
-voorkomt dat een gewone commit automatisch andere applicatiewijzigingen
-publiceert.
+Open **Actions → Gateway release → Run workflow** en selecteer `main`. De
+releaseworkflow start uitsluitend handmatig op `main` en gebruikt precies de
+commit waarop die run is gestart. Een gewone commit publiceert niets naar Fly.
 
 De workflow:
 
-1. Voert `scripts/ci-check.sh` en de lokale native-runtimetest uit en bouwt de
-   Linux-image onafhankelijk daarvan.
-2. Controleert de gebouwde image met `scripts/verify-image.sh`, waaronder de
-   verwachte commit. Build en tests moeten beide slagen.
-3. Draagt exact die geverifieerde image als tijdelijk artifact over aan de
-   production-job; er volgt geen tweede Rust-build.
+1. Zoekt met `scripts/find-verified-image.py` een succesvolle main-CI-run van
+   exact dezelfde commit. De selectie controleert workflow, repository,
+   branch, resultaat en het niet-verlopen image-artifact. Deze job heeft alleen
+   leesrechten op GitHub en ontvangt geen Fly-token.
+2. Wacht zo nodig maximaal twintig minuten op een bestaande CI-run. De
+   release start geen nieuwe build en voert geen Rust-tests opnieuw uit.
+3. Controleert na een eventuele productiegoedkeuring opnieuw dat dezelfde
+   CI-run, poging en hetzelfde artifact nog geldig zijn. Downloadt dat artifact
+   via zijn vaste run- en artifact-ID,
+   laadt de image en voert `scripts/verify-image.sh` opnieuw uit voor exact
+   dezelfde commit. Een artifact van een andere commit wordt niet gebruikt.
 4. Pusht de image naar de Fly-registry, bepaalt de immutable digest en roept
-   `scripts/deploy-image.py` aan met die digest en de verwachte commit.
+   `scripts/deploy-image.py` aan met die digest en de verwachte commit. Vlak
+   daarvoor controleert de selectie opnieuw dat `main`, de succesvolle
+   CI-poging en het artifact niet zijn veranderd.
 5. Controleert de release via de bestaande healthroute. Een succesvolle HTTP
    response moet ook de juiste commit en gereedstaande commercehandlers
    tonen; alleen een voltooid buildlog is onvoldoende.
+
+Als CI faalt, ontbreekt of het artifact ouder dan zeven dagen is, stopt de
+release vóór de production-job. Start dan **Gateway CI** handmatig op `main`
+en start de release opnieuw zodra die run geslaagd is. Een beschikbare image
+gaat rechtstreeks naar verificatie en rollout; compilatie en tests zijn al
+tijdens CI uitgevoerd.
 
 De rollout bewaart machinecontroles en releasegegevens als artifact
 `gateway-release-<commit>`; ook een mislukte uitrol probeert dit bewijs te
@@ -83,7 +101,11 @@ runtime-instellingen en de vorige image-digest, zodat configuratiedrift niet
 stilzwijgend wordt meegenomen.
 
 Productiedeployments worden geserialiseerd. Een lopende deployment wordt niet
-afgebroken door een volgende workflowrun. De bestaande Fly-runtimeconfiguratie,
+afgebroken door een volgende workflowrun. Vlak vóór de registry-push en de
+rollout moet de releasecommit nog steeds de actuele `main` zijn. Een oudere
+release die in de wachtrij stond, stopt wanneer `main` ondertussen verder is;
+een bewuste rollback gebruikt de hieronder beschreven herstelprocedure.
+De bestaande Fly-runtimeconfiguratie,
 betaalflags en secrets blijven behouden. De pipeline voert geen aankopen of
 databasewijzigingen uit.
 
@@ -113,7 +135,7 @@ bij deze uitsluitend op build en lokale tests gerichte pipeline.
 ## Diagnose en herstel
 
 Controleer eerst welke fase faalt: repositorycheckout, Rust-tests,
-dependencycompilatie, applicatiecompilatie, imageverificatie, registry-push of
+dependencycompilatie, applicatiecompilatie, artifactselectie, imageverificatie, registry-push of
 Fly-rollout. De logs van deze stappen staan afzonderlijk in Actions. Bewaar bij
 een mislukte rollout de vorige image-digest en de bijbehorende gatewaycommit.
 Iedere release bevat de volledige server; een afzonderlijke executor-update

@@ -1,0 +1,119 @@
+name: Gateway release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  selection:
+    name: Select verified main image
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      run_id: ${{ steps.image.outputs.run_id }}
+      artifact_id: ${{ steps.image.outputs.artifact_id }}
+      run_attempt: ${{ steps.image.outputs.run_attempt }}
+    steps:
+      - name: Check out release tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Find successful CI for this exact revision
+        id: image
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/find-verified-image.py
+          --repo "$GITHUB_REPOSITORY"
+          --revision "$GITHUB_SHA"
+          --wait-seconds 1200
+
+  production:
+    name: Deploy verified image
+    if: github.ref == 'refs/heads/main'
+    needs: [selection]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: gateway-production
+      cancel-in-progress: false
+    steps:
+      - name: Check out deployment tools
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Revalidate the selected CI attempt and artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 scripts/find-verified-image.py
+          --repo "$GITHUB_REPOSITORY"
+          --revision "$GITHUB_SHA"
+          --wait-seconds 0
+          --expected-run-id "${{ needs.selection.outputs.run_id }}"
+          --expected-artifact-id "${{ needs.selection.outputs.artifact_id }}"
+          --expected-run-attempt "${{ needs.selection.outputs.run_attempt }}"
+      - name: Download the verified image
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          artifact-ids: ${{ needs.selection.outputs.artifact_id }}
+          run-id: ${{ needs.selection.outputs.run_id }}
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/gateway-image
+      - name: Load and verify the image
+        run: |
+          docker load --input "$RUNNER_TEMP/gateway-image/gateway-image.tar"
+          bash scripts/verify-image.sh apiosk-gateway:ci "$GITHUB_SHA"
+      - name: Install pinned flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
+        with:
+          version: 0.5.0
+      - name: Push the verified image and deploy its digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [[ -z "$FLY_API_TOKEN" ]]; then
+            echo 'Missing FLY_API_TOKEN in the production environment or repository secrets. Configure an app-scoped deploy token for apiosk-gateway-v2; see docs/build-and-deploy.md.' >&2
+            exit 1
+          fi
+          require_current_main() {
+            current_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
+            if [[ "$current_main" != "$GITHUB_SHA" ]]; then
+              echo 'Main advanced after this release started. Start Gateway release for the latest main; use the recorded rollback procedure for an intentional rollback.' >&2
+              exit 1
+            fi
+          }
+          require_current_main
+          flyctl auth docker
+          image_tag="registry.fly.io/apiosk-gateway-v2:$GITHUB_SHA"
+          docker tag apiosk-gateway:ci "$image_tag"
+          docker push "$image_tag"
+          image_digest=$(docker image inspect --format '{{index .RepoDigests 0}}' "$image_tag")
+          [[ "$image_digest" =~ ^registry\.fly\.io/apiosk-gateway-v2@sha256:[0-9a-f]{64}$ ]]
+          python3 scripts/find-verified-image.py \
+            --repo "$GITHUB_REPOSITORY" --revision "$GITHUB_SHA" --wait-seconds 0 \
+            --expected-run-id "${{ needs.selection.outputs.run_id }}" \
+            --expected-artifact-id "${{ needs.selection.outputs.artifact_id }}" \
+            --expected-run-attempt "${{ needs.selection.outputs.run_attempt }}"
+          python3 scripts/deploy-image.py --image "$image_digest" --revision "$GITHUB_SHA" --evidence release-evidence.json
+      - name: Preserve deployment evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gateway-release-${{ github.sha }}
+          path: release-evidence.json
+          retention-days: 30
+          if-no-files-found: warn
+          overwrite: true
