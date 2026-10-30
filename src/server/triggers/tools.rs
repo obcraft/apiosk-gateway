@@ -23,7 +23,7 @@ use std::{
 };
 use uuid::Uuid;
 
-const NOTE: &str = "🧪 Test · testdata, geen echte controle en geen kosten";
+const NOTE: &str = "🧪 Test · sample data, no real checks and no charges";
 const TEST_KVK: &str = "00000000";
 
 /// `TRIGGER_TOOL_TEST_OWNER_IDS`, comma-separated owner UUIDs. A partly
@@ -88,15 +88,15 @@ fn findings(company: &str, signals: bool) -> Vec<String> {
         return Vec::new();
     }
     vec![
-        "🟠 *Sanctielijsten:* mogelijke match op naam, handmatig controleren".into(),
-        "🔵 *Handelsregister:* bezoekadres gewijzigd sinds de vorige controle".into(),
-        format!("📰 *Nieuws:* “Voorbeeldartikel over {}” (testbron)", esc(company)),
+        "🟠 *Sanctions lists:* possible name match; manual review required".into(),
+        "🔵 *Business register:* registered address changed since the last check".into(),
+        format!("📰 *News:* “Sample article about {}” (test source)", esc(company)),
     ]
 }
 fn profile(findings: &[String]) -> String {
     match findings.len() {
-        0 => "🟢 Geen bijzonderheden".into(),
-        n => format!("🟠 Aandacht nodig · {n} signalen"),
+        0 => "🟢 No issues identified".into(),
+        n => format!("🟠 Review needed · {n} findings"),
     }
 }
 
@@ -104,17 +104,17 @@ fn screening(company: &str, signals: bool) -> (String, Value) {
     let found = findings(company, signals);
     let mut blocks = vec![
         json!({"type": "header", "text": {"type": "plain_text", "text": format!("Screening: {}", company.trim())}}),
-        json!({"type": "section", "fields": [md(format!("*KVK*\n{TEST_KVK}")), md(format!("*Resultaat*\n{}", profile(&found)))]}),
-        section("*Gecontroleerd*\n✅ Handelsregister (KVK)   ✅ Sanctielijsten   ✅ Nieuws, laatste 7 dagen"),
+        json!({"type": "section", "fields": [md(format!("*KVK*\n{TEST_KVK}")), md(format!("*Result*\n{}", profile(&found)))]}),
+        section("*Checks performed*\n✅ Business register (KVK)   ✅ Sanctions lists   ✅ News from the last 7 days"),
     ];
     blocks.push(section(if found.is_empty() {
-        "Niets gevonden dat aandacht nodig heeft.".to_owned()
+        "No findings requiring attention.".to_owned()
     } else {
-        format!("*Bevindingen*\n{}", found.join("\n"))
+        format!("*Findings*\n{}", found.join("\n"))
     }));
-    blocks.push(json!({"type": "actions", "elements": [link_button("Open dossier")]}));
+    blocks.push(json!({"type": "actions", "elements": [link_button("Open report")]}));
     blocks.push(note());
-    (format!("Screening van {}: {}", esc(company), profile(&found)), Value::Array(blocks))
+    (format!("Screening for {}: {}", esc(company), profile(&found)), Value::Array(blocks))
 }
 
 fn approval_card(company: &str, channel: &str, signals: bool, value: &str) -> (String, Value) {
@@ -123,32 +123,32 @@ fn approval_card(company: &str, channel: &str, signals: bool, value: &str) -> (S
         json!({"type": "button", "action_id": id, "style": style, "value": value, "text": {"type": "plain_text", "text": text}})
     };
     let blocks = json!([
-        {"type": "header", "text": {"type": "plain_text", "text": "Goedkeuring gevraagd"}},
-        section(format!("*{}* · KVK {TEST_KVK}\nNieuwe leverancier, aangevraagd in <#{channel}>.", esc(company))),
-        {"type": "section", "fields": [md(format!("*Risicoprofiel*\n{}", profile(&found))), md("*Gecontroleerd*\nKVK · sancties · nieuws")]},
+        {"type": "header", "text": {"type": "plain_text", "text": "Approval requested"}},
+        section(format!("*{}* · KVK {TEST_KVK}\nNew supplier, requested in <#{channel}>.", esc(company))),
+        {"type": "section", "fields": [md(format!("*Risk profile*\n{}", profile(&found))), md("*Checks performed*\nKVK · sanctions · news")]},
         {"type": "actions", "block_id": "apiosk_approval", "elements": [
-            button("apiosk_approve", "Approve", "primary"), button("apiosk_reject", "Reject", "danger"), link_button("Open dossier")
+            button("apiosk_approve", "Approve", "primary"), button("apiosk_reject", "Reject", "danger"), link_button("Open report")
         ]},
         note()
     ]);
-    (format!("Goedkeuring gevraagd voor {}", esc(company)), blocks)
+    (format!("Approval requested for {}", esc(company)), blocks)
 }
 
 fn monitor(company: &str, frequency: Frequency, negative_news: bool) -> (String, Value) {
     let (label, days) = match frequency {
-        Frequency::Daily => ("Dagelijks", 1),
-        Frequency::Weekly => ("Wekelijks", 7),
-        Frequency::Monthly => ("Maandelijks", 30),
+        Frequency::Daily => ("Daily", 1),
+        Frequency::Weekly => ("Weekly", 7),
+        Frequency::Monthly => ("Monthly", 30),
     };
     let next = (chrono::Utc::now() + chrono::Duration::days(days)).timestamp();
-    let checks = if negative_news { "Handelsregister · Sanctielijsten · Negatief nieuws" } else { "Handelsregister · Sanctielijsten" };
+    let checks = if negative_news { "Business register · Sanctions lists · Adverse news" } else { "Business register · Sanctions lists" };
     let blocks = json!([
-        section(format!("*Monitoring ingesteld voor {}*", esc(company))),
-        {"type": "section", "fields": [md(format!("*Frequentie*\n{label}")), md(format!("*Controles*\n{checks}"))]},
-        section(format!("Volgende controle: <!date^{next}^{{date_long}}|binnenkort>. Ik meld het hier zodra er iets verandert.")),
-        {"type": "context", "elements": [md("🧪 Demosimulatie · er is niets ingesteld en niets betaald")]}
+        section(format!("*Monitoring set up for {}*", esc(company))),
+        {"type": "section", "fields": [md(format!("*Frequency*\n{label}")), md(format!("*Checks*\n{checks}"))]},
+        section(format!("Next check: <!date^{next}^{{date_long}}|soon>. I will post an update here when something changes.")),
+        {"type": "context", "elements": [md("🧪 Demo simulation · nothing has been scheduled or charged")]}
     ]);
-    (format!("Monitoring ingesteld voor {} ({})", esc(company), label.to_lowercase()), blocks)
+    (format!("Monitoring set up for {} ({})", esc(company), label.to_lowercase()), blocks)
 }
 
 fn hint(error: &anyhow::Error) -> &'static str {
@@ -187,7 +187,7 @@ async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()
     match test {
         ToolTest::Chat { message } => {
             let text = reply::compose(&message).await?;
-            let blocks = json!([section(esc(&text)), {"type": "context", "elements": [md(format!("🧪 Test · antwoord op “{}”", esc(&message)))]}]);
+            let blocks = json!([section(esc(&text)), {"type": "context", "elements": [md(format!("🧪 Test · reply to “{}”", esc(&message)))]}]);
             to.post(channel, None, &esc(&text), &blocks).await?;
         }
         ToolTest::ScreenCompany { company, signals } => {
@@ -195,7 +195,7 @@ async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()
             to.post(channel, None, &text, &blocks).await?;
         }
         ToolTest::RequestApproval { company, approver, signals } => {
-            let line = format!("Goedkeuring voor *{}* wordt aangevraagd bij <@{approver}>. DM wordt verstuurd…", esc(&company));
+            let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
             let thread = to.post(channel, None, &line, &json!([section(line.clone()), note()])).await?;
             anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
             let value = json!({"o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": 1}).to_string();
@@ -204,9 +204,9 @@ async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()
             // ID. conversations.open would unnecessarily require im:write.
             let delivered = to.post(&approver, None, &text, &blocks).await;
             let line = if delivered.is_ok() {
-                format!("Ik heb *{}* ter goedkeuring gestuurd naar <@{approver}> via DM.", esc(&company))
+                format!("I sent *{}* to <@{approver}> for approval by DM.", esc(&company))
             } else {
-                format!("⚠️ De goedkeuringsaanvraag voor *{}* kon niet via DM worden bezorgd bij <@{approver}>. Er is geen aanvraag verstuurd.", esc(&company))
+                format!("⚠️ The approval request for *{}* could not be delivered to <@{approver}> by DM. No request was sent.", esc(&company))
             };
             if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &thread, &line, &json!([section(line.clone()), note()])).await {
                 tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
@@ -327,7 +327,7 @@ fn first_decision(key: String) -> bool {
 async fn decide(composio: &'static Composio, d: Decision) {
     if d.user != d.approver {
         let only = json!({"response_type": "ephemeral", "replace_original": false,
-            "text": format!("Alleen <@{}> kan deze aanvraag goedkeuren of afwijzen.", d.approver)});
+            "text": format!("Only <@{}> can approve or reject this request.", d.approver)});
         if let Err(e) = slack::respond(&d.response_url, &only).await {
             tracing::warn!(surface = "trigger-approval", error = %e, "approval notice not delivered");
         }
@@ -336,8 +336,8 @@ async fn decide(composio: &'static Composio, d: Decision) {
     if !first_decision(format!("{}:{}", d.channel, d.thread)) {
         return;
     }
-    let (icon, verb) = if d.approve { ("✅", "goedgekeurd") } else { ("❌", "afgewezen") };
-    let line = format!("{icon} *{}* is {verb} door <@{}>.", esc(&d.company), d.user);
+    let (icon, verb) = if d.approve { ("✅", "approved") } else { ("❌", "rejected") };
+    let line = format!("{icon} *{}* was {verb} by <@{}>.", esc(&d.company), d.user);
     let mut blocks = vec![section(line.clone())];
     if d.test {
         blocks.push(note());
@@ -421,13 +421,13 @@ mod tests {
             let calls = calls.lock().unwrap();
             assert_eq!(calls.len(), 3);
             assert_eq!(calls[0]["channel"], "CCHANNEL");
-            assert!(calls[0]["fallback_text"].as_str().unwrap().contains("wordt verstuurd"));
+            assert!(calls[0]["fallback_text"].as_str().unwrap().contains("Sending DM"));
             assert_eq!(calls[1]["channel"], "USELECTED");
             let payload: Value = serde_json::from_str(calls[1]["blocks"][3]["elements"][0]["value"].as_str().unwrap()).unwrap();
             assert_eq!(payload["a"], "USELECTED");
             assert_eq!(payload["t"], "1.0");
             assert_eq!(calls[2]["ts"], "1.0");
-            assert_eq!(calls[2]["text"].as_str().unwrap().contains("geen aanvraag verstuurd"), !delivered);
+            assert_eq!(calls[2]["text"].as_str().unwrap().contains("No request was sent"), !delivered);
             task.abort();
         }
         std::env::remove_var("APIOSK_SLACKBOT_AUTH_CONFIG");
@@ -458,8 +458,8 @@ mod tests {
         for (_, blocks) in [screening("A", false), approval_card("A", "C1", true, "{}"), monitor("A", Frequency::Weekly, true)] {
             assert!(blocks.to_string().contains("🧪"));
         }
-        assert!(monitor("A", Frequency::Weekly, true).1.to_string().contains("Negatief nieuws"));
-        assert!(!monitor("A", Frequency::Weekly, false).1.to_string().contains("Negatief nieuws"));
+        assert!(monitor("A", Frequency::Weekly, true).1.to_string().contains("Adverse news"));
+        assert!(!monitor("A", Frequency::Weekly, false).1.to_string().contains("Adverse news"));
     }
 
     #[test]
