@@ -198,6 +198,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/triggers/members", get(triggers::members))
         .route("/v2/triggers/events", get(triggers::stream))
         .route("/v2/triggers/:id/control", post(triggers::control))
+        .route("/v2/triggers/:id/approver", post(triggers::update_approver))
         .route("/v2/triggers/:id/rotate", post(triggers::rotate))
         .route("/v2/triggers/:id/test", post(triggers::test))
         .route("/v2/triggers/:id/tool-test", post(triggers::tool_test))

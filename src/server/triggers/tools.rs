@@ -189,6 +189,76 @@ fn posted(kind: &str, channel: &str, ts: String, text: String, blocks: &Value) -
     Posted { text, activity: json!({"kind":kind,"status":"sent","channel_id":channel,"message_ts":ts,"preview":super::activity::preview(blocks)}), delivery_error: None }
 }
 
+fn notice(line: &str, test: bool) -> Value {
+    let mut blocks = vec![section(line)];
+    if test { blocks.push(note()); }
+    Value::Array(blocks)
+}
+
+fn review_card(message: &str, channel: &str, value: &str) -> (String, Value) {
+    let mut blocks = vec![
+        json!({"type":"header","text":{"type":"plain_text","text":"Review requested"}}),
+        section(format!("A matching message in <#{channel}> needs your review.")),
+    ];
+    // Preserve the complete incoming message within Slack's per-section limit.
+    let text: Vec<char> = esc(message).chars().collect();
+    for chunk in text.chunks(2500) { blocks.push(section(chunk.iter().collect::<String>())); }
+    blocks.push(json!({"type":"actions","block_id":"apiosk_approval","elements":[
+        {"type":"button","action_id":"apiosk_approve","style":"primary","value":value,"text":{"type":"plain_text","text":"Approve"}},
+        {"type":"button","action_id":"apiosk_reject","style":"danger","value":value,"text":{"type":"plain_text","text":"Reject"}}
+    ]}));
+    ("A Slack message is awaiting your review.".into(), Value::Array(blocks))
+}
+
+async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: String, approver: String,
+    approver_name: Option<String>, signals: bool, test: bool, review: Option<&str>) -> anyhow::Result<Posted> {
+    let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
+    let thread = to.post(channel, None, &line, &notice(&line, test)).await?;
+    anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
+    let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": if test { 1 } else { 0 }}).to_string();
+    let (text, blocks) = match review {
+        Some(message) => review_card(message, channel, &value),
+        None => approval_card(&company, channel, signals, &value),
+    };
+    // Slack chat.postMessage opens the bot's DM when channel is a user
+    // ID. conversations.open would unnecessarily require im:write.
+    let delivered = to.post(&approver, None, &text, &blocks).await;
+    let line = if delivered.is_ok() {
+        format!("I sent *{}* to <@{approver}> for approval by DM.", esc(&company))
+    } else {
+        format!("⚠️ The approval request for *{}* could not be delivered to <@{approver}> by DM. No request was sent.", esc(&company))
+    };
+    if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &thread, &line, &notice(&line, test)).await {
+        tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
+        // A delivered DM must not look failed and invite a duplicate.
+    }
+    let mut result = posted("request_approval", channel, thread.clone(), line, &blocks);
+    result.activity["status"] = json!(if delivered.is_ok() { "awaiting_approval" } else { "delivery_failed" });
+    result.activity["company"] = json!(company);
+    result.activity["approver_id"] = json!(approver);
+    result.activity["approver_name"] = json!(approver_name);
+    result.activity["request_key"] = json!(format!("{channel}:{thread}"));
+    result.delivery_error = delivered.err();
+    Ok(result)
+}
+
+/// The normal trigger action: an actual human review request, without sample findings.
+pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, owner: Uuid, bot: &str,
+    trigger: Uuid, channel: &str, message: &str, approver: &str, name: &str) {
+    let result = send_approval(Poster { composio, owner, bot }, channel, trigger, "Slack review request".into(),
+        approver.into(), Some(name.into()), false, false, Some(message)).await;
+    match result {
+        Ok(posted) => {
+            let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
+            if let Err(e) = super::activity::record(pool, trigger, owner, &format!("response:{channel}:{ts}"), &posted.text, false, &posted.activity).await {
+                tracing::warn!(error = %e, "review request activity not saved");
+            }
+            if let Some(e) = posted.delivery_error { tracing::warn!(error = %e, "review DM not delivered"); }
+        },
+        Err(e) => tracing::warn!(error = %e, "review request not delivered"),
+    }
+}
+
 async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> anyhow::Result<Posted> {
     match test {
         ToolTest::Chat { message } => {
@@ -202,33 +272,8 @@ async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> an
             let ts = to.post(channel, None, &text, &blocks).await?;
             Ok(posted("screen_company", channel, ts, text, &blocks))
         }
-        ToolTest::RequestApproval { company, approver, approver_name, signals } => {
-            let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
-            let thread = to.post(channel, None, &line, &json!([section(line.clone()), note()])).await?;
-            anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
-            let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": 1}).to_string();
-            let (text, blocks) = approval_card(&company, channel, signals, &value);
-            // Slack chat.postMessage opens the bot's DM when channel is a user
-            // ID. conversations.open would unnecessarily require im:write.
-            let delivered = to.post(&approver, None, &text, &blocks).await;
-            let line = if delivered.is_ok() {
-                format!("I sent *{}* to <@{approver}> for approval by DM.", esc(&company))
-            } else {
-                format!("⚠️ The approval request for *{}* could not be delivered to <@{approver}> by DM. No request was sent.", esc(&company))
-            };
-            if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &thread, &line, &json!([section(line.clone()), note()])).await {
-                tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
-                // A delivered DM must not look failed and invite a duplicate.
-            }
-            let mut result = posted("request_approval", channel, thread.clone(), line, &blocks);
-            result.activity["status"] = json!(if delivered.is_ok() { "awaiting_approval" } else { "delivery_failed" });
-            result.activity["company"] = json!(company);
-            result.activity["approver_id"] = json!(approver);
-            result.activity["approver_name"] = json!(approver_name);
-            result.activity["request_key"] = json!(format!("{channel}:{thread}"));
-            result.delivery_error = delivered.err();
-            Ok(result)
-        }
+        ToolTest::RequestApproval { company, approver, approver_name, signals } =>
+            send_approval(to, channel, trigger, company, approver, approver_name, signals, true, None).await,
         ToolTest::CreateMonitor { company, frequency, negative_news } => {
             let (text, blocks) = monitor(&company, frequency, negative_news);
             let ts = to.post(channel, None, &text, &blocks).await?;

@@ -129,6 +129,26 @@ Apply `20261030094736_trigger_response_activity.sql` before deploying this versi
 Monitoring is shown as a demo simulation: production monitoring is paused and
 has no news source yet.
 
+## Normal trigger approvers
+
+Every authenticated owner can select an active Slack teammate while creating a
+trigger (`approver_id`), or change/remove the selection with
+`POST /v2/triggers/{id}/approver`. The server verifies the teammate against the
+owner's connected workspace and checks that Apiosk is installed there. Existing
+triggers default to no approver; this migration never enables review requests
+for an existing conversation.
+
+When a Slack message matches a trigger with an approver, Apiosk sends that message
+as a real review request by DM, posts a delivery confirmation in the channel and
+records the response in Activity. The selected person can Approve or Reject; the
+decision updates the DM, channel thread and Activity. No screening result is
+invented and no paid research, purchases or monitoring are executed by this flow.
+The owner-only sample response tools remain separate.
+
+Apply `20261030102625_trigger_approvers.sql` before deploying. Trigger creation
+uses the shared animated Dialog; existing triggers have an approver settings
+dialog available independently of the test-tool permission.
+
 ## Generic webhook and Teams
 
 Webhook creation returns a UUID endpoint and a random bearer key shown once.

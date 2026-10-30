@@ -1,11 +1,13 @@
 //! Isolated Hello world triggers, plus a short model reply in Slack when a
 //! message mentions Apiosk. Never calls Ask, planning, or billing.
 mod activity;
+mod approvers;
 mod reply;
 mod slack;
 mod tools;
 
 pub(super) use tools::{slack_interactions, tool_test};
+pub(super) use approvers::update as update_approver;
 
 /// Whether this person has added Apiosk to their Slack workspace.
 pub(super) async fn apiosk_bot(State(state): State<ServerState>, headers: HeaderMap) -> Response {
@@ -337,6 +339,7 @@ pub(super) struct CreateTrigger {
     match_prefix: String,
     connected_account_id: Option<String>,
     channel_id: Option<String>,
+    approver_id: Option<String>,
 }
 
 pub(super) async fn create(
@@ -351,6 +354,7 @@ pub(super) async fn create(
     if !bounded(&body.name, 100)
         || body.match_prefix.chars().count() > 100
         || !["slack", "webhook", "teams"].contains(&body.source.as_str())
+        || (body.approver_id.is_some() && body.source != "slack")
         || (!body.match_prefix.trim().is_empty()
             && body.match_prefix.replace(['*', '_'], "").trim().is_empty())
     {
@@ -394,6 +398,7 @@ pub(super) async fn create(
     let mut account_id = None;
     let mut channel_id = None;
     let mut secret = None;
+    let mut approver_name = None;
     if body.source == "slack" {
         if configured_secret().is_none() {
             return error(
@@ -443,6 +448,11 @@ pub(super) async fn create(
                 .unwrap_or(channel)
                 .to_owned(),
         );
+        if let Some(user) = body.approver_id.as_deref() {
+            approver_name = match approvers::resolve(owner, account, channel, user).await {
+                Ok(name) => Some(name), Err(r) => return r,
+            };
+        }
         provider_id = match composio.trigger_subscribe(owner, account, channel).await {
             Ok(id) => Some(id),
             Err(e) => return provider_error(e),
@@ -452,8 +462,8 @@ pub(super) async fn create(
     } else {
         secret = Some(new_secret());
     }
-    let value: Value = match sqlx::query_scalar("INSERT INTO gateway_v2.inbound_triggers AS t(id,owner_id,name,source,match_prefix,connected_account_id,channel_id,channel_name,provider_trigger_id,webhook_secret_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING to_jsonb(t)-'webhook_secret_hash'")
-        .bind(body.id).bind(owner).bind(body.name.trim()).bind(&body.source).bind(body.match_prefix.trim()).bind(account_id).bind(channel_id).bind(channel_name).bind(provider_id).bind(secret.as_deref().map(hash)).fetch_one(&mut *tx).await {
+    let value: Value = match sqlx::query_scalar("INSERT INTO gateway_v2.inbound_triggers AS t(id,owner_id,name,source,match_prefix,connected_account_id,channel_id,channel_name,provider_trigger_id,webhook_secret_hash,approver_id,approver_name) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING to_jsonb(t)-'webhook_secret_hash'")
+        .bind(body.id).bind(owner).bind(body.name.trim()).bind(&body.source).bind(body.match_prefix.trim()).bind(account_id).bind(channel_id).bind(channel_name).bind(provider_id).bind(secret.as_deref().map(hash)).bind(body.approver_id).bind(approver_name).fetch_one(&mut *tx).await {
             Ok(v)=>v, Err(e)=>return db_error(e)
         };
     if let Err(e) = tx.commit().await {
@@ -566,7 +576,7 @@ async fn record(
         .execute(&mut *tx)
         .await
         .map_err(db_error)?;
-    let row=sqlx::query("SELECT enabled,match_prefix,webhook_secret_hash FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 FOR SHARE").bind(id).bind(owner).fetch_optional(&mut *tx).await.map_err(db_error)?.ok_or_else(||StatusCode::NOT_FOUND.into_response())?;
+    let row=sqlx::query("SELECT enabled,match_prefix,webhook_secret_hash,approver_id,approver_name FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 FOR SHARE").bind(id).bind(owner).fetch_optional(&mut *tx).await.map_err(db_error)?.ok_or_else(||StatusCode::NOT_FOUND.into_response())?;
     if let Some(expected) = expected_hash {
         if row
             .get::<Option<String>, _>("webhook_secret_hash")
@@ -595,7 +605,8 @@ async fn record(
     tx.commit().await.map_err(db_error)?;
     let _ = changed().send(owner);
     Ok(
-        json!({"accepted":true,"matched":matched,"action":if matched {Some("Hello world")} else {None}}),
+        json!({"accepted":true,"matched":matched,"action":if matched {Some("Hello world")} else {None},
+            "approver_id":row.get::<Option<String>,_>("approver_id"),"approver_name":row.get::<Option<String>,_>("approver_name")}),
     )
 }
 
@@ -700,6 +711,7 @@ pub(super) async fn composio_webhook(
     };
     let ids:Vec<Uuid>=match sqlx::query_scalar("SELECT id FROM gateway_v2.inbound_triggers WHERE owner_id=$1 AND provider_trigger_id=$2 AND connected_account_id=$3 AND channel_id=$4 AND source='slack'").bind(owner).bind(&trigger).bind(&account).bind(&channel).fetch_all(&state.engine.store.pool).await {Ok(v)=>v,Err(e)=>return db_error(e)};
     let mut fresh_ids = Vec::new();
+    let mut reviews = Vec::new();
     for id in &ids {
         match record(
             &state.engine.store.pool,
@@ -712,7 +724,14 @@ pub(super) async fn composio_webhook(
         )
         .await
         {
-            Ok(v) => { if v["accepted"] == true && v["duplicate"] != true { fresh_ids.push(*id); } },
+            Ok(v) => { if v["accepted"] == true && v["duplicate"] != true {
+                fresh_ids.push(*id);
+                if v["matched"] == true {
+                    if let Some(user) = v["approver_id"].as_str() {
+                        reviews.push((*id, user.to_owned(), v["approver_name"].as_str().unwrap_or(user).to_owned()));
+                    }
+                }
+            } },
             Err(r) => return r,
         }
     }
@@ -728,11 +747,34 @@ pub(super) async fn composio_webhook(
         let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
         let asker = data["user"].as_str().filter(|s| valid_id(s) && s.starts_with(['U', 'W'])).map(str::to_owned);
         tokio::spawn(async move {
+            // A review must use the bot in this conversation's workspace,
+            // including when Composio omits team_id from the incoming event.
+            let team = if reviews.is_empty() { team } else {
+                let info = match composio.trigger_channel(owner, &account, &channel).await {
+                    Ok(info) => info,
+                    Err(e) => return tracing::warn!(error = %e, "review workspace lookup failed"),
+                };
+                let Some(team) = info["channel"]["context_team_id"].as_str().or(info["channel"]["team_id"].as_str()) else {
+                    return tracing::warn!("review workspace could not be verified");
+                };
+                Some(team.to_owned())
+            };
             let bot = match composio.apiosk_bot(owner, team.as_deref()).await {
                 Ok(bot) => bot,
                 Err(e) => return tracing::warn!(error = %e, "Apiosk bot lookup failed"),
             };
             let named = bot.as_ref().is_some_and(|b| !b.user.is_empty() && text.contains(&format!("<@{}>", b.user)));
+            if !reviews.is_empty() {
+                if let Some(bot) = bot {
+                    if team.as_deref() != Some(bot.team.as_str()) {
+                        return tracing::warn!("review bot workspace could not be verified");
+                    }
+                    for (trigger, approver, name) in reviews {
+                        tools::request_review(&pool, composio, owner, &bot.account, trigger, &channel, &text, &approver, &name).await;
+                    }
+                } else { tracing::warn!(surface = "trigger-approval", "no Apiosk bot for review request"); }
+                return;
+            }
             if !reply::mentions(&text) && !named {
                 return;
             }

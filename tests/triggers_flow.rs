@@ -41,10 +41,24 @@ async fn auth(headers: HeaderMap) -> Response {
 }
 async fn account(Path(id): Path<String>) -> Json<Value> {
     Json(
-        json!({"id":id,"user_id":format!("apiosk_user_{}",if id=="ca_owned"{OWNER}else{OTHER}),"status":"ACTIVE","toolkit":{"slug":"slack"}}),
+        json!({"id":id,"user_id":format!("apiosk_user_{}",if id=="ca_owned" || id=="ca_bot"{OWNER}else{OTHER}),"status":"ACTIVE","toolkit":{"slug":if id=="ca_bot" {"slackbot"} else {"slack"}},"auth_config":{"id":"ac_fixture"}}),
     )
 }
-async fn tool(Path(tool): Path<String>, Json(body): Json<Value>) -> Json<Value> {
+async fn tool(State(calls): State<Arc<Mutex<Vec<Value>>>>, Path(tool): Path<String>, Json(body): Json<Value>) -> Json<Value> {
+    if tool == "SLACKBOT_SEND_MESSAGE" {
+        assert_eq!(body["connected_account_id"], "ca_bot");
+        let mut calls = calls.lock().unwrap();
+        calls.push(body["arguments"].clone());
+        return Json(json!({"successful":true,"data":{"ok":true,"ts":format!("1000.{}",calls.len())}}));
+    }
+    if tool == "proxy" {
+        if body["endpoint"] == "https://slack.com/api/auth.test" {
+            return Json(json!({"data":{"ok":true,"team_id":"T123","user_id":"UBOT"}}));
+        }
+        assert_eq!(body["endpoint"], "https://slack.com/api/chat.update");
+        calls.lock().unwrap().push(json!({"update":body["body"]}));
+        return Json(json!({"data":{"ok":true}}));
+    }
     assert_eq!(body["connected_account_id"], "ca_owned");
     let data = match tool.as_str() {
         "SLACK_LIST_CONVERSATIONS" => {
@@ -54,7 +68,7 @@ async fn tool(Path(tool): Path<String>, Json(body): Json<Value>) -> Json<Value> 
             json!({"ok":true,"members":[{"id":"U123","real_name":"Alex"},{"id":"U456","real_name":"Sam"},{"id":"UBOT","is_bot":true},{"id":"UOLD","deleted":true}],"response_metadata":{"next_cursor":""}})
         }
         "SLACK_RETRIEVE_CONVERSATION_INFORMATION" => {
-            json!({"ok":true,"channel":{"id":"C123","name":"suppliers"}})
+            json!({"ok":true,"channel":{"id":"C123","name":"suppliers","context_team_id":"T123"}})
         }
         "SLACK_CREATE_CHANNEL" => {
             assert_eq!(body["arguments"]["is_private"], true);
@@ -116,6 +130,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     .unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030094736_trigger_response_activity.sql"))
         .execute(&pool).await.unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261030102625_trigger_approvers.sql")).execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO auth.users(id) VALUES($1),($2) ON CONFLICT DO NOTHING")
         .bind(OWNER.parse::<Uuid>().unwrap())
         .bind(OTHER.parse::<Uuid>().unwrap())
@@ -124,7 +139,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .unwrap();
     let calls = Arc::new(Mutex::new(vec![]));
     let provider=serve(Router::new().route("/auth/v1/user",get(auth))
-        .route("/connected_accounts",get(||async{Json(json!({"items":[{"id":"ca_owned","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","alias":"Local test Slack","toolkit":{"slug":"slack"}}]}))}))
+        .route("/connected_accounts",get(||async{Json(json!({"items":[{"id":"ca_owned","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","alias":"Local test Slack","toolkit":{"slug":"slack"}},{"id":"ca_bot","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","toolkit":{"slug":"slackbot"},"auth_config":{"id":"ac_fixture"}}]}))}))
         .route("/connected_accounts/:id",get(account))
         .route("/tools/execute/:tool",post(tool)).route("/trigger_instances/SLACK_CHANNEL_MESSAGE_RECEIVED/upsert",post(subscribe)).with_state(calls.clone())).await;
     std::env::set_var("COMPOSIO_API_KEY", "test-key");
@@ -461,7 +476,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     let mut wrong = event.clone();
     wrong["metadata"]["user_id"] = json!(format!("apiosk_user_{OTHER}"));
     assert_eq!(value(send(wrong).await.unwrap()).await["accepted"], false);
-    let mut bot = event;
+    let mut bot = event.clone();
     bot["data"]["bot_id"] = json!("B123");
     assert_eq!(
         value(send(bot).await.unwrap()).await["reason"],
@@ -481,6 +496,48 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         let allowed:bool=sqlx::query_scalar("SELECT has_table_privilege($1,'gateway_v2.inbound_trigger_events','SELECT') OR has_table_privilege($1,'gateway_v2.inbound_triggers','SELECT')").bind(role).fetch_one(&pool).await.unwrap();
         assert!(!allowed);
     }
+    // Normal users (not test-tool owners) can select, change and remove approvers.
+    std::env::set_var("APIOSK_SLACKBOT_AUTH_CONFIG", "ac_fixture");
+    std::env::set_var("TRIGGER_TOOL_TEST_OWNER_IDS", "");
+    let slack_id = final_state["triggers"].as_array().unwrap().iter().find(|t| t["source"] == "slack").unwrap()["id"].as_str().unwrap();
+    let approver_url = format!("{endpoint}/{slack_id}/approver");
+    assert_eq!(http.post(&approver_url).bearer_auth("other").json(&json!({"approver_id":"U456"})).send().await.unwrap().status(),404);
+    assert_eq!(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"UFOREIGN"})).send().await.unwrap().status(),400);
+    for (user,name) in [("U123","Alex"),("U456","Sam")] {
+        let updated = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":user})).send().await.unwrap()).await;
+        assert_eq!(updated["trigger"]["approver_id"],user);
+        assert_eq!(updated["trigger"]["approver_name"],name);
+    }
+    let mut review_event = event.clone();
+    review_event["data"]["ts"] = json!("123.999");
+    value(send(review_event.clone()).await.unwrap()).await;
+    value(send(review_event).await.unwrap()).await;
+    let mut recorded = false;
+    for _ in 0..100 {
+        let snapshot = value(http.get(&endpoint).bearer_auth("owner").send().await.unwrap()).await;
+        if let Some(review) = snapshot["events"].as_array().unwrap().iter().find(|e| e["activity"]["kind"] == "request_approval") {
+            assert_eq!(review["is_test"], false);
+            assert_eq!(review["activity"]["status"], "awaiting_approval");
+            assert_eq!(review["activity"]["approver_id"], "U456");
+            assert!(review["activity"]["preview"].as_str().unwrap().contains("Acme"));
+            recorded = true; break;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(recorded, "the real review response must appear in activity");
+    {
+        let calls = calls.lock().unwrap();
+        let dms: Vec<_> = calls.iter().filter(|v| v["channel"] == "U456").collect();
+        assert_eq!(dms.len(),1,"redelivered trigger cannot send a second DM");
+        let blocks = &dms[0]["blocks"];
+        assert!(!blocks.to_string().contains("sample data"));
+        let button = &blocks.as_array().unwrap().last().unwrap()["elements"][0];
+        let payload: Value = serde_json::from_str(button["value"].as_str().unwrap()).unwrap();
+        assert_eq!(payload["a"],"U456");
+        assert_eq!(payload["x"],0);
+    }
+    let cleared = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":null})).send().await.unwrap()).await;
+    assert!(cleared["trigger"]["approver_id"].is_null());
     if std::env::var("TRIGGERS_PREVIEW").as_deref() == Ok("true") {
         println!("TRIGGERS_PREVIEW_URL={base}");
         std::future::pending::<()>().await;
