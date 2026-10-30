@@ -120,8 +120,12 @@ channels need `/invite @Apiosk` once.
 Owners in `TRIGGER_TOOL_TEST_OWNER_IDS` see **Test tools** on `/triggers`. They
 post each Slack agent response (chat reply, screening, approval request,
 monitoring) through their Apiosk bot with labelled test data. Only the chat reply calls
-a model; nothing is screened, bought, scheduled or stored. Approval buttons work
-and post the decision in the channel thread; the decision is not persisted.
+a model; nothing is screened, bought or scheduled. Slack responses and approval decisions
+are persisted in the owner’s Live activity feed, including response type, preview,
+approver and outcome. Approval buttons update the DM and post the decision in the
+channel thread. The first decision is stored durably, so duplicate clicks across
+restarts do not create conflicting outcomes. Existing inbound messages are unchanged.
+Apply `20261030094736_trigger_response_activity.sql` before deploying this version.
 Monitoring is shown as a demo simulation: production monitoring is paused and
 has no news source yet.
 

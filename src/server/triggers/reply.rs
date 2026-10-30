@@ -92,6 +92,8 @@ fn model() -> Option<&'static Model> {
 /// to twice.
 pub(super) async fn send(
     composio: &'static Composio,
+    pool: sqlx::PgPool,
+    triggers: Vec<Uuid>,
     owner: Uuid,
     bot: String,
     channel: String,
@@ -120,8 +122,14 @@ pub(super) async fn send(
         Some(asker) => format!("<@{asker}> {}", slack::esc(&text)),
         None => slack::esc(&text),
     };
-    if let Err(error) = composio.apiosk_bot_post(owner, &bot, &channel, thread.as_deref(), &text, None).await {
-        tracing::warn!(surface = "trigger-reply", error = %error, "trigger reply not delivered");
+    match composio.apiosk_bot_post(owner, &bot, &channel, thread.as_deref(), &text, None).await {
+        Ok(ts) => for trigger in triggers {
+            let activity = json!({"kind":"chat","status":"sent","channel_id":channel,"message_ts":ts});
+            if let Err(error) = super::activity::record(&pool, trigger, owner, &format!("response:{channel}:{ts}"), &text, false, &activity).await {
+                tracing::warn!(surface = "trigger-reply", error = %error, "reply activity not saved");
+            }
+        },
+        Err(error) => tracing::warn!(surface = "trigger-reply", error = %error, "trigger reply not delivered"),
     }
 }
 

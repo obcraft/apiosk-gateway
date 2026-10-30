@@ -1,5 +1,6 @@
 //! Isolated Hello world triggers, plus a short model reply in Slack when a
 //! message mentions Apiosk. Never calls Ask, planning, or billing.
+mod activity;
 mod reply;
 mod slack;
 mod tools;
@@ -131,7 +132,7 @@ fn matches(text: &str, prefix: &str) -> bool {
 }
 
 const TRIGGER_SELECT: &str = "SELECT to_jsonb(t) - 'webhook_secret_hash' AS value FROM gateway_v2.inbound_triggers t WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 100";
-const EVENT_FIELDS: &str = "jsonb_build_object('id',e.id::text,'trigger_id',e.trigger_id,'trigger_name',t.name,'source',t.source,'channel_name',t.channel_name,'text',e.text,'matched',e.matched,'is_test',e.is_test,'received_at',e.received_at,'action',CASE WHEN e.matched THEN 'Hello world' ELSE NULL END)";
+const EVENT_FIELDS: &str = "jsonb_build_object('id',e.id::text,'trigger_id',e.trigger_id,'trigger_name',t.name,'source',t.source,'channel_name',t.channel_name,'text',e.text,'matched',e.matched,'is_test',e.is_test,'received_at',e.received_at,'activity',e.activity,'action',CASE WHEN e.matched THEN 'Hello world' ELSE NULL END)";
 
 async fn events(pool: &PgPool, owner: Uuid, after: Option<i64>) -> Result<Vec<Value>, sqlx::Error> {
     let query = if after.is_some() {
@@ -582,7 +583,7 @@ async fn record(
     if duplicate {
         return Ok(json!({"accepted":true,"duplicate":true}));
     }
-    let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.inbound_trigger_events WHERE trigger_id=$1 AND received_at>now()-interval '1 minute'").bind(id).fetch_one(&mut *tx).await.map_err(db_error)?;
+    let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.inbound_trigger_events WHERE trigger_id=$1 AND activity IS NULL AND received_at>now()-interval '1 minute'").bind(id).fetch_one(&mut *tx).await.map_err(db_error)?;
     if count >= 120 {
         return Err(error(
             StatusCode::TOO_MANY_REQUESTS,
@@ -698,7 +699,7 @@ pub(super) async fn composio_webhook(
         return Json(json!({"accepted":false})).into_response();
     };
     let ids:Vec<Uuid>=match sqlx::query_scalar("SELECT id FROM gateway_v2.inbound_triggers WHERE owner_id=$1 AND provider_trigger_id=$2 AND connected_account_id=$3 AND channel_id=$4 AND source='slack'").bind(owner).bind(&trigger).bind(&account).bind(&channel).fetch_all(&state.engine.store.pool).await {Ok(v)=>v,Err(e)=>return db_error(e)};
-    let mut fresh = false;
+    let mut fresh_ids = Vec::new();
     for id in &ids {
         match record(
             &state.engine.store.pool,
@@ -711,7 +712,7 @@ pub(super) async fn composio_webhook(
         )
         .await
         {
-            Ok(v) => fresh |= v["accepted"] == true && v["duplicate"] != true,
+            Ok(v) => { if v["accepted"] == true && v["duplicate"] != true { fresh_ids.push(*id); } },
             Err(r) => return r,
         }
     }
@@ -721,7 +722,8 @@ pub(super) async fn composio_webhook(
     // message that tags the asker, or in the thread a question was asked in.
     // "@Apiosk" arrives as a mention of the bot's Slack user. Looked up after
     // the webhook is answered.
-    if let (true, Ok(composio)) = (fresh, client()) {
+    if let (true, Ok(composio)) = (!fresh_ids.is_empty(), client()) {
+        let pool = state.engine.store.pool.clone();
         let team = data["team_id"].as_str().filter(|s| valid_id(s)).map(str::to_owned);
         let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
         let asker = data["user"].as_str().filter(|s| valid_id(s) && s.starts_with(['U', 'W'])).map(str::to_owned);
@@ -735,7 +737,7 @@ pub(super) async fn composio_webhook(
                 return;
             }
             match bot {
-                Some(bot) => reply::send(composio, owner, bot.account, channel, thread, asker, text).await,
+                Some(bot) => reply::send(composio, pool, fresh_ids, owner, bot.account, channel, thread, asker, text).await,
                 None => tracing::warn!(surface = "trigger-reply", reason = "no_apiosk_bot", "trigger reply skipped"),
             }
         });

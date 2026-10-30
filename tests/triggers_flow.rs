@@ -114,6 +114,8 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     .execute(&pool)
     .await
     .unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261030094736_trigger_response_activity.sql"))
+        .execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO auth.users(id) VALUES($1),($2) ON CONFLICT DO NOTHING")
         .bind(OWNER.parse::<Uuid>().unwrap())
         .bind(OTHER.parse::<Uuid>().unwrap())

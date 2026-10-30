@@ -1,7 +1,7 @@
 //! Owner-only test tools for the Slack agent's responses. Each one posts as the
 //! owner's Apiosk bot with labelled test data, so every message can be reviewed before
-//! any paid call: nothing here screens, quotes, buys, monitors or persists.
-//! The approval card's buttons work, and decisions are announced, not stored.
+//! any paid call: nothing here screens, quotes, buys or monitors.
+//! Response activity and approval decisions are saved in the owner's feed.
 use super::{
     app_person, client, db_error, error, reply,
     slack::{self, esc},
@@ -17,10 +17,6 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
-use std::{
-    collections::HashSet,
-    sync::{Mutex, OnceLock},
-};
 use uuid::Uuid;
 
 const NOTE: &str = "🧪 Test · sample data, no real checks and no charges";
@@ -45,7 +41,7 @@ pub(in crate::server) enum Frequency {
 pub(in crate::server) enum ToolTest {
     Chat { message: String },
     ScreenCompany { company: String, signals: bool },
-    RequestApproval { company: String, approver: String, signals: bool },
+    RequestApproval { company: String, approver: String, #[serde(default)] approver_name: Option<String>, signals: bool },
     CreateMonitor { company: String, frequency: Frequency, negative_news: bool },
 }
 
@@ -60,7 +56,8 @@ impl ToolTest {
         match self {
             Self::Chat { message } => !message.trim().is_empty() && message.chars().count() <= 2000,
             Self::ScreenCompany { company, .. } | Self::CreateMonitor { company, .. } => valid_company(company),
-            Self::RequestApproval { company, approver, .. } => valid_company(company) && valid_user(approver),
+            Self::RequestApproval { company, approver, approver_name, .. } => valid_company(company) && valid_user(approver)
+                && approver_name.as_ref().is_none_or(|name| valid_company(name)),
         }
     }
 }
@@ -183,22 +180,33 @@ impl Poster<'_> {
     }
 }
 
-async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()> {
+struct Posted {
+    text: String,
+    activity: Value,
+    delivery_error: Option<ComposioError>,
+}
+fn posted(kind: &str, channel: &str, ts: String, text: String, blocks: &Value) -> Posted {
+    Posted { text, activity: json!({"kind":kind,"status":"sent","channel_id":channel,"message_ts":ts,"preview":super::activity::preview(blocks)}), delivery_error: None }
+}
+
+async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> anyhow::Result<Posted> {
     match test {
         ToolTest::Chat { message } => {
             let text = reply::compose(&message).await?;
             let blocks = json!([section(esc(&text)), {"type": "context", "elements": [md(format!("🧪 Test · reply to “{}”", esc(&message)))]}]);
-            to.post(channel, None, &esc(&text), &blocks).await?;
+            let ts = to.post(channel, None, &esc(&text), &blocks).await?;
+            Ok(posted("chat", channel, ts, text, &blocks))
         }
         ToolTest::ScreenCompany { company, signals } => {
             let (text, blocks) = screening(&company, signals);
-            to.post(channel, None, &text, &blocks).await?;
+            let ts = to.post(channel, None, &text, &blocks).await?;
+            Ok(posted("screen_company", channel, ts, text, &blocks))
         }
-        ToolTest::RequestApproval { company, approver, signals } => {
+        ToolTest::RequestApproval { company, approver, approver_name, signals } => {
             let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
             let thread = to.post(channel, None, &line, &json!([section(line.clone()), note()])).await?;
             anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
-            let value = json!({"o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": 1}).to_string();
+            let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": 1}).to_string();
             let (text, blocks) = approval_card(&company, channel, signals, &value);
             // Slack chat.postMessage opens the bot's DM when channel is a user
             // ID. conversations.open would unnecessarily require im:write.
@@ -212,14 +220,21 @@ async fn run(to: Poster<'_>, channel: &str, test: ToolTest) -> anyhow::Result<()
                 tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
                 // A delivered DM must not look failed and invite a duplicate.
             }
-            delivered?;
+            let mut result = posted("request_approval", channel, thread.clone(), line, &blocks);
+            result.activity["status"] = json!(if delivered.is_ok() { "awaiting_approval" } else { "delivery_failed" });
+            result.activity["company"] = json!(company);
+            result.activity["approver_id"] = json!(approver);
+            result.activity["approver_name"] = json!(approver_name);
+            result.activity["request_key"] = json!(format!("{channel}:{thread}"));
+            result.delivery_error = delivered.err();
+            Ok(result)
         }
         ToolTest::CreateMonitor { company, frequency, negative_news } => {
             let (text, blocks) = monitor(&company, frequency, negative_news);
-            to.post(channel, None, &text, &blocks).await?;
+            let ts = to.post(channel, None, &text, &blocks).await?;
+            Ok(posted("create_monitor", channel, ts, text, &blocks))
         }
     }
-    Ok(())
 }
 
 pub(in crate::server) async fn tool_test(
@@ -267,8 +282,16 @@ pub(in crate::server) async fn tool_test(
             return error(StatusCode::BAD_GATEWAY, "Apiosk's Slack connection could not be checked. Try again.");
         }
     };
-    match run(Poster { composio, owner, bot: &bot.account }, &channel, test).await {
-        Ok(()) => Json(json!({"posted": true})).into_response(),
+    match run(Poster { composio, owner, bot: &bot.account }, &channel, id, test).await {
+        Ok(posted) => {
+            let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
+            let saved = super::activity::record(&state.engine.store.pool, id, owner, &format!("response:{channel}:{ts}"), &posted.text, true, &posted.activity).await;
+            if let Err(ref e) = saved { tracing::warn!(error = %e, "response activity not saved"); }
+            if let Some(e) = posted.delivery_error {
+                return error(StatusCode::BAD_GATEWAY, hint(&e.into()));
+            }
+            Json(json!({"posted": true, "activity_saved": saved.is_ok()})).into_response()
+        },
         Err(e) => {
             tracing::warn!(surface = "trigger-tool-test", error = %e, "trigger tool test not posted");
             error(StatusCode::BAD_GATEWAY, hint(&e))
@@ -278,9 +301,11 @@ pub(in crate::server) async fn tool_test(
 
 struct Decision {
     owner: Uuid,
+    trigger: Option<Uuid>,
     bot: String,
     approve: bool,
     user: String,
+    user_name: String,
     approver: String,
     channel: String,
     thread: String,
@@ -301,10 +326,12 @@ fn decision(payload: &Value) -> Option<Decision> {
     let value: Value = serde_json::from_str(action["value"].as_str()?).ok()?;
     let id = |v: &Value| v.as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
     Some(Decision {
+        trigger: value["g"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
         owner: value["o"].as_str().and_then(|s| Uuid::parse_str(s).ok())?,
         bot: id(&value["b"])?,
         approve,
         user: id(&payload["user"]["id"])?,
+        user_name: payload["user"]["name"].as_str().filter(|s| valid_company(s)).unwrap_or_default().to_owned(),
         approver: id(&value["a"])?,
         channel: id(&value["c"])?,
         thread: id(&value["t"])?,
@@ -314,17 +341,7 @@ fn decision(payload: &Value) -> Option<Decision> {
     })
 }
 
-/// One decision per request in this process; double clicks are ignored.
-fn first_decision(key: String) -> bool {
-    static SEEN: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
-    let mut seen = SEEN.get_or_init(Default::default).lock().unwrap_or_else(|p| p.into_inner());
-    if seen.len() > 10_000 {
-        seen.clear();
-    }
-    seen.insert(key)
-}
-
-async fn decide(composio: &'static Composio, d: Decision) {
+async fn decide(pool: sqlx::PgPool, composio: &'static Composio, d: Decision) {
     if d.user != d.approver {
         let only = json!({"response_type": "ephemeral", "replace_original": false,
             "text": format!("Only <@{}> can approve or reject this request.", d.approver)});
@@ -333,11 +350,24 @@ async fn decide(composio: &'static Composio, d: Decision) {
         }
         return;
     }
-    if !first_decision(format!("{}:{}", d.channel, d.thread)) {
-        return;
-    }
     let (icon, verb) = if d.approve { ("✅", "approved") } else { ("❌", "rejected") };
     let line = format!("{icon} *{}* was {verb} by <@{}>.", esc(&d.company), d.user);
+    // Signed callbacks also support cards sent before activity recording existed.
+    // Only a unique conversation belonging to this owner may receive the event.
+    let triggers: Vec<Uuid> = match sqlx::query_scalar("SELECT id FROM gateway_v2.inbound_triggers WHERE owner_id=$1 AND channel_id=$2 AND source='slack' AND ($3::uuid IS NULL OR id=$3)")
+        .bind(d.owner).bind(&d.channel).bind(d.trigger).fetch_all(&pool).await {
+        Ok(ids) => ids,
+        Err(e) => { tracing::warn!(error = %e, "approval activity lookup failed"); return; }
+    };
+    let [trigger] = triggers.as_slice() else { return; };
+    let request_key = format!("{}:{}", d.channel, d.thread);
+    let activity = json!({"kind":"approval_decision","status":verb,"company":d.company,"approver_id":d.user,
+        "approver_name":d.user_name,"channel_id":d.channel,"message_ts":d.thread,"request_key":request_key});
+    match super::activity::record(&pool, *trigger, d.owner, &format!("decision:{request_key}"), &line, d.test, &activity).await {
+        Ok(true) => {},
+        Ok(false) => return, // First decision survives restarts and concurrent clicks.
+        Err(e) => { tracing::warn!(error = %e, "approval decision not saved"); return; }
+    }
     let mut blocks = vec![section(line.clone())];
     if d.test {
         blocks.push(note());
@@ -358,7 +388,7 @@ fn header<'a>(headers: &'a HeaderMap, key: &str) -> &'a str {
 
 /// Slack's interactivity request URL. Answered at once; Slack expects that
 /// within three seconds, and the decision follows through `response_url`.
-pub(in crate::server) async fn slack_interactions(headers: HeaderMap, body: Bytes) -> Response {
+pub(in crate::server) async fn slack_interactions(State(state): State<ServerState>, headers: HeaderMap, body: Bytes) -> Response {
     let Some(secret) = slack::signing_secret() else {
         return StatusCode::SERVICE_UNAVAILABLE.into_response();
     };
@@ -373,7 +403,7 @@ pub(in crate::server) async fn slack_interactions(headers: HeaderMap, body: Byte
         return StatusCode::BAD_REQUEST.into_response();
     };
     if let (Some(d), Ok(composio)) = (decision(&payload), client()) {
-        tokio::spawn(decide(composio, d));
+        tokio::spawn(decide(state.engine.store.pool.clone(), composio, d));
     }
     StatusCode::OK.into_response()
 }
@@ -385,7 +415,7 @@ mod tests {
     #[tokio::test]
     async fn approval_notifies_selected_user_and_reports_delivery_truthfully() {
         use axum::{routing::{get, post}, Router};
-        use std::sync::Arc;
+        use std::sync::{Arc, Mutex};
         std::env::set_var("APIOSK_SLACKBOT_AUTH_CONFIG", "ac_test_approval");
         for delivered in [true, false] {
             let calls = Arc::new(Mutex::new(Vec::<Value>::new()));
@@ -415,9 +445,11 @@ mod tests {
             let task = tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
             let composio = Composio::new("fixture".into(), base, "https://app.apiosk.com".into(), Default::default());
             assert!(matches!(composio.trigger_members(owner, "ca_deleted", "").await, Err(ComposioError::AccountNotFound)));
-            let result = run(Poster { composio: &composio, owner, bot: "ca_bot" }, "CCHANNEL",
-                ToolTest::RequestApproval { company: "Test BV".into(), approver: "USELECTED".into(), signals: false }).await;
-            assert_eq!(result.is_ok(), delivered);
+            let result = run(Poster { composio: &composio, owner, bot: "ca_bot" }, "CCHANNEL", Uuid::nil(),
+                ToolTest::RequestApproval { company: "Test BV".into(), approver: "USELECTED".into(), approver_name: Some("Alex".into()), signals: false }).await;
+            let result = result.unwrap();
+            assert_eq!(result.delivery_error.is_none(), delivered);
+            assert_eq!(result.activity["status"], if delivered { "awaiting_approval" } else { "delivery_failed" });
             let calls = calls.lock().unwrap();
             assert_eq!(calls.len(), 3);
             assert_eq!(calls[0]["channel"], "CCHANNEL");
@@ -435,8 +467,8 @@ mod tests {
 
     #[test]
     fn inputs_are_bounded_and_approvers_are_slack_user_ids() {
-        assert!(ToolTest::RequestApproval { company: "Coolblue".into(), approver: "U0123ABCD".into(), signals: false }.valid());
-        assert!(!ToolTest::RequestApproval { company: "Coolblue".into(), approver: "C0123ABCD".into(), signals: false }.valid());
+        assert!(ToolTest::RequestApproval { company: "Coolblue".into(), approver: "U0123ABCD".into(), approver_name: None, signals: false }.valid());
+        assert!(!ToolTest::RequestApproval { company: "Coolblue".into(), approver: "C0123ABCD".into(), approver_name: None, signals: false }.valid());
         assert!(!ToolTest::ScreenCompany { company: " ".into(), signals: true }.valid());
         assert!(!ToolTest::ScreenCompany { company: "a".repeat(121), signals: true }.valid());
         assert!(!ToolTest::Chat { message: String::new() }.valid());
@@ -473,11 +505,5 @@ mod tests {
         assert!(!decision(&click("apiosk_reject", &value)).unwrap().approve);
         assert!(decision(&click("apiosk_open_dossier", &value)).is_none());
         assert!(decision(&click("apiosk_approve", "{\"c\":\"C1\"}")).is_none());
-    }
-
-    #[test]
-    fn a_request_is_decided_once() {
-        assert!(first_decision("C9:1.1".into()));
-        assert!(!first_decision("C9:1.1".into()));
     }
 }
