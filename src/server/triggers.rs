@@ -341,6 +341,7 @@ pub(super) struct CreateTrigger {
     connected_account_id: Option<String>,
     channel_id: Option<String>,
     approver_id: Option<String>,
+    approval_mode: Option<approvers::ApprovalMode>,
 }
 
 pub(super) async fn create(
@@ -356,6 +357,7 @@ pub(super) async fn create(
         || body.match_prefix.chars().count() > 100
         || !["slack", "webhook", "teams"].contains(&body.source.as_str())
         || (body.approver_id.is_some() && body.source != "slack")
+        || (body.source != "slack" && matches!(body.approval_mode, Some(approvers::ApprovalMode::Automatic)))
         || (!body.match_prefix.trim().is_empty()
             && body.match_prefix.replace(['*', '_'], "").trim().is_empty())
     {
@@ -378,6 +380,13 @@ pub(super) async fn create(
         Ok(Some(v)) => return Json(json!({"trigger":v,"replayed":true})).into_response(),
         Err(e) => return db_error(e), _ => {}
     }
+    if body.source == "slack" && body.approver_id.as_deref().is_none_or(|id| id.trim().is_empty()) {
+        return error(StatusCode::BAD_REQUEST, "Choose an approver for this Slack trigger, including when recording activity and alerts.");
+    }
+    // Older approval clients omit the mode; preserve their explicit approval intent.
+    let approval_mode = body.approval_mode.unwrap_or(if body.approver_id.is_some() {
+        approvers::ApprovalMode::Automatic
+    } else { approvers::ApprovalMode::OnRequest });
     let count: i64 = match sqlx::query_scalar(
         "SELECT count(*) FROM gateway_v2.inbound_triggers WHERE owner_id=$1",
     )
@@ -463,8 +472,8 @@ pub(super) async fn create(
     } else {
         secret = Some(new_secret());
     }
-    let value: Value = match sqlx::query_scalar("INSERT INTO gateway_v2.inbound_triggers AS t(id,owner_id,name,source,match_prefix,connected_account_id,channel_id,channel_name,provider_trigger_id,webhook_secret_hash,approver_id,approver_name) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING to_jsonb(t)-'webhook_secret_hash'")
-        .bind(body.id).bind(owner).bind(body.name.trim()).bind(&body.source).bind(body.match_prefix.trim()).bind(account_id).bind(channel_id).bind(channel_name).bind(provider_id).bind(secret.as_deref().map(hash)).bind(body.approver_id).bind(approver_name).fetch_one(&mut *tx).await {
+    let value: Value = match sqlx::query_scalar("INSERT INTO gateway_v2.inbound_triggers AS t(id,owner_id,name,source,match_prefix,connected_account_id,channel_id,channel_name,provider_trigger_id,webhook_secret_hash,approver_id,approver_name,approval_mode) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING to_jsonb(t)-'webhook_secret_hash'")
+        .bind(body.id).bind(owner).bind(body.name.trim()).bind(&body.source).bind(body.match_prefix.trim()).bind(account_id).bind(channel_id).bind(channel_name).bind(provider_id).bind(secret.as_deref().map(hash)).bind(body.approver_id).bind(approver_name).bind(approval_mode.as_str()).fetch_one(&mut *tx).await {
             Ok(v)=>v, Err(e)=>return db_error(e)
         };
     if let Err(e) = tx.commit().await {
@@ -489,6 +498,13 @@ pub(super) async fn control(
         Ok(p) => p.owner,
         Err(r) => return r,
     };
+    if body.enabled {
+        let incomplete: bool = match sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 AND source='slack' AND approver_id IS NULL)")
+            .bind(id).bind(owner).fetch_one(&state.engine.store.pool).await {
+                Ok(v) => v, Err(e) => return db_error(e),
+            };
+        if incomplete { return error(StatusCode::CONFLICT, "Choose an approver before resuming this Slack trigger."); }
+    }
     match sqlx::query(
         "UPDATE gateway_v2.inbound_triggers SET enabled=$3 WHERE id=$1 AND owner_id=$2",
     )
@@ -577,7 +593,7 @@ async fn record(
         .execute(&mut *tx)
         .await
         .map_err(db_error)?;
-    let row=sqlx::query("SELECT enabled,match_prefix,webhook_secret_hash,approver_id,approver_name FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 FOR SHARE").bind(id).bind(owner).fetch_optional(&mut *tx).await.map_err(db_error)?.ok_or_else(||StatusCode::NOT_FOUND.into_response())?;
+    let row=sqlx::query("SELECT enabled,match_prefix,webhook_secret_hash,approver_id,approver_name,approval_mode FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 FOR SHARE").bind(id).bind(owner).fetch_optional(&mut *tx).await.map_err(db_error)?.ok_or_else(||StatusCode::NOT_FOUND.into_response())?;
     if let Some(expected) = expected_hash {
         if row
             .get::<Option<String>, _>("webhook_secret_hash")
@@ -607,7 +623,7 @@ async fn record(
     let _ = changed().send(owner);
     Ok(
         json!({"accepted":true,"matched":matched,"action":if matched {Some("Hello world")} else {None},
-            "approver_id":row.get::<Option<String>,_>("approver_id"),"approver_name":row.get::<Option<String>,_>("approver_name")}),
+            "approver_id":row.get::<Option<String>,_>("approver_id"),"approver_name":row.get::<Option<String>,_>("approver_name"),"approval_mode":row.get::<String,_>("approval_mode")}),
     )
 }
 
@@ -727,7 +743,7 @@ pub(super) async fn composio_webhook(
         {
             Ok(v) => { if v["accepted"] == true && v["duplicate"] != true {
                 fresh_ids.push(*id);
-                if v["matched"] == true {
+                if v["matched"] == true && v["approval_mode"] == "automatic" {
                     if let Some(user) = v["approver_id"].as_str() {
                         reviews.push((*id, user.to_owned(), v["approver_name"].as_str().unwrap_or(user).to_owned()));
                     }

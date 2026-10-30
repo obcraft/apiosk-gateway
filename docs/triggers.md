@@ -131,23 +131,22 @@ has no news source yet.
 
 ## Normal trigger approvers
 
-Every authenticated owner can select an active Slack teammate while creating a
-trigger (`approver_id`), or change/remove the selection with
-`POST /v2/triggers/{id}/approver`. The server verifies the teammate against the
-owner's connected workspace and checks that Apiosk is installed there. Existing
-triggers default to no approver; this migration never enables review requests
-for an existing conversation.
+Every new Slack trigger requires an active teammate as its approver, including
+**Record activity and alert**. The recipient (`approver_id`) is independent of
+`approval_mode`: `on_request` records matching activity without sending automatic
+review requests; `automatic` sends matching messages to the configured approver.
+After a completed screening, `request approval` in the dossier's Slack thread
+uses the same saved approver in either mode. The decision is recorded in Slack,
+Activity and the dossier. This review does not authorize a purchase.
 
-When a Slack message matches a trigger with an approver, Apiosk sends that message
-as a real review request by DM, posts a delivery confirmation in the channel and
-records the response in Activity. The selected person can Approve or Reject; the
-decision updates the DM, channel thread and Activity. No screening result is
-invented and no paid research, purchases or monitoring are executed by this flow.
-The owner-only sample response tools remain separate.
+`POST /v2/triggers/{id}/approver` can change the teammate and optionally the mode.
+Omitting the mode preserves it. A null approver is rejected. Ownership, active
+workspace membership and the installed Apiosk bot are checked before saving.
+Existing triggers without a reviewer show **Approver required** and cannot be
+resumed until configured; existing active listeners keep recording activity.
+The migration preserves automatic behavior for previously assigned approvers.
 
-Apply `20261030102625_trigger_approvers.sql` before deploying. Trigger creation
-uses the shared animated Dialog; existing triggers have an approver settings
-dialog available independently of the test-tool permission.
+Apply `20261030133913_trigger_approval_mode.sql` before deploying this version.
 
 ## Generic webhook and Teams
 

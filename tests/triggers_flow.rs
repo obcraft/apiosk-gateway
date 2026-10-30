@@ -78,6 +78,7 @@ async fn tool(State(calls): State<Arc<Mutex<Vec<Value>>>>, Path(tool): Path<Stri
             assert_eq!(body["arguments"]["users"], "U123,U456");
             json!({"ok":true,"channel":{"id":"G123","name":"test-group"}})
         }
+        "SLACK_INVITE_USERS_TO_A_SLACK_CHANNEL" => json!({"ok":true}),
         _ => panic!("unexpected tool {tool}"),
     };
     Json(json!({"successful":true,"data":data}))
@@ -138,12 +139,14 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .await
         .unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030110340_slack_dossiers.sql")).execute(&pool).await.unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261030133913_trigger_approval_mode.sql")).execute(&pool).await.unwrap();
     let calls = Arc::new(Mutex::new(vec![]));
     let provider=serve(Router::new().route("/auth/v1/user",get(auth))
         .route("/connected_accounts",get(||async{Json(json!({"items":[{"id":"ca_owned","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","alias":"Local test Slack","toolkit":{"slug":"slack"}},{"id":"ca_bot","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","toolkit":{"slug":"slackbot"},"auth_config":{"id":"ac_fixture"}}]}))}))
         .route("/connected_accounts/:id",get(account))
         .route("/tools/execute/:tool",post(tool)).route("/trigger_instances/SLACK_CHANNEL_MESSAGE_RECEIVED/upsert",post(subscribe)).with_state(calls.clone())).await;
     std::env::set_var("COMPOSIO_API_KEY", "test-key");
+    std::env::set_var("APIOSK_SLACKBOT_AUTH_CONFIG", "ac_fixture");
     std::env::set_var("COMPOSIO_BASE_URL", &provider);
     std::env::set_var("COMPOSIO_WEBHOOK_SECRET", "test-secret");
     let http = reqwest::Client::new();
@@ -389,7 +392,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     )
     .await;
     // The exact connected account is checked before any provider mutation.
-    let slack = json!({"id":Uuid::new_v4(),"source":"slack","name":"Slack suppliers","match_prefix":"New supplier:","connected_account_id":"ca_other","channel_id":"C123"});
+    let slack = json!({"id":Uuid::new_v4(),"source":"slack","name":"Slack suppliers","match_prefix":"New supplier:","connected_account_id":"ca_other","channel_id":"C123","approver_id":"U123","approval_mode":"on_request"});
     assert_eq!(
         http.post(&endpoint)
             .bearer_auth("owner")
@@ -402,6 +405,9 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     );
     let mut slack = slack;
     slack["connected_account_id"] = json!("ca_owned");
+    let mut missing = slack.clone(); missing["approver_id"] = Value::Null;
+    assert_eq!(http.post(&endpoint).bearer_auth("owner").json(&missing).send().await.unwrap().status(),400);
+    assert!(calls.lock().unwrap().is_empty(), "an incomplete trigger must not subscribe");
     value(
         http.post(&endpoint)
             .bearer_auth("owner")
@@ -497,7 +503,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         let allowed:bool=sqlx::query_scalar("SELECT has_table_privilege($1,'gateway_v2.inbound_trigger_events','SELECT') OR has_table_privilege($1,'gateway_v2.inbound_triggers','SELECT')").bind(role).fetch_one(&pool).await.unwrap();
         assert!(!allowed);
     }
-    // Normal users (not test-tool owners) can select, change and remove approvers.
+    // Assigning a required approver is independent from automatic review routing.
     std::env::set_var("APIOSK_SLACKBOT_AUTH_CONFIG", "ac_fixture");
     std::env::set_var("TRIGGER_TOOL_TEST_OWNER_IDS", "");
     let slack_id = final_state["triggers"].as_array().unwrap().iter().find(|t| t["source"] == "slack").unwrap()["id"].as_str().unwrap();
@@ -508,7 +514,11 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         let updated = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":user})).send().await.unwrap()).await;
         assert_eq!(updated["trigger"]["approver_id"],user);
         assert_eq!(updated["trigger"]["approver_name"],name);
+        assert_eq!(updated["trigger"]["approval_mode"],"on_request");
     }
+    tokio::time::sleep(Duration::from_millis(150)).await;
+    assert!(!calls.lock().unwrap().iter().any(|v| v["channel"] == "U123" || v["channel"] == "U456"), "recording matching activity with an approver must not send automatic DMs");
+    value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456","approval_mode":"automatic"})).send().await.unwrap()).await;
     let mut review_event = event.clone();
     review_event["data"]["ts"] = json!("123.999");
     value(send(review_event.clone()).await.unwrap()).await;
@@ -537,8 +547,10 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         assert_eq!(payload["a"],"U456");
         assert_eq!(payload["x"],0);
     }
-    let cleared = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":null})).send().await.unwrap()).await;
-    assert!(cleared["trigger"]["approver_id"].is_null());
+    assert_eq!(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":null})).send().await.unwrap().status(),400);
+    let manual = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456","approval_mode":"on_request"})).send().await.unwrap()).await;
+    assert_eq!(manual["trigger"]["approver_id"],"U456");
+    assert_eq!(manual["trigger"]["approval_mode"],"on_request");
     // A real screening request creates a durable dossier, not a demo result or a paid call.
     let mut screening = event.clone();
     screening["data"]["ts"] = json!("2000.001");
@@ -587,7 +599,8 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     }
     // Seed a completed local source fixture, then review that exact saved dossier.
     sqlx::query("UPDATE gateway_v2.slack_dossiers SET company=$2,state='checked',snapshot=$3 WHERE id=$1").bind(dossier).bind(json!({"name":"Example B.V.","kvk_number":"12345678"})).bind(json!({"coverage":[{"category":"registry","status":"checked"},{"category":"sanctions","status":"unavailable"}]})).execute(&pool).await.unwrap();
-    value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456"})).send().await.unwrap()).await;
+    let retained = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456"})).send().await.unwrap()).await;
+    assert_eq!(retained["trigger"]["approval_mode"],"on_request");
     let mut review=event.clone();review["data"]["ts"]=json!("2000.003");review["data"]["thread_ts"]=json!("2000.001");review["data"]["text"]=json!("request approval");
     value(send(review).await.unwrap()).await;
     let mut request=None;

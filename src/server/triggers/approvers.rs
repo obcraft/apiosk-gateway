@@ -1,6 +1,16 @@
 //! Per-trigger review routing for every authenticated owner, separate from Ask.
 use super::*;
 
+#[derive(Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum ApprovalMode { OnRequest, Automatic }
+
+impl ApprovalMode {
+    pub(super) fn as_str(self) -> &'static str {
+        match self { Self::OnRequest => "on_request", Self::Automatic => "automatic" }
+    }
+}
+
 pub(super) async fn resolve(owner: Uuid, account: &str, channel: &str, user: &str) -> Result<String, Response> {
     if !(3..=24).contains(&user.len()) || !user.starts_with(['U', 'W']) || !user.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit()) {
         return Err(error(StatusCode::BAD_REQUEST, "Select an active Slack teammate."));
@@ -30,7 +40,10 @@ pub(super) async fn resolve(owner: Uuid, account: &str, channel: &str, user: &st
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(in crate::server) struct Update { approver_id: Option<String> }
+pub(in crate::server) struct Update {
+    approver_id: Option<String>,
+    approval_mode: Option<ApprovalMode>,
+}
 
 pub(in crate::server) async fn update(State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>, Json(body): Json<Update>) -> Response {
     let owner = match app_person(&state, &headers).await { Ok(p) => p.owner, Err(r) => return r };
@@ -40,10 +53,10 @@ pub(in crate::server) async fn update(State(state): State<ServerState>, headers:
     let Some((account,channel)) = connection else { return StatusCode::NOT_FOUND.into_response(); };
     let name = match body.approver_id.as_deref() {
         Some(user) => match resolve(owner, &account, &channel, user).await { Ok(name) => Some(name), Err(r) => return r },
-        None => None,
+        None => return error(StatusCode::BAD_REQUEST, "Choose an approver for this Slack trigger. You can change the teammate, but an approver is required for both actions."),
     };
-    let result: Result<Option<Value>,_> = sqlx::query_scalar("UPDATE gateway_v2.inbound_triggers t SET approver_id=$3,approver_name=$4 WHERE id=$1 AND owner_id=$2 RETURNING to_jsonb(t)-'webhook_secret_hash'")
-        .bind(id).bind(owner).bind(body.approver_id).bind(name).fetch_optional(pool).await;
+    let result: Result<Option<Value>,_> = sqlx::query_scalar("UPDATE gateway_v2.inbound_triggers t SET approver_id=$3,approver_name=$4,approval_mode=coalesce($5,approval_mode) WHERE id=$1 AND owner_id=$2 RETURNING to_jsonb(t)-'webhook_secret_hash'")
+        .bind(id).bind(owner).bind(body.approver_id).bind(name).bind(body.approval_mode.map(ApprovalMode::as_str)).fetch_optional(pool).await;
     match result {
         Ok(Some(trigger)) => { let _ = changed().send(owner); Json(json!({"trigger":trigger})).into_response() },
         Ok(None) => StatusCode::NOT_FOUND.into_response(),
