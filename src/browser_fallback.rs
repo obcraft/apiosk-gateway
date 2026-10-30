@@ -138,6 +138,43 @@ pub fn reserve(catalog: &Catalog, task: &Task, intent: &Intent, steps: &mut Vec<
     }
 }
 
+/// Apiosk's free web search runs first. Tavily is quoted as its contingency
+/// and only runs, and is only charged, when the free search fails.
+pub fn reserve_paid_web_search(catalog: &Catalog, task: &Task, steps: &mut Vec<Step>) {
+    let Some(paid) = catalog
+        .services
+        .iter()
+        .filter(|s| s.api_slug == "tavily" && s.contract.capability_slug == "web.search")
+        .min_by_key(|s| s.total())
+    else {
+        return;
+    };
+    let free: Vec<_> = steps
+        .iter()
+        .filter(|s| s.service.api_slug == crate::web_search::SLUG && s.browser_fallback.is_none())
+        .map(|s| (s.key(), s.entity_ref, s.goal_index))
+        .collect();
+    for (key, entity, goal_index) in free {
+        if steps.len() >= crate::protocol::MAX_STEPS {
+            break;
+        }
+        if steps.iter().any(|s| s.entity_ref == entity && s.service.id == paid.id) {
+            continue;
+        }
+        let query = fact_value(&task.facts, entity, "web.query").ok().flatten()
+            .and_then(|v| v.as_str().map(str::to_owned)).unwrap_or_default();
+        let candidate = Step {
+            service: paid.clone(),
+            entity_ref: entity,
+            goal_index,
+            browser_fallback: Some(Fallback { after: vec![key], query, queries: Default::default() }),
+        };
+        if inputs(&candidate, task, &catalog.vocabulary).is_ok() {
+            steps.push(candidate);
+        }
+    }
+}
+
 pub fn ready(task: &Task, step: &Step) -> bool {
     step.browser_fallback.as_ref().is_none_or(|f| {
         !f.after.is_empty()
@@ -290,6 +327,32 @@ pub(crate) mod tests {
             panic!("expected plan")
         };
         (catalog, task, intent, plan)
+    }
+
+    #[test]
+    fn free_web_search_is_backed_by_a_conditional_tavily_call() {
+        let catalog = Catalog::build_live(serde_json::from_str(include_str!("../tests/fixtures/connected-planning/structured-inputs-catalog.json")).unwrap());
+        let mut task = Task::default();
+        task.record_turn("News about Coolblue B.V.", None);
+        let mut intent: Intent = serde_json::from_value(json!({"subjects":[{"label":"Coolblue B.V.","values":{"web.query":"Coolblue B.V.","web_tools.input.topic":"news"}}],
+            "goals":[{"capability":"web.search","subject":0,"constraints":{"source":crate::web_search::SLUG}}],"answer_operations":["List the news"],"unresolved_references":[]})).unwrap();
+        crate::engine::bind_subjects(&mut task, &catalog, &mut intent).unwrap();
+        let crate::resolver::Resolution::Plan(plan) = crate::resolver::resolve(&catalog, &task, &intent) else {
+            panic!("expected plan")
+        };
+        let free = plan.steps.iter().find(|s| s.service.api_slug == crate::web_search::SLUG).unwrap();
+        let paid = plan.steps.iter().find(|s| s.service.api_slug == "tavily").expect("Tavily contingency");
+        assert_eq!(paid.browser_fallback.as_ref().unwrap().after, vec![free.key()]);
+        assert_eq!(plan.cap_atomic, paid.service.total(), "only the contingency is priced");
+        assert!(!ready(&task, paid));
+        let mut succeeded = task.clone();
+        succeeded.completed.push(free.key());
+        settle_unused(&mut succeeded, &plan);
+        assert!(succeeded.skipped_steps.contains(&paid.key()), "unused Tavily is never called");
+        task.failed_steps.insert(free.key(), json!({"code":"web_search_unavailable"}));
+        task.completed.push(free.key());
+        assert!(ready(&task, paid));
+        assert_eq!(inputs(paid, &task, &catalog.vocabulary).unwrap()["query"], "Coolblue B.V.");
     }
 
     #[test]

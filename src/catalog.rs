@@ -13,7 +13,9 @@ use std::{collections::BTreeMap, sync::Arc};
 use uuid::Uuid;
 
 mod refresh;
+mod builtin;
 mod registered;
+pub use builtin::WEB_SEARCH_ID;
 use refresh::{Policy, Refreshing};
 
 pub const CATALOG_SQL: &str = include_str!("catalog.sql");
@@ -206,6 +208,12 @@ pub struct Catalog {
     pub english: Arc<crate::english::Memory>,
 }
 impl Catalog {
+    /// A catalog for planning and execution: the directory plus Apiosk's own
+    /// free sources (catalog::builtin). Fixture catalogs use `build` alone.
+    pub fn build_live(mut snapshot: Snapshot) -> Self {
+        builtin::extend(&mut snapshot);
+        Self::build(snapshot)
+    }
     pub fn build(mut snapshot: Snapshot) -> Self {
         registered::extend(&mut snapshot);
         let version = digest(&snapshot);
@@ -530,7 +538,7 @@ impl CatalogCache {
         let value: Value = sqlx::query_scalar(&execution_catalog_sql())
             .bind(service_ids)
             .fetch_one(&self.pool).await?;
-        Ok(Arc::new(Catalog::build(serde_json::from_value(value)?)))
+        Ok(Arc::new(Catalog::build_live(serde_json::from_value(value)?)))
     }
     pub async fn sources(&self) -> anyhow::Result<Arc<Vec<crate::sources::Source>>> {
         let (sources, _) = self.sources.get(|| load_sources(self.pool.clone())).await;
@@ -550,7 +558,7 @@ async fn load_catalog(pool: PgPool) -> anyhow::Result<Catalog> {
         .fetch_one(&mut *tx)
         .await?;
     tx.commit().await?;
-    Ok(Catalog::build(serde_json::from_value(value)?))
+    Ok(Catalog::build_live(serde_json::from_value(value)?))
 }
 
 async fn load_sources(pool: PgPool) -> anyhow::Result<Vec<crate::sources::Source>> {

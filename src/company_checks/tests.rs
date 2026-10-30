@@ -70,7 +70,7 @@ fn every_company_gets_the_three_fixed_source_checks() {
     assert_eq!(i.subjects.len(), 2);
     assert_eq!(i.subjects[1].values["company_registry.kvknummer"], "76543210");
     assert_eq!(i.subjects[0].values["web.query"], "Acme B.V.");
-    // Only Tavily's news topic returns the publication dates news.rs requires.
+    // Only the news topic returns the publication dates news.rs requires.
     assert_eq!(i.subjects[0].values["web_tools.input.topic"], "news");
     let checks: Vec<_> = i
         .goals
@@ -80,7 +80,7 @@ fn every_company_gets_the_three_fixed_source_checks() {
     for subject in 0..2 {
         assert!(checks.contains(&(subject, "company.registry-profile", "kvk-dutch-business-register")));
         assert!(checks.contains(&(subject, "company.sanctions-screen", "opensanctions")));
-        assert!(checks.contains(&(subject, "web.search", "tavily")));
+        assert!(checks.contains(&(subject, "web.search", crate::web_search::SLUG)));
     }
     assert_eq!(i.goals.len(), 6);
 }
@@ -121,7 +121,7 @@ fn demo() -> Vec<(String, String)> {
 }
 #[test]
 fn a_chatbot_company_check_reads_the_client_list_without_a_model() {
-    let all = vec!["kvk-dutch-business-register".to_owned(), "opensanctions".into(), "tavily".into()];
+    let all = vec!["kvk-dutch-business-register".to_owned(), "opensanctions".into(), crate::web_search::SLUG.into()];
     for question in [
         "Run the company check on this client list:\nname,kvk\nHeineken N.V.,33011433\nMollie B.V.,30204462\nCoolblue B.V.,24330087\nThanks.",
         "Company check for my clients Heineken N.V. (KVK 33011433), Mollie B.V. (KVK 30204462) and Coolblue B.V. (KVK 24330087).",

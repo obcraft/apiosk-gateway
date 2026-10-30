@@ -1123,6 +1123,15 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     }),
                 }
             }
+            // Apiosk's free search leads the web search offers it can replace;
+            // its price then breaks the tie, and Tavily stays listed after it.
+            let best = endpoints.iter().filter(|e| e.item.contract.capability_slug == "web.search")
+                .map(|e| e.score).fold(None, |best, score| Some(match best { Some(b) if b >= score => b, _ => score }));
+            if let Some(best) = best {
+                for e in endpoints.iter_mut().filter(|e| e.item.api_slug == crate::web_search::SLUG) {
+                    if e.score < best { e.score = best; }
+                }
+            }
             endpoints.sort_by(|a, b| {
                 a.demoted
                     .cmp(&b.demoted)
@@ -1388,6 +1397,23 @@ mod tests {
         }
     }
 
+    #[test]
+    fn news_offers_the_free_web_search_first_and_keeps_tavily_listed() {
+        let snapshot: Snapshot = serde_json::from_str(include_str!(
+            "../../tests/fixtures/connected-planning/structured-inputs-catalog.json"
+        )).unwrap();
+        let catalog = Catalog::build_live(snapshot);
+        let mut request = parsed(vec![json!({"slug":"research.news.company","name":"Latest company news",
+            "description":"Retrieves recent news articles about a company."})]);
+        request.subjects[0].label = "Coolblue B.V.".into();
+        request.capabilities[0].domain = "research".into();
+        request.capabilities[0].inputs = vec!["company_name".into()];
+        request.capabilities[0].outputs = ["headlines", "published_at", "article_url"].map(str::to_owned).to_vec();
+        let found = search(&request, &catalog);
+        let slugs: Vec<_> = found[0].apiosk.iter().filter_map(|c| c.source_slug.as_deref()).collect();
+        assert_eq!(slugs.first(), Some(&crate::web_search::SLUG), "{:?}", found[0].apiosk);
+        assert!(slugs.contains(&"tavily"), "{slugs:?}");
+    }
     #[test]
     fn board_members_and_directors_share_governance_scope_without_board_game_matches() {
         for text in ["Company board members", "company.board_members", "Board member profiles", "Company directors"] {

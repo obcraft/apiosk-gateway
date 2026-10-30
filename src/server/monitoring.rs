@@ -130,14 +130,15 @@ pub(super) async fn capabilities(State(s): State<ServerState>, h: HeaderMap) -> 
         s.engine.store.check_workspace(&p).await?;
         let catalog=s.engine.catalog.fresh().await?;
         let sources:Vec<Value>=[(crate::monitoring::PROVIDER,"KVK Handelsregister","company.registry-profile",true),
-            (crate::monitoring::SANCTIONS,"OpenSanctions","company.sanctions-screen",false),(crate::monitoring::GLEIF,"GLEIF","company.legal-entity-search",false)].into_iter().map(|(id,name,capability,required)| {
+            (crate::monitoring::SANCTIONS,"OpenSanctions","company.sanctions-screen",false),(crate::monitoring::GLEIF,"GLEIF","company.legal-entity-search",false),
+            (crate::monitoring::NEWS,"News","web.search",false)].into_iter().map(|(id,name,capability,required)| {
             let available=catalog.services.iter().any(|s|s.api_slug==id && s.contract.capability_slug==capability);
             let operations:Vec<Value> = if id==crate::monitoring::PROVIDER {vec!["company.registry-profile","company.registered-names","company.branch-profile","company.financial-statements"]}else{vec![capability]}.into_iter().map(|op|json!({"capability":op,"available":catalog.services.iter().any(|s|s.api_slug==id && s.contract.capability_slug==op)})).collect();
             json!({"id":id,"name":name,"available":available,"required":required,"default_selected":id!=crate::monitoring::GLEIF,
                 "operations":operations})
         }).collect();
         Ok(json!({"sources":sources,"fields":crate::monitoring::fields(&json!({})),
-            "limitations":["Only sources with implemented evidence comparisons are offered. Missing coverage is shown explicitly.","Sanctions matches require human identity review."]}))
+            "limitations":["Only sources with implemented evidence comparisons are offered. Missing coverage is shown explicitly.","Sanctions matches require human identity review.","News lists dated public articles from the last week; a name match is not identity confirmation."]}))
     }.await)
 }
 

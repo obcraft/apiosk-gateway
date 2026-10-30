@@ -9,6 +9,8 @@ pub const VERSION: &str = "company_monitor_v1";
 pub const PROVIDER: &str = "kvk-dutch-business-register";
 pub const SANCTIONS: &str = "opensanctions";
 pub const GLEIF: &str = "gleif";
+/// Apiosk's own free web and news search (crate::web_search): dated articles.
+pub const NEWS: &str = crate::web_search::SLUG;
 
 const FIELDS: [(&str, &str); 20] = [
     ("name", "/data/naam"),
@@ -35,9 +37,9 @@ const FIELDS: [(&str, &str); 20] = [
 
 pub fn sources(input: Vec<String>) -> anyhow::Result<Vec<String>> {
     let sources = if input.is_empty() {vec![PROVIDER.into(),SANCTIONS.into()]}else{input};
-    anyhow::ensure!(sources.iter().any(|s|s==PROVIDER) && sources.len()<=3
+    anyhow::ensure!(sources.iter().any(|s|s==PROVIDER) && sources.len()<=4
         && sources.iter().collect::<BTreeSet<_>>().len()==sources.len()
-        && sources.iter().all(|s|matches!(s.as_str(),PROVIDER|SANCTIONS|GLEIF)), "Select KVK and supported trusted compliance sources.");
+        && sources.iter().all(|s|matches!(s.as_str(),PROVIDER|SANCTIONS|GLEIF|NEWS)), "Select KVK and supported trusted compliance sources.");
     Ok(sources)
 }
 
@@ -48,6 +50,14 @@ pub fn prepare_recipe(company:&Company, source_ids:&[String], establishment_numb
     let mut recipe=crate::company_checks::monitoring_recipe(company,source_ids.iter().any(|s|s==SANCTIONS));
     recipe.subjects[0].values.insert("company.name".into(),json!(company.name));
     if source_ids.iter().any(|s|s==GLEIF) {recipe.goals.push(crate::parser::Goal{capability:"company.legal-entity-search".into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(GLEIF))])});}
+    if source_ids.iter().any(|s|s==NEWS) {
+        // The last week's dated news; news.rs applies the same window to the saved results.
+        let values=&mut recipe.subjects[0].values;
+        values.insert("web.query".into(),json!(company.name));
+        values.insert("web_tools.input.topic".into(),json!("news"));
+        values.insert("web.input.timerange".into(),json!("week"));
+        recipe.goals.push(crate::parser::Goal{capability:"web.search".into(),subject:0,constraints:std::collections::BTreeMap::from([("source".into(),json!(NEWS))])});
+    }
     let mut gaps=Vec::new();
     for operation in ["company.registered-names","company.financial-statements","company.branch-profile"] {
         if operation=="company.branch-profile" && establishment_number.is_none() {
@@ -129,12 +139,13 @@ pub fn snapshot_for_sources(company: &Company, sources: &[SavedSource], previous
     let reported: BTreeSet<String> = previous.into_iter()
         .flat_map(|p| p["signals"].as_array().into_iter().flatten())
         .filter_map(|s| s["signal_id"].as_str().map(str::to_owned)).collect();
-    let core_sources:Vec<_>=sources.iter().filter(|s|s.document["source"]["capability"].as_str().is_none_or(|c|matches!(c,"company.registry-profile"|"company.sanctions-screen"))).cloned().collect();
+    let core_sources:Vec<_>=sources.iter().filter(|s|s.document["source"]["capability"].as_str().is_none_or(|c|matches!(c,"company.registry-profile"|"company.sanctions-screen"|"web.search"))).cloned().collect();
     let mut out = crate::company_checks::snapshot(std::slice::from_ref(company), &core_sources, previous,
         &reported, at, Value::Null, "succeeded");
     out["sources"]=public_source(&json!(sources));out["source_count"]=json!(sources.len());
     out["coverage"] = json!(out["coverage"].as_array().into_iter().flatten()
-        .filter(|c| c["category"] == "registry" || (c["category"] == "sanctions" && source_ids.iter().any(|s|s==SANCTIONS))).cloned().collect::<Vec<_>>());
+        .filter(|c| c["category"] == "registry" || (c["category"] == "sanctions" && source_ids.iter().any(|s|s==SANCTIONS))
+            || (c["category"] == "news" && source_ids.iter().any(|s|s==NEWS))).cloned().collect::<Vec<_>>());
     out["source_ids"] = json!(source_ids);
     let gleif=sources.iter().find_map(|s|gleif_record(s,company).map(|(index,row)|(s,index,row)));
     if source_ids.iter().any(|source|source==GLEIF) {
@@ -456,6 +467,21 @@ mod tests {
     fn snap(s: &[SavedSource], prior: Option<&Value>) -> Value {
         let mut out=snapshot(&company(),s,prior,"2026-10-25T10:00:00Z");
         select(&mut out,&["name","trade_names","activities","legal_name","legal_form","addresses","registration_end"].map(str::to_owned));out
+    }
+    #[test]
+    fn news_is_an_optional_fourth_source_searching_the_company_name() {
+        assert_eq!(sources(vec![PROVIDER.into(),SANCTIONS.into(),GLEIF.into(),NEWS.into()]).unwrap().len(),4);
+        assert!(sources(vec![SANCTIONS.into(),NEWS.into()]).is_err(),"KVK stays required");
+        let catalog=crate::catalog::Catalog::build_live(crate::catalog::Snapshot{services:vec![],vocabulary:vec![],known_sources:vec![]});
+        let company=Company{name:"Coolblue B.V.".into(),kvk_number:"24330087".into()};
+        let (intent,_)=prepare_recipe(&company,&[PROVIDER.into(),NEWS.into()],None,&catalog);
+        let news:Vec<_>=intent.goals.iter().filter(|g|g.capability=="web.search").collect();
+        assert_eq!(news.len(),1);
+        assert_eq!(news[0].constraints["source"],json!(NEWS));
+        let values=&intent.subjects[0].values;
+        assert_eq!((&values["web.query"],&values["web_tools.input.topic"],&values["web.input.timerange"]),(&json!("Coolblue B.V."),&json!("news"),&json!("week")));
+        let (without,_)=prepare_recipe(&company,&[PROVIDER.into()],None,&catalog);
+        assert!(!without.goals.iter().any(|g|g.capability=="web.search") && !without.subjects[0].values.contains_key("web.query"));
     }
     #[test]
     fn first_scheduled_unchanged_profile_matches_the_purchased_baseline() {

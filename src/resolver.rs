@@ -363,6 +363,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     let mut steps: Vec<_> = layered.into_iter().map(|(step, _)| step).collect();
     if !task.independent_sources() {
         crate::browser_fallback::reserve(catalog, task, intent, &mut steps);
+        crate::browser_fallback::reserve_paid_web_search(catalog, task, &mut steps);
     }
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);

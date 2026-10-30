@@ -424,7 +424,7 @@ impl Executor {
             let service_ids: Vec<_> = remaining.iter().map(|candidate| candidate.service.id).collect();
             let snapshot: Value = sqlx::query_scalar(&crate::catalog::execution_catalog_sql())
                 .bind(&service_ids).fetch_one(&mut *tx).await?;
-            let catalog = crate::catalog::Catalog::build(serde_json::from_value(snapshot)?);
+            let catalog = crate::catalog::Catalog::build_live(serde_json::from_value(snapshot)?);
             if remaining.iter().any(|candidate| !catalog.services.iter().any(|current|
                 current.id == candidate.service.id
                     && current.version_hash() == candidate.service.version_hash())) {
@@ -461,6 +461,26 @@ impl Executor {
             break tx;
         };
         let selection = Uuid::new_v4();
+        // Apiosk's own free search runs here: nothing is bought, so there is no
+        // App ledger selection or reservation. The execution row still records
+        // the call, so receipts replay and results link as for a purchase.
+        if step.service.api_slug == crate::web_search::SLUG {
+            sqlx::query("INSERT INTO executions(id,owner_id,task_id,action_id,authorization_id,payload_hash,selection_id,reserved_atomic,status) VALUES($1,$2,$3,$4,$5,$6,$7,0,'dispatching')")
+                .bind(idempotency).bind(p.owner).bind(task_id).bind(action_id).bind(authorization).bind(&payload_hash).bind(selection).execute(&mut *tx).await?;
+            tx.commit().await?;
+            reserve.finish(Outcome::Ok);
+            let started = std::time::Instant::now();
+            let body = match crate::web_search::search(inputs).await {
+                Ok(result) => json!({"ok": true, "result": result, "charged_micro_usd": 0}),
+                Err(error) => json!({"ok": false, "error": "web_search_unavailable", "message": error.to_string(), "charged_micro_usd": 0}),
+            };
+            let succeeded = body["ok"] == true;
+            report_source_call(task_id, step, if succeeded { SourceStatus::Succeeded } else { SourceStatus::RefusedBeforeReservation },
+                started.elapsed(), Some(&body), None, (!succeeded).then_some(ErrorClass::Upstream5xx));
+            sqlx::query("UPDATE executions SET status=$2,response=$3,actual_atomic=0,updated_at=now() WHERE id=$1")
+                .bind(idempotency).bind(if succeeded { "succeeded" } else { "failed" }).bind(&body).execute(&self.store.pool).await?;
+            return Ok(if succeeded { Dispatch::Done { execution_id: idempotency, body } } else { Dispatch::Failed { body } });
+        }
         if step.service.api_slug == kvk_accounts::PROVIDER
             && step.service.path == kvk_accounts::ENDPOINT
         {

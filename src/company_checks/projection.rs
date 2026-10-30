@@ -177,7 +177,7 @@ pub(super) fn project(
                 signals.push(finding);
             }
         }
-        if matches!(slug, "exa-search" | "tavily") && s.kvk_number.as_deref() == Some(&c.kvk_number)
+        if matches!(slug, "exa-search" | "tavily" | crate::web_search::SLUG) && s.kvk_number.as_deref() == Some(&c.kvk_number)
         {
             news |= super::news::project(c, s, complete, signals);
         }

@@ -153,7 +153,9 @@ pub fn question(companies: &[Company]) -> String {
 const CHECKS: [(&str, &str); 3] = [
     ("kvk-dutch-business-register", "company.registry-profile"),
     ("opensanctions", "company.sanctions-screen"),
-    ("tavily", "web.search"),
+    // Apiosk's free search first; Tavily is quoted as its paid contingency
+    // (browser_fallback::reserve_paid_web_search).
+    (crate::web_search::SLUG, "web.search"),
 ];
 
 /// The check's fixed recipe, built in code like a workflow page: no model
@@ -190,7 +192,7 @@ fn recipe_for(companies: &[Company], checks: &[usize]) -> crate::parser::Intent 
                 ("company.search.country_code".to_owned(), json!("NL")),
             ]);
             if news {
-                // Tavily dates results only in its news topic; news.rs still
+                // Web search dates results only in its news topic; news.rs still
                 // applies the seven-day window to the saved results.
                 values.insert("web.query".to_owned(), json!(c.name));
                 values.insert("web_tools.input.topic".to_owned(), json!("news"));
