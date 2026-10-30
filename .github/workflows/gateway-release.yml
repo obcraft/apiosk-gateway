@@ -1,6 +1,9 @@
 name: Gateway release
 
 on:
+  # Every push to main deploys once CI has verified that exact commit.
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -91,6 +94,11 @@ jobs:
           require_current_main() {
             current_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')
             if [[ "$current_main" != "$GITHUB_SHA" ]]; then
+              # The release started by the newer push deploys that commit.
+              if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+                echo "::notice::Main advanced to $current_main; the release for that push deploys it."
+                exit 0
+              fi
               echo 'Main advanced after this release started. Start Gateway release for the latest main; use the recorded rollback procedure for an intentional rollback.' >&2
               exit 1
             fi
