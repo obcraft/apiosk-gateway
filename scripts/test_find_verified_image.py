@@ -96,8 +96,17 @@ class SelectionTests(unittest.TestCase):
             with self.subTest(repo=repo, revision=revision), self.assertRaises(selector.SelectionError):
                 selector.select(repo, revision, api=self.api)
         with self.assertRaises(selector.SelectionError):
-            self.select(wait_seconds=1201)
+            self.select(wait_seconds=3601)
         self.assertEqual(self.api.calls, [])
+
+    def test_wait_and_poll_boundaries(self):
+        for wait_seconds, poll_seconds in ((0, 1), (3600, 60)):
+            with self.subTest(wait=wait_seconds, poll=poll_seconds):
+                self.assertEqual(self.select(wait_seconds=wait_seconds, poll_seconds=poll_seconds)["run_id"], 100)
+        for wait_seconds, poll_seconds in ((-1, 15), (3601, 15), (3600, 0), (3600, 61)):
+            with self.subTest(wait=wait_seconds, poll=poll_seconds), self.assertRaisesRegex(
+                    selector.SelectionError, "0–3600 seconds and polling 1–60"):
+                self.select(wait_seconds=wait_seconds, poll_seconds=poll_seconds)
 
     def test_rejects_stale_main_at_start_and_after_selection(self):
         self.api.main["object"]["sha"] = "b" * 40

@@ -16,7 +16,7 @@ jobs:
     name: Select verified main image
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 65
     outputs:
       run_id: ${{ steps.image.outputs.run_id }}
       artifact_id: ${{ steps.image.outputs.artifact_id }}
@@ -34,7 +34,7 @@ jobs:
           python3 scripts/find-verified-image.py
           --repo "$GITHUB_REPOSITORY"
           --revision "$GITHUB_SHA"
-          --wait-seconds 1200
+          --wait-seconds 3600
 
   production:
     name: Deploy verified image

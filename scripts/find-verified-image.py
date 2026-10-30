@@ -153,8 +153,8 @@ def find_artifact(api, base, run, repo_id, revision, now):
 def select(repo, revision, wait_seconds=0, poll_seconds=15, *, api=gh_api,
            monotonic=time.monotonic, sleep=time.sleep, now=lambda: datetime.now(timezone.utc)):
     validate_arguments(repo, revision)
-    if not 0 <= wait_seconds <= 1200 or not 1 <= poll_seconds <= 60:
-        raise SelectionError("Wait must be 0–1200 seconds and polling 1–60 seconds.")
+    if not 0 <= wait_seconds <= 3600 or not 1 <= poll_seconds <= 60:
+        raise SelectionError("Wait must be 0–3600 seconds and polling 1–60 seconds.")
     base = f"repos/{repo}"
     repository = api(base)
     repo_id = positive_id(repository.get("id"), "repository ID")
