@@ -31,6 +31,7 @@ mod recurring;
 mod company_checks;
 mod monitoring;
 mod triggers;
+pub use triggers::dossiers::start as start_dossiers;
 
 #[derive(Clone)]
 pub struct ServerState {
@@ -170,6 +171,10 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/balance", get(crate::public_api::balance))
         .route("/v2/usage", get(crate::public_api::usage))
         .route("/v2/recurring-orders", get(recurring::list))
+        .route("/v2/dossiers", get(triggers::dossiers::list))
+        .route("/v2/dossiers/:id", get(triggers::dossiers::read))
+        .route("/v2/dossiers/:id/prepare", post(triggers::dossiers::prepare))
+        .route("/v2/dossiers/:id/monitor", post(triggers::dossiers::link))
         .route("/v2/monitoring", get(monitoring::list))
         .route("/v2/monitoring/prepare", post(monitoring::prepare))
         .route("/v2/monitoring/baseline", post(monitoring::baseline))

@@ -201,6 +201,7 @@ async fn run() -> anyhow::Result<()> {
     });
     apiosk_gateway_v2::recurring::start(engine.clone());
     apiosk_gateway_v2::company_checks::start(engine.clone());
+    apiosk_gateway_v2::server::start_dossiers(engine.clone());
     // Commerce initializes once in this process with its existing database
     // role and payment configuration. The public listener serves both routers.
     let commerce_runtime = commerce_runtime::CommerceRuntime::from_env().await?;

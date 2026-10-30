@@ -5,7 +5,7 @@ use serde::Deserialize;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-async fn person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
+pub(super) async fn person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal, Response> {
     let caller = authenticated(s, h).await.map_err(|r| failure(r.status, r.code, r.message))?;
     if caller.api_key.is_some() || caller.principal.connection.is_some() {
         return Err(failure(StatusCode::FORBIDDEN, "app_only", "Manage monitoring in the Apiosk app."));
@@ -13,7 +13,7 @@ async fn person(s: &ServerState, h: &HeaderMap) -> Result<crate::auth::Principal
     Ok(caller.principal)
 }
 
-fn reply(result: anyhow::Result<Value>) -> Response {
+pub(super) fn reply(result: anyhow::Result<Value>) -> Response {
     match result {
         Ok(value) => Json(value).into_response(),
         Err(error) => {
@@ -48,15 +48,20 @@ pub(super) async fn prepare(State(s): State<ServerState>, h: HeaderMap, Json(b):
         if let Some(number)=&b.establishment_number {
             anyhow::ensure!(number.len()==12 && number.bytes().all(|c|c.is_ascii_digit()),"Choose an exact twelve-digit KVK establishment number.");
         }
-        s.engine.store.check_spending(&p).await?;
-        let question = format!("Nulmeting voor bedrijfsmonitoring: {} (KVK {}). Gebruik de geselecteerde bronnen voor dit exacte bedrijf. Sanctiematches zijn mogelijke overeenkomsten die menselijke controle vereisen.", b.company.name, b.company.kvk_number);
-        let catalog=s.engine.catalog.fresh().await?;
-        let (recipe,gaps)=crate::monitoring::prepare_recipe(&b.company,&sources,b.establishment_number.as_deref(),&catalog);
-        let mut response = s.engine.discover_recipe(&p, DiscoverRequest {request_id:b.request_id, question,
-            state:None, context_delta:Default::default()}, recipe).await?;
-        response.context_view["monitoring_setup"]=json!({"company":b.company,"sources":sources,"coverage_gaps":gaps});
+        let response=prepare_check(&s.engine,&p,b.request_id,&b.company,&sources,b.establishment_number.as_deref()).await?;
         Ok(serde_json::to_value(response)?)
     }.await)
+}
+
+/// Shared first-check preparation for the app wizard and its Slack dossiers.
+pub(super) async fn prepare_check(engine:&crate::engine::Engine,p:&crate::auth::Principal,request_id:Uuid,company:&Company,sources:&[String],establishment:Option<&str>)->anyhow::Result<crate::protocol::Response> {
+    engine.store.check_spending(p).await?;
+    let question=format!("Nulmeting voor bedrijfsmonitoring: {} (KVK {}). Gebruik de geselecteerde bronnen voor dit exacte bedrijf. Sanctiematches zijn mogelijke overeenkomsten die menselijke controle vereisen.",company.name,company.kvk_number);
+    let catalog=engine.catalog.fresh().await?;
+    let (recipe,gaps)=crate::monitoring::prepare_recipe(company,sources,establishment,&catalog);
+    let mut response=engine.discover_recipe(p,DiscoverRequest{request_id,question,state:None,context_delta:Default::default()},recipe).await?;
+    response.context_view["monitoring_setup"]=json!({"company":company,"sources":sources,"coverage_gaps":gaps});
+    Ok(response)
 }
 
 #[derive(Deserialize)]

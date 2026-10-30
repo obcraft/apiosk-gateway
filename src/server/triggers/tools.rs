@@ -211,24 +211,28 @@ fn review_card(message: &str, channel: &str, value: &str) -> (String, Value) {
 }
 
 async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: String, approver: String,
-    approver_name: Option<String>, signals: bool, test: bool, review: Option<&str>) -> anyhow::Result<Posted> {
+    approver_name: Option<String>, signals: bool, test: bool, review: Option<&str>, dossier: Option<(Uuid, &str)>) -> anyhow::Result<Posted> {
     let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
-    let thread = to.post(channel, None, &line, &notice(&line, test)).await?;
+    let notice_ts = to.post(channel, dossier.map(|(_,root)|root), &line, &notice(&line, test)).await?;
+    let thread=dossier.map(|(_,root)|root.to_owned()).unwrap_or_else(||notice_ts.clone());
     anyhow::ensure!(!thread.is_empty(), "missing_message_ts");
-    let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": if test { 1 } else { 0 }}).to_string();
-    let (text, blocks) = match review {
+    let value = json!({"g": trigger, "o": to.owner, "b": to.bot, "c": channel, "t": thread, "a": approver, "n": company.trim(), "x": if test { 1 } else { 0 }, "d":dossier.map(|(id,_)|id)}).to_string();
+    let (text, mut blocks) = match review {
         Some(message) => review_card(message, channel, &value),
         None => approval_card(&company, channel, signals, &value),
     };
     // Slack chat.postMessage opens the bot's DM when channel is a user
     // ID. conversations.open would unnecessarily require im:write.
+    if let Some((id,_))=dossier {
+        blocks.as_array_mut().unwrap().push(json!({"type":"actions","elements":[{"type":"button","action_id":"apiosk_open_dossier","text":{"type":"plain_text","text":"Open dossier"},"url":super::dossiers::url(id)}]}));
+    }
     let delivered = to.post(&approver, None, &text, &blocks).await;
     let line = if delivered.is_ok() {
         format!("I sent *{}* to <@{approver}> for approval by DM.", esc(&company))
     } else {
         format!("⚠️ The approval request for *{}* could not be delivered to <@{approver}> by DM. No request was sent.", esc(&company))
     };
-    if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &thread, &line, &notice(&line, test)).await {
+    if let Err(e) = to.composio.apiosk_bot_update(to.owner, to.bot, channel, &notice_ts, &line, &notice(&line, test)).await {
         tracing::warn!(surface = "trigger-tool-test", error = %e, "approval delivery notice not updated");
         // A delivered DM must not look failed and invite a duplicate.
     }
@@ -237,7 +241,8 @@ async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: St
     result.activity["company"] = json!(company);
     result.activity["approver_id"] = json!(approver);
     result.activity["approver_name"] = json!(approver_name);
-    result.activity["request_key"] = json!(format!("{channel}:{thread}"));
+    result.activity["request_key"] = json!(dossier.map(|(id,_)|format!("dossier:{id}")).unwrap_or_else(||format!("{channel}:{thread}")));
+    if let Some((id,_))=dossier {result.activity["dossier_id"]=json!(id);}
     result.delivery_error = delivered.err();
     Ok(result)
 }
@@ -246,7 +251,7 @@ async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: St
 pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, owner: Uuid, bot: &str,
     trigger: Uuid, channel: &str, message: &str, approver: &str, name: &str) {
     let result = send_approval(Poster { composio, owner, bot }, channel, trigger, "Slack review request".into(),
-        approver.into(), Some(name.into()), false, false, Some(message)).await;
+        approver.into(), Some(name.into()), false, false, Some(message), None).await;
     match result {
         Ok(posted) => {
             let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
@@ -257,6 +262,22 @@ pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, own
         },
         Err(e) => tracing::warn!(error = %e, "review request not delivered"),
     }
+}
+
+pub(super) async fn request_dossier_review(pool:&sqlx::PgPool,c:&Composio,owner:Uuid,bot:&str,trigger:Uuid,channel:&str,thread:&str,d:&Value,approver:&str,name:&str)->anyhow::Result<()> {
+    let id:Uuid=d["id"].as_str().unwrap_or_default().parse()?;
+    let mut lock=pool.begin().await?;
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,30102026))").bind(id.to_string()).execute(&mut *lock).await?;
+    // One review decision per immutable first check, including after restarts.
+    let exists:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.inbound_trigger_events WHERE owner_id=$1 AND trigger_id=$2 AND activity->>'dossier_id'=$3 AND activity->>'kind' IN ('request_approval','approval_decision') AND activity->>'status'<>'delivery_failed')").bind(owner).bind(trigger).bind(id.to_string()).fetch_one(pool).await?;
+    if exists {c.apiosk_bot_post(owner,bot,channel,Some(thread),"This dossier already has a review request. Its decision is recorded in Activity and the dossier.",None).await?;return Ok(())}
+    let company=d["company"]["name"].as_str().unwrap_or("Company dossier");
+    let message=format!("Review the saved source evidence for {} (KVK {}). This decision records your review; it does not authorize purchases or activate monitoring.\n{}",company,d["company"]["kvk_number"].as_str().unwrap_or_default(),super::dossiers::url(id));
+    let posted=send_approval(Poster{composio:c,owner,bot},channel,trigger,company.into(),approver.into(),Some(name.into()),false,false,Some(&message),Some((id,thread))).await?;
+    super::activity::record(pool,trigger,owner,&format!("dossier-review:{id}:{}",Uuid::new_v4()),&posted.text,false,&posted.activity).await?;
+    lock.commit().await?;
+    if let Some(error)=posted.delivery_error {return Err(error.into())}
+    Ok(())
 }
 
 async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> anyhow::Result<Posted> {
@@ -273,7 +294,7 @@ async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> an
             Ok(posted("screen_company", channel, ts, text, &blocks))
         }
         ToolTest::RequestApproval { company, approver, approver_name, signals } =>
-            send_approval(to, channel, trigger, company, approver, approver_name, signals, true, None).await,
+            send_approval(to, channel, trigger, company, approver, approver_name, signals, true, None, None).await,
         ToolTest::CreateMonitor { company, frequency, negative_news } => {
             let (text, blocks) = monitor(&company, frequency, negative_news);
             let ts = to.post(channel, None, &text, &blocks).await?;
@@ -345,6 +366,7 @@ pub(in crate::server) async fn tool_test(
 }
 
 struct Decision {
+    dossier: Option<Uuid>,
     owner: Uuid,
     trigger: Option<Uuid>,
     bot: String,
@@ -371,6 +393,7 @@ fn decision(payload: &Value) -> Option<Decision> {
     let value: Value = serde_json::from_str(action["value"].as_str()?).ok()?;
     let id = |v: &Value| v.as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
     Some(Decision {
+        dossier: value["d"].as_str().and_then(|s|s.parse().ok()),
         trigger: value["g"].as_str().and_then(|s| Uuid::parse_str(s).ok()),
         owner: value["o"].as_str().and_then(|s| Uuid::parse_str(s).ok())?,
         bot: id(&value["b"])?,
@@ -405,8 +428,12 @@ async fn decide(pool: sqlx::PgPool, composio: &'static Composio, d: Decision) {
         Err(e) => { tracing::warn!(error = %e, "approval activity lookup failed"); return; }
     };
     let [trigger] = triggers.as_slice() else { return; };
-    let request_key = format!("{}:{}", d.channel, d.thread);
-    let activity = json!({"kind":"approval_decision","status":verb,"company":d.company,"approver_id":d.user,
+    let request_key = d.dossier.map(|id|format!("dossier:{id}")).unwrap_or_else(||format!("{}:{}", d.channel, d.thread));
+    if let Some(id)=d.dossier {
+        let valid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM gateway_v2.slack_dossiers WHERE id=$1 AND owner_id=$2 AND trigger_id=$3 AND channel_id=$4 AND thread_ts=$5 AND state='checked')").bind(id).bind(d.owner).bind(trigger).bind(&d.channel).bind(&d.thread).fetch_one(&pool).await.unwrap_or(false);
+        if !valid {return;}
+    }
+    let activity = json!({"dossier_id":d.dossier,"kind":"approval_decision","status":verb,"company":d.company,"approver_id":d.user,
         "approver_name":d.user_name,"channel_id":d.channel,"message_ts":d.thread,"request_key":request_key});
     match super::activity::record(&pool, *trigger, d.owner, &format!("decision:{request_key}"), &line, d.test, &activity).await {
         Ok(true) => {},

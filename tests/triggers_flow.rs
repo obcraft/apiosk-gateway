@@ -121,7 +121,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .connect(&database)
         .await
         .unwrap();
-    sqlx::raw_sql("CREATE SCHEMA IF NOT EXISTS auth; CREATE TABLE IF NOT EXISTS auth.users(id uuid PRIMARY KEY); CREATE SCHEMA IF NOT EXISTS gateway_v2; DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='gateway_v2_runtime') THEN CREATE ROLE gateway_v2_runtime; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$; GRANT USAGE ON SCHEMA gateway_v2 TO gateway_v2_runtime; DROP TABLE IF EXISTS gateway_v2.inbound_trigger_events; DROP TABLE IF EXISTS gateway_v2.inbound_triggers;").execute(&pool).await.unwrap();
+    sqlx::raw_sql("CREATE SCHEMA IF NOT EXISTS auth; CREATE TABLE IF NOT EXISTS auth.users(id uuid PRIMARY KEY); CREATE SCHEMA IF NOT EXISTS gateway_v2; DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='gateway_v2_runtime') THEN CREATE ROLE gateway_v2_runtime; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='anon') THEN CREATE ROLE anon; END IF; IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='authenticated') THEN CREATE ROLE authenticated; END IF; END $$; GRANT USAGE ON SCHEMA gateway_v2 TO gateway_v2_runtime; DROP TABLE IF EXISTS gateway_v2.slack_dossiers; DROP TABLE IF EXISTS gateway_v2.inbound_trigger_events; DROP TABLE IF EXISTS gateway_v2.inbound_triggers;").execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!(
         "../supabase/migrations/20261029161428_inbound_triggers.sql"
     ))
@@ -137,6 +137,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .execute(&pool)
         .await
         .unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261030110340_slack_dossiers.sql")).execute(&pool).await.unwrap();
     let calls = Arc::new(Mutex::new(vec![]));
     let provider=serve(Router::new().route("/auth/v1/user",get(auth))
         .route("/connected_accounts",get(||async{Json(json!({"items":[{"id":"ca_owned","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","alias":"Local test Slack","toolkit":{"slug":"slack"}},{"id":"ca_bot","user_id":format!("apiosk_user_{OWNER}"),"status":"ACTIVE","toolkit":{"slug":"slackbot"},"auth_config":{"id":"ac_fixture"}}]}))}))
@@ -538,6 +539,83 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     }
     let cleared = value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":null})).send().await.unwrap()).await;
     assert!(cleared["trigger"]["approver_id"].is_null());
+    // A real screening request creates a durable dossier, not a demo result or a paid call.
+    let mut screening = event.clone();
+    screening["data"]["ts"] = json!("2000.001");
+    screening["data"]["text"] = json!("<@UBOT> screen Example B.V. KVK 12345678");
+    value(send(screening.clone()).await.unwrap()).await;
+    value(send(screening).await.unwrap()).await;
+    let mut dossier = None;
+    for _ in 0..100 {
+        dossier = sqlx::query_scalar::<_,Uuid>("SELECT id FROM gateway_v2.slack_dossiers WHERE owner_id=$1 AND thread_ts='2000.001'").bind(OWNER.parse::<Uuid>().unwrap()).fetch_optional(&pool).await.unwrap();
+        if dossier.is_some() {break}
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    let dossier=dossier.expect("screening must persist a dossier before replying");
+    let read_url=format!("{base}/v2/dossiers/{dossier}");
+    let saved=value(http.get(&read_url).bearer_auth("owner").send().await.unwrap()).await;
+    assert_eq!(saved["state"],"draft");
+    assert!(saved["task_id"].is_null());
+    assert!(saved["snapshot"].is_null());
+    assert!(saved["approval"].is_null());
+    assert_eq!(http.get(&read_url).bearer_auth("other").send().await.unwrap().status(),404);
+    assert_eq!(http.get(&read_url).send().await.unwrap().status(),401);
+    let other=value(http.get(format!("{base}/v2/dossiers")).bearer_auth("other").send().await.unwrap()).await;
+    assert!(other["dossiers"].as_array().unwrap().is_empty());
+    let mut followup=event.clone();
+    followup["data"]["ts"]=json!("2000.002");
+    followup["data"]["thread_ts"]=json!("2000.001");
+    followup["data"]["text"]=json!("status");
+    value(send(followup).await.unwrap()).await;
+    let mut linked=false;
+    for _ in 0..100 {
+        let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.inbound_trigger_events WHERE activity->>'dossier_id'=$1").bind(dossier.to_string()).fetch_one(&pool).await.unwrap();
+        if count>=2 {linked=true;break}
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(linked,"thread follow-up must use the saved dossier");
+    let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.slack_dossiers").fetch_one(&pool).await.unwrap();
+    assert_eq!(count,1,"retries and thread follow-ups must not duplicate dossiers");
+    let posts=calls.lock().unwrap().clone();
+    let posts:Vec<_>=posts.iter().filter(|v|v["thread_ts"]=="2000.001").collect();
+    assert_eq!(posts.len(),2,"one initial card and one status response");
+    assert!(posts.iter().all(|v|v.to_string().contains(&format!("dossier={dossier}"))));
+    assert!(posts.iter().all(|v|!v.to_string().contains("No issues identified")));
+    for role in ["anon","authenticated"] {
+        let allowed:bool=sqlx::query_scalar("SELECT has_table_privilege($1,'gateway_v2.slack_dossiers','SELECT')").bind(role).fetch_one(&pool).await.unwrap();
+        assert!(!allowed);
+    }
+    // Seed a completed local source fixture, then review that exact saved dossier.
+    sqlx::query("UPDATE gateway_v2.slack_dossiers SET company=$2,state='checked',snapshot=$3 WHERE id=$1").bind(dossier).bind(json!({"name":"Example B.V.","kvk_number":"12345678"})).bind(json!({"coverage":[{"category":"registry","status":"checked"},{"category":"sanctions","status":"unavailable"}]})).execute(&pool).await.unwrap();
+    value(http.post(&approver_url).bearer_auth("owner").json(&json!({"approver_id":"U456"})).send().await.unwrap()).await;
+    let mut review=event.clone();review["data"]["ts"]=json!("2000.003");review["data"]["thread_ts"]=json!("2000.001");review["data"]["text"]=json!("request approval");
+    value(send(review).await.unwrap()).await;
+    let mut request=None;
+    for _ in 0..100 {
+        let saved=value(http.get(&read_url).bearer_auth("owner").send().await.unwrap()).await;
+        if saved["approval"]["status"]=="awaiting_approval" {request=Some(saved);break}
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(request.is_some(),"review request must be attached to the saved dossier");
+    let action_value={let posts=calls.lock().unwrap();
+        let dm=posts.iter().rev().find(|v|v["channel"]=="U456").unwrap();
+        assert!(dm.to_string().contains(&format!("dossier={dossier}")));
+        dm["blocks"].as_array().unwrap().iter().find(|b|b["block_id"]=="apiosk_approval").unwrap()["elements"][0]["value"].as_str().unwrap().to_owned()
+    };
+    std::env::set_var("SLACK_SIGNING_SECRET","fixture-signing-secret");
+    let payload=json!({"type":"block_actions","user":{"id":"U456","name":"Sam"},"response_url":"invalid-local-fixture","actions":[{"action_id":"apiosk_approve","value":action_value}]});
+    let raw=url::form_urlencoded::Serializer::new(String::new()).append_pair("payload",&payload.to_string()).finish();
+    let timestamp=chrono::Utc::now().timestamp().to_string();
+    let mut mac=Hmac::<Sha256>::new_from_slice(b"fixture-signing-secret").unwrap();mac.update(format!("v0:{timestamp}:{raw}").as_bytes());
+    let response=http.post(format!("{endpoint}/slack/interactions")).header("x-slack-request-timestamp",timestamp).header("x-slack-signature",format!("v0={}",hex::encode(mac.finalize().into_bytes()))).body(raw).send().await.unwrap();
+    assert_eq!(response.status(),200);
+    let mut approved=false;
+    for _ in 0..100 {
+        let saved=value(http.get(&read_url).bearer_auth("owner").send().await.unwrap()).await;
+        if saved["approval"]["status"]=="approved" {assert_eq!(saved["approval"]["approver_name"],"Sam");assert_eq!(saved["state"],"checked");approved=true;break}
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+    assert!(approved,"the selected approver decision must be visible on the dossier");
     if std::env::var("TRIGGERS_PREVIEW").as_deref() == Ok("true") {
         println!("TRIGGERS_PREVIEW_URL={base}");
         std::future::pending::<()>().await;

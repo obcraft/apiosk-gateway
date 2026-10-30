@@ -228,3 +228,36 @@ References: [Composio triggers](https://docs.composio.dev/docs/triggers),
 [signed event delivery](https://docs.composio.dev/docs/setting-up-triggers/subscribing-to-events),
 [webhook subscriptions](https://docs.composio.dev/reference/api-reference/webhook-subscriptions),
 [Teams connector](https://learn.microsoft.com/connectors/teams/).
+
+### Real screenings and saved dossiers
+
+A message mentioning Apiosk with `screen`, `screening`, `check`, `controleer` or
+`onboard` creates a durable dossier linked to that trigger and Slack thread.
+For example: `@Apiosk screen Example B.V. KVK 12345678`. This is separate from the
+owner-only sample tool: sample screenings remain explicitly fake and never
+create paid source checks.
+
+`Open dossier` opens `/monitoring?dossier=<id>`. The owner selects the exact KVK
+company and sources in the existing company-check wizard, reviews the price,
+and explicitly authorizes the existing task. A thread message or human review
+never authorizes spending. Drafts are assigned to the selected app workspace at
+first preparation; afterward the company, workspace and selected sources are
+immutable for that screening. The original request remains visible in the app.
+
+The durable background queue observes already-authorized tasks, retains the
+same monitoring baseline (including evidence and source coverage), and updates
+the original bot card. It resumes after gateway restarts. It does not execute
+unapproved tasks. Missing sources and possible sanctions matches are not
+reported as clearance. New Slack text is English.
+
+In the same thread, `status` returns the saved dossier; `request approval`
+notifies the trigger's configured approver only after a baseline is saved. That
+review and the selected person's signed decision are linked to the dossier and
+Activity. `monitor` opens the same dossier for the existing schedule/pricing
+flow, reusing its saved task; activation links the resulting schedule back to
+the dossier. Starting a new company or another screening uses a new Slack
+thread. Slack drafts and one-off screenings do not enable recurring monitoring
+for accounts where that feature is disabled.
+
+Storage: `gateway_v2.slack_dossiers`, migration `slack_dossiers`; gateway-runtime
+access only, owner/workspace checks in handlers, no public Data API grants.

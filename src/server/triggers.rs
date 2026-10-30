@@ -1,6 +1,7 @@
-//! Isolated Hello world triggers, plus a short model reply in Slack when a
-//! message mentions Apiosk. Never calls Ask, planning, or billing.
+//! Inbound triggers, Slack conversation and durable dossier handoff.
+//! Slack ingress never authorizes spending; the existing app flow owns purchases.
 mod activity;
+pub(super) mod dossiers;
 mod approvers;
 mod reply;
 mod slack;
@@ -743,13 +744,15 @@ pub(super) async fn composio_webhook(
     // the webhook is answered.
     if let (true, Ok(composio)) = (!fresh_ids.is_empty(), client()) {
         let pool = state.engine.store.pool.clone();
+        let dossier_engine = state.engine.clone();
+        let event_ts = ts.clone();
         let team = data["team_id"].as_str().filter(|s| valid_id(s)).map(str::to_owned);
         let thread = data["thread_ts"].as_str().filter(|s| !s.is_empty() && s.len() <= 150).map(str::to_owned);
         let asker = data["user"].as_str().filter(|s| valid_id(s) && s.starts_with(['U', 'W'])).map(str::to_owned);
         tokio::spawn(async move {
             // A review must use the bot in this conversation's workspace,
             // including when Composio omits team_id from the incoming event.
-            let team = if reviews.is_empty() { team } else {
+            let team = if reviews.is_empty() && team.is_some() { team } else {
                 let info = match composio.trigger_channel(owner, &account, &channel).await {
                     Ok(info) => info,
                     Err(e) => return tracing::warn!(error = %e, "review workspace lookup failed"),
@@ -764,6 +767,20 @@ pub(super) async fn composio_webhook(
                 Err(e) => return tracing::warn!(error = %e, "Apiosk bot lookup failed"),
             };
             let named = bot.as_ref().is_some_and(|b| !b.user.is_empty() && text.contains(&format!("<@{}>", b.user)));
+            if named || reply::mentions(&text) || thread.is_some() {
+                if let Some(ref bot) = bot {
+                    let root = thread.as_deref().unwrap_or(&event_ts);
+                    match dossiers::handle(&dossier_engine,composio,owner,fresh_ids[0],&bot.team,&bot.account,&channel,root,&text,named || reply::mentions(&text)).await {
+                        Ok(true) => return,
+                        Ok(false) => {},
+                        Err(error) => {
+                            tracing::warn!(%error,"Slack dossier request failed");
+                            let _=composio.apiosk_bot_post(owner,&bot.account,&channel,Some(root),"The dossier request could not be completed. Retry in this same thread to recover it; no new purchase has been authorized.",None).await;
+                            return;
+                        }
+                    }
+                }
+            }
             if !reviews.is_empty() {
                 if let Some(bot) = bot {
                     if team.as_deref() != Some(bot.team.as_str()) {
