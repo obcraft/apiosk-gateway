@@ -1,7 +1,7 @@
 //! Slack-to-dossier bridge. No implicit spending, no fabricated screening results.
 //! The existing monitoring prepare/authorize/baseline flow owns source execution.
 use super::super::{monitoring, ServerState};
-use super::{activity, client, slack::esc, tools};
+use super::{activity, client, reply, slack::esc, tools};
 use crate::{auth::Principal, company_checks::Company, engine::Engine, integrations::Composio};
 use axum::{
     extract::{Path, State},
@@ -15,7 +15,7 @@ use sqlx::{PgPool, Row};
 use std::{sync::Arc, time::Duration};
 use uuid::Uuid;
 
-const FIELDS: &str = "jsonb_build_object('id',d.id,'request',d.request_text,'company',d.company,'sources',d.sources,'establishment_number',d.establishment_number,'task_id',d.task_id,'state',d.state,'snapshot',d.snapshot,'order_id',d.order_id,'workspace_id',d.workspace_id,'channel_id',d.channel_id,'created_at',d.created_at,'approval',(select e.activity from gateway_v2.inbound_trigger_events e where e.owner_id=d.owner_id and e.trigger_id=d.trigger_id and e.activity->>'dossier_id'=d.id::text and e.activity->>'kind' in ('request_approval','approval_decision') order by e.id desc limit 1))";
+const FIELDS: &str = "jsonb_build_object('id',d.id,'request',d.request_text,'company',d.company,'company_hint',d.company_hint,'sources',d.sources,'establishment_number',d.establishment_number,'task_id',d.task_id,'state',d.state,'snapshot',d.snapshot,'order_id',d.order_id,'workspace_id',d.workspace_id,'channel_id',d.channel_id,'created_at',d.created_at,'approval',(select e.activity from gateway_v2.inbound_trigger_events e where e.owner_id=d.owner_id and e.trigger_id=d.trigger_id and e.activity->>'dossier_id'=d.id::text and e.activity->>'kind' in ('request_approval','approval_decision') order by e.id desc limit 1))";
 
 pub(super) fn screening_request(text: &str) -> bool {
     text.split(|c: char| !c.is_alphanumeric()).any(|word| {
@@ -36,9 +36,19 @@ pub(super) fn url(id: Uuid) -> String {
 fn section(text: impl Into<String>) -> Value {
     json!({"type":"section","text":{"type":"mrkdwn","text":text.into()}})
 }
-fn card(d: &Value) -> (String, Value) {
+/// Messages are new channel posts, so the asker is tagged to be notified.
+fn tag(asker: Option<&str>) -> String {
+    asker.map(|a| format!("<@{a}> ")).unwrap_or_default()
+}
+fn approval_request(lower: &str) -> bool {
+    lower.contains("request approval") || lower.contains("goedkeuring") || lower.contains("approve")
+}
+fn monitor_request(lower: &str) -> bool {
+    lower.contains("monitor") || lower.contains("volg")
+}
+fn card(d: &Value, asker: Option<&str>) -> (String, Value) {
     let id: Uuid = d["id"].as_str().unwrap_or_default().parse().unwrap();
-    let title = d["company"]["name"].as_str().unwrap_or("Company screening");
+    let title = d["company"]["name"].as_str().or(d["company_hint"].as_str()).unwrap_or("Company screening");
     let state = d["state"].as_str().unwrap_or("draft");
     let summary=match state {
         "checked"=>"Screening saved. Review the source evidence and coverage in the dossier. Potential sanctions matches require human identity review.",
@@ -47,8 +57,9 @@ fn card(d: &Value) -> (String, Value) {
         "prepared"=>"The first-check price is ready. Open the dossier to review the selected sources and explicitly approve the cost.",
         _=>"Dossier created. Open it to choose the exact company and review the first-check price before any purchase.",
     };
-    let text = format!("{}: {summary}", esc(title));
-    let mut blocks = vec![section(format!("*{}*\n{summary}", esc(title)))];
+    let to = tag(asker);
+    let text = format!("{to}{}: {summary}", esc(title));
+    let mut blocks = vec![section(format!("{to}*{}*\n{summary}", esc(title)))];
     if let Some(coverage) = d["snapshot"]["coverage"].as_array() {
         let lines: Vec<_> = coverage
             .iter()
@@ -65,7 +76,7 @@ fn card(d: &Value) -> (String, Value) {
         }
     }
     blocks.push(json!({"type":"actions","elements":[{"type":"button","action_id":"apiosk_open_dossier","text":{"type":"plain_text","text":"Open dossier"},"url":url(id)}]}));
-    blocks.push(section("In this thread, mention me with `status`, `request approval` or `monitor` to continue with this same dossier."));
+    blocks.push(section("Mention me with `status`, `request approval` or `monitor` to continue with this channel's latest dossier, or do so in a reply to this message for this one."));
     (text, Value::Array(blocks))
 }
 async fn get(pool: &PgPool, owner: Uuid, id: Uuid) -> anyhow::Result<Value> {
@@ -137,21 +148,63 @@ pub(in crate::server) async fn prepare(
         Err(r) => return r,
     };
     monitoring::reply(async{
-        crate::company_checks::validate_companies(std::slice::from_ref(&b.company))?;
-        let sources=crate::monitoring::sources(b.sources)?;
-        anyhow::ensure!(b.establishment_number.as_ref().is_none_or(|n|n.len()==12&&n.bytes().all(|b|b.is_ascii_digit())),"Choose an exact twelve-digit establishment number.");
-        s.engine.store.check_spending(&p).await?;
-        // Claim the immutable company/workspace before planning. Every retry reuses id.
-        let saved:Option<Value>=sqlx::query_scalar("UPDATE gateway_v2.slack_dossiers SET company=coalesce(company,$3),workspace_id=CASE WHEN company IS NULL THEN $4 ELSE workspace_id END,sources=CASE WHEN company IS NULL THEN $5 ELSE sources END,establishment_number=CASE WHEN company IS NULL THEN $6 ELSE establishment_number END,updated_at=now() WHERE id=$1 AND owner_id=$2 AND (company IS NULL OR (company=$3 AND workspace_id IS NOT DISTINCT FROM $4 AND sources=$5 AND establishment_number IS NOT DISTINCT FROM $6)) RETURNING company")
-            .bind(id).bind(p.owner).bind(json!(b.company)).bind(p.workspace).bind(json!(sources)).bind(&b.establishment_number).fetch_optional(&s.engine.store.pool).await?;
-        anyhow::ensure!(saved.is_some(),"This dossier already has a different company or source selection. Recover its saved check.");
-        let response=monitoring::prepare_check(&s.engine,&p,id,&b.company,&sources,b.establishment_number.as_deref()).await?;
-        if let Some(state)=&response.state {
-            sqlx::query("UPDATE gateway_v2.slack_dossiers SET task_id=$3,state=CASE WHEN state='draft' THEN 'prepared' ELSE state END,next_refresh_at=now(),updated_at=now() WHERE id=$1 AND owner_id=$2 AND (task_id IS NULL OR task_id=$3)")
-                .bind(id).bind(p.owner).bind(state.state_ref).execute(&s.engine.store.pool).await?;
-        }
+        let response=claim_and_prepare(&s.engine,&p,id,&b.company,b.sources,b.establishment_number).await?;
         Ok(serde_json::to_value(response)?)
     }.await)
+}
+/// Shared by the App and a Slack request that names one exact company: claims
+/// the immutable company/workspace, then prices the first check. Pricing never
+/// spends; the App's approval still owns the purchase.
+async fn claim_and_prepare(engine:&Engine,p:&Principal,id:Uuid,company:&Company,sources:Vec<String>,establishment:Option<String>)->anyhow::Result<crate::protocol::Response> {
+    crate::company_checks::validate_companies(std::slice::from_ref(company))?;
+    let sources=crate::monitoring::sources(sources)?;
+    anyhow::ensure!(establishment.as_ref().is_none_or(|n|n.len()==12&&n.bytes().all(|b|b.is_ascii_digit())),"Choose an exact twelve-digit establishment number.");
+    engine.store.check_spending(p).await?;
+    // Claim the immutable company/workspace before planning. Every retry reuses id.
+    let saved:Option<Value>=sqlx::query_scalar("UPDATE gateway_v2.slack_dossiers SET company=coalesce(company,$3),workspace_id=CASE WHEN company IS NULL THEN $4 ELSE workspace_id END,sources=CASE WHEN company IS NULL THEN $5 ELSE sources END,establishment_number=CASE WHEN company IS NULL THEN $6 ELSE establishment_number END,updated_at=now() WHERE id=$1 AND owner_id=$2 AND (company IS NULL OR (company=$3 AND workspace_id IS NOT DISTINCT FROM $4 AND sources=$5 AND establishment_number IS NOT DISTINCT FROM $6)) RETURNING company")
+        .bind(id).bind(p.owner).bind(json!(company)).bind(p.workspace).bind(json!(sources)).bind(&establishment).fetch_optional(&engine.store.pool).await?;
+    anyhow::ensure!(saved.is_some(),"This dossier already has a different company or source selection. Recover its saved check.");
+    let response=monitoring::prepare_check(engine,p,id,company,&sources,establishment.as_deref()).await?;
+    if let Some(state)=&response.state {
+        sqlx::query("UPDATE gateway_v2.slack_dossiers SET task_id=$3,state=CASE WHEN state='draft' THEN 'prepared' ELSE state END,next_refresh_at=now(),updated_at=now() WHERE id=$1 AND owner_id=$2 AND (task_id IS NULL OR task_id=$3)")
+            .bind(id).bind(p.owner).bind(state.state_ref).execute(&engine.store.pool).await?;
+    }
+    Ok(response)
+}
+/// The price in the account's display currency, rounded up to the cent like
+/// the App's quote ceiling so Slack never shows less than the approval amount.
+fn display_price(atomic: &str, display: &Value) -> Option<String> {
+    let micro: u128 = atomic.parse().ok()?;
+    let currency = display["currency"].as_str().unwrap_or("USD");
+    let rate = display["rate"].as_str().unwrap_or("1");
+    let (whole, fraction) = rate.split_once('.').unwrap_or((rate, ""));
+    let fraction = fraction.get(..8).unwrap_or(fraction);
+    let scale = 10u128.pow(fraction.len() as u32);
+    let rate = whole.parse::<u128>().ok()? * scale + if fraction.is_empty() { 0 } else { fraction.parse::<u128>().ok()? };
+    let divisor = 10_000 * scale;
+    let cents = (micro * rate).div_ceil(divisor);
+    let symbol = match currency { "EUR" => "€".to_owned(), "USD" => "$".to_owned(), other => format!("{other} ") };
+    Some(format!("{symbol}{}.{:02}", cents / 100, cents % 100))
+}
+/// A priced first check as its own channel message, not a reply to the request.
+/// The button only opens the dossier at this price: approval stays in the App.
+fn price_card(id: Uuid, company: &Company, price: &str, sources: &[String], asker: Option<&str>) -> (String, Value) {
+    let mut blocks = vec![
+        json!({"type":"header","text":{"type":"plain_text","text":format!("Screening: {}", company.name)}}),
+        json!({"type":"section","fields":[
+            {"type":"mrkdwn","text":format!("*KVK*\n{}", esc(&company.kvk_number))},
+            {"type":"mrkdwn","text":format!("*First-check price*\n{}", esc(price))}
+        ]}),
+    ];
+    if !sources.is_empty() {
+        let lines: Vec<_> = sources.iter().take(6).map(|s| format!("• {}", esc(s))).collect();
+        blocks.push(section(format!("*Sources*\n{}", lines.join("\n"))));
+    }
+    blocks.push(json!({"type":"actions","elements":[{"type":"button","action_id":"apiosk_open_dossier","style":"primary","text":{"type":"plain_text","text":format!("Approve {price}")},"url":url(id)}]}));
+    let requested = asker.map(|a| format!("Requested by <@{a}> · ")).unwrap_or_default();
+    blocks.push(json!({"type":"context","elements":[{"type":"mrkdwn","text":format!("{requested}Approve opens Apiosk at this price. Nothing is bought from Slack.")}]}));
+    blocks.push(section("Mention me with `status`, `request approval` or `monitor` to continue with this channel's latest dossier, or do so in a reply to this message for this one."));
+    (format!("{}: first check {price}. Approve it in Apiosk.", esc(&company.name)), Value::Array(blocks))
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -177,7 +230,10 @@ pub(in crate::server) async fn link(
 }
 
 /// Called only for authenticated, deduplicated, non-bot events mentioning Apiosk.
-/// Thread identity, not a model-supplied dossier ID, selects the dossier.
+/// Thread identity, not a model-supplied dossier ID, selects the dossier: the
+/// asker's thread (`root`), a reply to Apiosk's dossier message, or for a
+/// top-level follow-up the channel's latest dossier. Apiosk answers with new
+/// channel messages, in a thread only when the asker wrote in one (`thread`).
 pub(super) async fn handle(
     engine: &Engine,
     c: &Composio,
@@ -186,39 +242,82 @@ pub(super) async fn handle(
     team: &str,
     bot: &str,
     channel: &str,
-    thread: &str,
+    root: &str,
+    thread: Option<&str>,
+    asker: Option<&str>,
     text: &str,
     may_create: bool,
 ) -> anyhow::Result<bool> {
     let pool = &engine.store.pool;
-    let existing:Option<Uuid>=sqlx::query_scalar("SELECT id FROM gateway_v2.slack_dossiers WHERE owner_id=$1 AND trigger_id=$2 AND team_id=$3 AND channel_id=$4 AND thread_ts=$5")
-        .bind(owner).bind(trigger).bind(team).bind(channel).bind(thread).fetch_optional(pool).await?;
+    let lower = text.to_lowercase();
+    let mut existing:Option<(Uuid,String)>=sqlx::query_as("SELECT id,thread_ts FROM gateway_v2.slack_dossiers WHERE owner_id=$1 AND trigger_id=$2 AND team_id=$3 AND channel_id=$4 AND (thread_ts=$5 OR message_ts=$5) LIMIT 1")
+        .bind(owner).bind(trigger).bind(team).bind(channel).bind(root).fetch_optional(pool).await?;
+    let follow_up = lower.contains("status") || approval_request(&lower) || monitor_request(&lower);
+    if existing.is_none() && thread.is_none() && may_create && follow_up && !screening_request(text) {
+        existing=sqlx::query_as("SELECT id,thread_ts FROM gateway_v2.slack_dossiers WHERE owner_id=$1 AND trigger_id=$2 AND team_id=$3 AND channel_id=$4 ORDER BY created_at DESC LIMIT 1")
+            .bind(owner).bind(trigger).bind(team).bind(channel).fetch_optional(pool).await?;
+    }
     if existing.is_none() && (!may_create || !screening_request(text)) {
         return Ok(false);
     }
-    let id = if let Some(id) = existing {
-        id
-    } else {
-        let id = Uuid::new_v4();
-        sqlx::query_scalar("INSERT INTO gateway_v2.slack_dossiers(id,owner_id,trigger_id,team_id,channel_id,thread_ts,request_text) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(trigger_id,thread_ts) DO UPDATE SET thread_ts=excluded.thread_ts RETURNING id")
-            .bind(id).bind(owner).bind(trigger).bind(team).bind(channel).bind(thread).bind(text).fetch_one(pool).await?
+    let to = tag(asker);
+    let found = existing.is_some();
+    let exact = if found { None } else { crate::company_checks::single_company(text) };
+    let (id, dossier_thread) = match existing {
+        Some(found) => found,
+        None => {
+            // An exact company is priced at once and needs no acknowledgement.
+            let hint = match &exact {
+                Some(company) => Some(company.name.clone()),
+                None => {
+                    // Acknowledged while the company name is detected; the card follows.
+                    let ack = format!("{to}Yes, I'll set up a screening dossier for this request. I'll post it here as soon as it's created.");
+                    let (acked, hint) = tokio::join!(
+                        c.apiosk_bot_post(owner, bot, channel, thread, &ack, None),
+                        reply::company_name(text),
+                    );
+                    if let Err(e) = acked {
+                        tracing::warn!(error = %e, "Slack dossier acknowledgement not posted");
+                    }
+                    hint
+                }
+            };
+            let id = Uuid::new_v4();
+            let id = sqlx::query_scalar("INSERT INTO gateway_v2.slack_dossiers(id,owner_id,trigger_id,team_id,channel_id,thread_ts,request_text,company_hint) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(trigger_id,thread_ts) DO UPDATE SET thread_ts=excluded.thread_ts RETURNING id")
+                .bind(id).bind(owner).bind(trigger).bind(team).bind(channel).bind(root).bind(text).bind(hint).fetch_one(pool).await?;
+            (id, root.to_owned())
+        }
     };
     let d = get(pool, owner, id).await?;
     if !d["company"].is_null() {
         engine.store.check_workspace(&Principal { owner, connection:None, workspace:d["workspace_id"].as_str().and_then(|v|v.parse().ok()) }).await?;
     }
-    let lower = text.to_lowercase();
-    if existing.is_some()
-        && (lower.contains("request approval")
-            || lower.contains("goedkeuring")
-            || lower.contains("approve"))
-    {
+    if let (false, Some(company)) = (found, &exact) {
+        // Priced in the personal account, where the dossier link opens. Any
+        // refusal (spending, sources) falls back to the ordinary dossier card.
+        let p = Principal { owner, connection: None, workspace: None };
+        match claim_and_prepare(engine, &p, id, company, Vec::new(), None).await {
+            Ok(response) => if let Some(proposal) = &response.proposal {
+                let display = engine.store.money_display(owner).await;
+                let price = display_price(&proposal.max_total_atomic, &display)
+                    .ok_or_else(|| anyhow::anyhow!("first-check price unreadable"))?;
+                let (line, blocks) = price_card(id, company, &price, &proposal.steps, asker);
+                // Its own channel message, never a thread reply to the request.
+                let ts = c.apiosk_bot_post(owner, bot, channel, None, &line, Some(&blocks)).await?;
+                sqlx::query("UPDATE gateway_v2.slack_dossiers SET message_ts=coalesce(message_ts,$2),published_state=CASE WHEN message_ts IS NULL THEN state ELSE published_state END WHERE id=$1").bind(id).bind(&ts).execute(pool).await?;
+                activity::record(pool,trigger,owner,&format!("response:{channel}:{ts}"),&line,false,&json!({"kind":"screen_company","status":"prepared","dossier_id":id,"dossier_url":url(id),"channel_id":channel,"message_ts":ts,"preview":activity::preview(&blocks)})).await?;
+                return Ok(true);
+            },
+            Err(error) => tracing::warn!(%error, "Slack dossier price not prepared"),
+        }
+    }
+    if found && approval_request(&lower) {
         if d["state"] == "checked" {
             let approver:Option<(String,String)>=sqlx::query_as("SELECT approver_id,approver_name FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2 AND approver_id IS NOT NULL")
                 .bind(trigger).bind(owner).fetch_optional(pool).await?;
             if let Some((user, name)) = approver {
                 tools::request_dossier_review(
-                    pool, c, owner, bot, trigger, channel, thread, &d, &user, &name,
+                    pool, c, owner, bot, trigger, channel, &dossier_thread, &d, &user, &name,
                 )
                 .await?;
                 return Ok(true);
@@ -229,17 +328,18 @@ pub(super) async fn handle(
         } else {
             "Complete the source check and review its evidence before requesting dossier approval."
         };
-        c.apiosk_bot_post(owner, bot, channel, Some(thread), text, None)
+        c.apiosk_bot_post(owner, bot, channel, thread, &format!("{to}{text}"), None)
             .await?;
         return Ok(true);
     }
-    let (mut line, mut blocks) = card(&d);
-    if existing.is_some() && (lower.contains("monitor") || lower.contains("volg")) {
-        line="Open this dossier and choose Set up monitoring to review the schedule, delivery and price. Its saved first check will be reused.".into();
+    let monitor = found && monitor_request(&lower);
+    let (mut line, mut blocks) = card(&d, if monitor { None } else { asker });
+    if monitor {
+        line=format!("{to}Open this dossier and choose Set up monitoring to review the schedule, delivery and price. Its saved first check will be reused.");
         blocks.as_array_mut().unwrap().insert(0, section(&line));
     }
     let ts = c
-        .apiosk_bot_post(owner, bot, channel, Some(thread), &line, Some(&blocks))
+        .apiosk_bot_post(owner, bot, channel, thread, &line, Some(&blocks))
         .await?;
     sqlx::query("UPDATE gateway_v2.slack_dossiers SET message_ts=coalesce(message_ts,$2),published_state=CASE WHEN message_ts IS NULL THEN state ELSE published_state END WHERE id=$1").bind(id).bind(&ts).execute(pool).await?;
     activity::record(pool,trigger,owner,&format!("response:{channel}:{ts}"),&line,false,&json!({"kind":"screen_company","status":d["state"],"dossier_id":id,"dossier_url":url(id),"channel_id":channel,"message_ts":ts,"preview":activity::preview(&blocks)})).await?;
@@ -301,11 +401,18 @@ async fn refresh(engine: &Engine, owner: Uuid, id: Uuid) -> anyhow::Result<()> {
         anyhow::ensure!(bot.team == team, "Slack workspace changed");
         let channel: String = row.get("channel_id");
         let ts: String = row.get("message_ts");
-        let (line, blocks) = card(&d);
+        let (line, blocks) = card(&d, None);
         c.apiosk_bot_update(owner, &bot.account, &channel, &ts, &line, &blocks)
             .await?;
         let state = d["state"].as_str().unwrap();
-        activity::record(pool,row.get("trigger_id"),owner,&format!("dossier:{id}:{state}"),&line,false,&json!({"kind":"screen_company","status":state,"dossier_id":id,"dossier_url":url(id),"channel_id":channel,"message_ts":ts,"preview":activity::preview(&blocks)})).await?;
+        let fresh = activity::record(pool,row.get("trigger_id"),owner,&format!("dossier:{id}:{state}"),&line,false,&json!({"kind":"screen_company","status":state,"dossier_id":id,"dossier_url":url(id),"channel_id":channel,"message_ts":ts,"preview":activity::preview(&blocks)})).await?;
+        // Results are announced once as a new channel message; the earlier
+        // card is only edited, which Slack does not notify anyone about.
+        if fresh && matches!(state, "checked" | "failed") {
+            if let Err(e) = c.apiosk_bot_post(owner, &bot.account, &channel, None, &line, Some(&blocks)).await {
+                tracing::warn!(error = %e, "Slack dossier result not posted");
+            }
+        }
         sqlx::query("UPDATE gateway_v2.slack_dossiers SET published_state=$2 WHERE id=$1")
             .bind(id)
             .bind(state)
@@ -342,12 +449,57 @@ mod tests {
     #[test]
     fn a_dossier_card_preserves_coverage_without_claiming_clearance() {
         let d = json!({"id":Uuid::new_v4(),"state":"checked","company":{"name":"<@U123>","kvk_number":"12345678"},"snapshot":{"coverage":[{"category":"sanctions","status":"unavailable"}]}});
-        let (text, blocks) = card(&d);
+        let (text, blocks) = card(&d, None);
         assert!(text.contains("&lt;@U123&gt;"));
         assert!(blocks.to_string().contains("sanctions: unavailable"));
         assert!(text.contains("human identity review"));
         assert!(!blocks.to_string().contains("No issues identified"));
         assert!(!blocks.to_string().contains("News from the last 7 days"));
+    }
+    #[test]
+    fn a_new_dossier_card_tags_the_asker_and_links_the_dossier() {
+        let d = json!({"id":Uuid::new_v4(),"state":"draft"});
+        let (text, blocks) = card(&d, Some("U42"));
+        assert!(text.starts_with("<@U42> Company screening: Dossier created."));
+        assert!(blocks[0]["text"]["text"].as_str().unwrap().starts_with("<@U42> *Company screening*"));
+        assert!(blocks.to_string().contains("apiosk_open_dossier"));
+        let (text, _) = card(&d, None);
+        assert!(!text.contains("<@"));
+    }
+    #[test]
+    fn a_slack_price_never_rounds_below_the_approval_amount() {
+        let eur = json!({"currency":"EUR","rate":"0.92000000"});
+        // €0.17000036, shown like the App's quote ceiling.
+        assert_eq!(display_price("184783", &eur).as_deref(), Some("€0.18"));
+        assert_eq!(display_price("1", &eur).as_deref(), Some("€0.01"));
+        assert_eq!(display_price("1000000", &eur).as_deref(), Some("€0.92"));
+        assert_eq!(display_price("46000", &json!({"currency":"USD","rate":"1"})).as_deref(), Some("$0.05"));
+        assert_eq!(display_price("not a number", &eur), None);
+    }
+    #[test]
+    fn a_priced_screening_is_its_own_message_and_approval_opens_the_app() {
+        let id = Uuid::new_v4();
+        let company = Company { name: "Mollie B.V.".into(), kvk_number: "30204462".into() };
+        let (text, blocks) = price_card(id, &company, "€0.17", &["KVK basisprofiel".into(), "<!channel> sanctions".into()], Some("U42"));
+        assert!(!text.starts_with("<@"), "a new message, not a reply to the asker");
+        assert_eq!(text, "Mollie B.V.: first check €0.17. Approve it in Apiosk.");
+        assert_eq!(blocks[0]["text"]["text"], "Screening: Mollie B.V.");
+        let button = blocks.as_array().unwrap().iter().find(|b| b["type"] == "actions").unwrap()["elements"][0].clone();
+        assert_eq!(button["text"]["text"], "Approve €0.17");
+        assert_eq!(button["url"], url(id));
+        assert!(button.get("value").is_none(), "the button carries no approval token");
+        let all = blocks.to_string();
+        assert!(all.contains("Requested by <@U42>") && all.contains("Nothing is bought from Slack"));
+        assert!(all.contains("&lt;!channel&gt;") && !all.contains("<!channel>"));
+    }
+    #[test]
+    fn only_one_exact_company_is_priced_from_slack() {
+        let one = crate::company_checks::single_company("<@U0BOT> screen Mollie B.V. KVK 30204462").unwrap();
+        assert_eq!((one.name.as_str(), one.kvk_number.as_str()), ("Mollie B.V.", "30204462"));
+        let labelled = crate::company_checks::single_company("<@U0BOT> Screen Mollie B.V. (KVK-nummer 30204462) please").unwrap();
+        assert_eq!(labelled.name, "Mollie B.V.");
+        assert!(crate::company_checks::single_company("<@U0BOT> screen Mollie B.V.").is_none());
+        assert!(crate::company_checks::single_company("<@U0BOT> screen Mollie B.V. (KVK 30204462) and Coolblue B.V. (KVK 24330087)").is_none());
     }
     #[test]
     fn screening_intent_is_separate_from_conversation() {

@@ -54,8 +54,8 @@ op. Alleen deployment vereist `FLY_API_TOKEN`: een deploy token beperkt tot
 repositorysecret. Alleen de push/deploy-stap in de production-job ontvangt dit token.
 
 Een gewone push naar `main`, een pull request of een handmatige **Gateway CI**-run
-voert de Rust-controles, imagebuild en imageverificatie uit. CI rolt niets naar
-Fly uit. Pull requests gebruiken dezelfde controles zonder productiecredentials.
+voert de Rust-controles, imagebuild en imageverificatie uit. CI zelf rolt niets
+naar Fly uit; na een push naar `main` doet **Gateway release** dat. Pull requests gebruiken dezelfde controles zonder productiecredentials.
 Alleen een CI-run op `main` bewaart de geverifieerde image als
 `gateway-image-<volledige commit>`, gedurende zeven dagen. De release gebruikt
 dit artifact alleen wanneer de volledige CI-run succesvol is afgerond,
@@ -63,9 +63,12 @@ inclusief de Rust-suite en native-runtimetest.
 
 ## Een productieversie uitrollen
 
-Open **Actions → Gateway release → Run workflow** en selecteer `main`. De
-releaseworkflow start uitsluitend handmatig op `main` en gebruikt precies de
-commit waarop die run is gestart. Een gewone commit publiceert niets naar Fly.
+Elke push naar `main` start **Gateway release** automatisch. De release wacht op
+de geslaagde **Gateway CI**-run van exact die commit en rolt die daarna uit;
+faalt CI, dan wordt niets uitgerold. Een lokale commit publiceert niets: pas de
+push naar GitHub start de uitrol. Om `main` opnieuw uit te rollen, open
+**Actions → Gateway release → Run workflow** en selecteer `main`. Een release
+gebruikt altijd precies de commit waarop die run is gestart.
 
 De workflow:
 
@@ -103,8 +106,9 @@ stilzwijgend wordt meegenomen.
 Productiedeployments worden geserialiseerd. Een lopende deployment wordt niet
 afgebroken door een volgende workflowrun. Vlak vóór de registry-push en de
 rollout moet de releasecommit nog steeds de actuele `main` zijn. Een oudere
-release die in de wachtrij stond, stopt wanneer `main` ondertussen verder is;
-een bewuste rollback gebruikt de hieronder beschreven herstelprocedure.
+release die in de wachtrij stond, stopt wanneer `main` ondertussen verder is.
+Na een push stopt die zonder fout, omdat de release van de nieuwere push die
+commit uitrolt; een handmatige run stopt met een fout. Een bewuste rollback gebruikt de hieronder beschreven herstelprocedure.
 De bestaande Fly-runtimeconfiguratie,
 betaalflags en secrets blijven behouden. De pipeline voert geen aankopen of
 databasewijzigingen uit.

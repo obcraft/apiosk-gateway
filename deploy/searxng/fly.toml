@@ -1,0 +1,16 @@
+# Private SearXNG for the free web and news source. No [[services]]: it has no
+# public address and is reached only on Fly's private network, by the gateway
+# at http://apiosk-searxng.internal:8080 (SEARXNG_URL).
+app = "apiosk-searxng"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory = "512mb"
+
+[[restart]]
+  policy = "always"

@@ -11,3 +11,6 @@
 
 __pycache__/
 .DS_Store
+
+# Local checkout of the retired executor; not part of this repository.
+/legacy-executor/

@@ -32,6 +32,19 @@ Write like a friendly colleague: natural, short and to the point. Usually one se
 Answer greetings and small talk normally, for example \"How are you?\" -> \"I'm fine, thanks for asking! How about you?\".
 Never state facts about a company, person, invoice, price or result, and never claim you checked or looked anything up. If the message asks for a check, lookup or research, say in one sentence that checks from Slack are not available yet and that they can ask it in the app.
 Plain text only: no headings or lists. Never write the word Apiosk.";
+const COMPANY_PROMPT: &str = "Find the company that this Slack message asks to screen, check or onboard. Reply with only that company's name exactly as it is written in the message, including a legal form such as B.V., or with NONE when the message names no company. No other words.";
+
+/// One kind of model call: its instructions and limits.
+struct Prompt {
+    surface: &'static str,
+    system: &'static str,
+    max_tokens: u32,
+    temperature: f32,
+    deadline: Duration,
+}
+const REPLY: Prompt = Prompt { surface: "trigger-reply", system: PROMPT, max_tokens: 200, temperature: 0.3, deadline: DEADLINE };
+/// Short deadline: the dossier card waits for the company name.
+const COMPANY: Prompt = Prompt { surface: "trigger-company", system: COMPANY_PROMPT, max_tokens: 40, temperature: 0.0, deadline: Duration::from_secs(5) };
 
 /// "apiosk" as its own word, so "@apiosk", "Apiosk," and "*apiosk*" count but
 /// a link or address such as app.apiosk.com does not.
@@ -138,19 +151,35 @@ pub(super) async fn compose(message: &str) -> Result<String> {
     write(model().ok_or_else(|| anyhow!("unconfigured"))?, message).await
 }
 
+/// The company a screening request names, exactly as written in it, to
+/// prefill the dossier's company search. None without a model or a name.
+pub(super) async fn company_name(message: &str) -> Option<String> {
+    match ask(model()?, &COMPANY, message, |body| company_text(body, message)).await {
+        Ok(name) => name,
+        Err(error) => {
+            tracing::warn!(surface = "trigger-company", reason = %error, "company name not detected");
+            None
+        }
+    }
+}
+
+async fn write(model: &Model, message: &str) -> Result<String> {
+    ask(model, &REPLY, message, reply_text).await
+}
+
 /// One bounded attempt. Errors carry a fixed reason, never the prompt, reply,
 /// key or provider detail.
-async fn write(model: &Model, message: &str) -> Result<String> {
+async fn ask<T>(model: &Model, prompt: &Prompt, message: &str, check: impl Fn(&Value) -> Result<T>) -> Result<T> {
     let payload = json!({
-        "model": model.name, "temperature": 0.3, "max_tokens": 200,
-        "messages": [{"role":"system","content":PROMPT},{"role":"user","content":clip(message, MAX_MESSAGE_CHARS)}]
+        "model": model.name, "temperature": prompt.temperature, "max_tokens": prompt.max_tokens,
+        "messages": [{"role":"system","content":prompt.system},{"role":"user","content":clip(message, MAX_MESSAGE_CHARS)}]
     });
-    let mut call = telemetry::model_call("trigger-reply", 1, &model.name, serde_json::to_vec(&payload)?.len());
+    let mut call = telemetry::model_call(prompt.surface, 1, &model.name, serde_json::to_vec(&payload)?.len());
     let fetched = async {
         telemetry::record_model_http_request();
         let response = model.http.post(ENDPOINT).bearer_auth(&model.key)
             .header("X-Title", "Apiosk trigger reply")
-            .timeout(DEADLINE).json(&payload).send().await
+            .timeout(prompt.deadline).json(&payload).send().await
             .map_err(|error| if error.is_timeout() { (ErrorClass::Timeout, "timeout") } else { (ErrorClass::Transport, "transport_failure") })?;
         if !response.status().is_success() {
             return Err((ErrorClass::upstream(response.status().as_u16()), "http_status"));
@@ -167,7 +196,7 @@ async fn write(model: &Model, message: &str) -> Result<String> {
         }
     };
     call.received(&body, output_bytes);
-    match reply_text(&body) {
+    match check(&body) {
         Ok(text) => {
             call.finish(Outcome::Ok, "validated");
             Ok(text)
@@ -189,6 +218,22 @@ fn reply_text(body: &Value) -> Result<String> {
     // Apiosk would then answer itself.
     ensure!(!mentions(text), "self_mention");
     Ok(text.to_owned())
+}
+
+fn company_text(body: &Value, message: &str) -> Result<Option<String>> {
+    ensure!(body["error"].is_null(), "provider_error");
+    let choice = body.pointer("/choices/0").ok_or_else(|| anyhow!("missing_choice"))?;
+    ensure!(!matches!(choice["finish_reason"].as_str(), Some("length" | "content_filter")), "incomplete_reply");
+    let name = choice["message"]["content"].as_str().unwrap_or_default()
+        .trim().trim_matches(|c| matches!(c, '"' | '\'' | '`' | '*')).trim();
+    if name.is_empty() || name.eq_ignore_ascii_case("none") {
+        return Ok(None);
+    }
+    // The model only selects: a name that is not in the message is rejected.
+    let plain = |s: &str| s.replace(['*', '_'], "").split_whitespace().collect::<Vec<_>>().join(" ").to_lowercase();
+    ensure!((2..=160).contains(&name.chars().count()) && !name.contains(['\n', '<', '>', '@']), "invalid_name");
+    ensure!(plain(message).contains(&plain(name)), "name_not_in_message");
+    Ok(Some(name.to_owned()))
 }
 
 fn clip(text: &str, chars: usize) -> &str {
@@ -231,6 +276,17 @@ mod tests {
         assert!(reply_text(&body(&"a".repeat(MAX_REPLY_CHARS + 1), "stop")).is_err());
         assert!(reply_text(&body("Apiosk is doing great!", "stop")).is_err());
         assert!(reply_text(&json!({"error":{"message":"x"},"choices":[]})).is_err());
+    }
+
+    #[test]
+    fn company_name_is_only_what_the_message_says() {
+        let body = |content: &str| json!({"choices":[{"finish_reason":"stop","message":{"content":content}}]});
+        let message = "<@U0BOT> Can we screen *Coolblue B.V.* to make sure we can trust them ?";
+        assert_eq!(company_text(&body("\"Coolblue B.V.\""), message).unwrap().as_deref(), Some("Coolblue B.V."));
+        assert_eq!(company_text(&body("coolblue b.v."), message).unwrap().as_deref(), Some("coolblue b.v."));
+        assert_eq!(company_text(&body("NONE"), "status").unwrap(), None);
+        assert!(company_text(&body("Coolblue Holding B.V."), message).is_err());
+        assert!(company_text(&body("<@U0BOT>"), message).is_err());
     }
 
     #[test]
