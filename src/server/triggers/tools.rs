@@ -131,7 +131,7 @@ fn approval_card(company: &str, channel: &str, signals: bool, value: &str) -> (S
     (format!("Approval requested for {}", esc(company)), blocks)
 }
 
-fn monitor(company: &str, frequency: Frequency, negative_news: bool) -> (String, Value) {
+pub(super) fn monitor(company: &str, frequency: Frequency, negative_news: bool) -> (String, Value) {
     let (label, days) = match frequency {
         Frequency::Daily => ("Daily", 1),
         Frequency::Weekly => ("Weekly", 7),
@@ -263,6 +263,18 @@ pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, own
         },
         Err(e) => tracing::warn!(error = %e, "review request not delivered"),
     }
+}
+
+/// The recording demo's review request: the ordinary DM and decision, for a named company.
+#[allow(clippy::too_many_arguments)]
+pub(super) async fn request_named_review(pool: &sqlx::PgPool, composio: &Composio, owner: Uuid, bot: &str,
+    trigger: Uuid, channel: &str, company: &str, message: &str, approver: &str, name: &str) -> anyhow::Result<()> {
+    let posted = send_approval(Poster { composio, owner, bot }, channel, trigger, company.into(),
+        approver.into(), Some(name.into()), false, false, Some(message), None).await?;
+    let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
+    super::activity::record(pool, trigger, owner, &format!("response:{channel}:{ts}"), &posted.text, false, &posted.activity).await?;
+    if let Some(e) = posted.delivery_error { return Err(e.into()); }
+    Ok(())
 }
 
 pub(super) async fn request_dossier_review(pool:&sqlx::PgPool,c:&Composio,owner:Uuid,bot:&str,trigger:Uuid,channel:&str,thread:&str,d:&Value,approver:&str,name:&str)->anyhow::Result<()> {
@@ -477,6 +489,8 @@ pub(in crate::server) async fn slack_interactions(State(state): State<ServerStat
     };
     if let (Some(d), Ok(composio)) = (decision(&payload), client()) {
         tokio::spawn(decide(state.engine.store.pool.clone(), composio, d));
+    } else if let (Some(approval), Ok(composio)) = (super::demo::approval(&payload), client()) {
+        tokio::spawn(super::demo::approve(state.engine.store.pool.clone(), composio, approval));
     }
     StatusCode::OK.into_response()
 }

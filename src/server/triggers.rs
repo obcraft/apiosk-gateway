@@ -3,6 +3,7 @@
 mod activity;
 pub(super) mod dossiers;
 mod approvers;
+mod demo;
 mod reply;
 mod slack;
 mod tools;
@@ -820,6 +821,13 @@ pub(super) async fn composio_webhook(
             if named || reply::mentions(&text) || thread.is_some() {
                 if let Some(ref bot) = bot {
                     let root = thread.as_deref().unwrap_or(&event_ts);
+                    if demo::enabled_for(owner) && (named || reply::mentions(&text)) {
+                        match demo::handle(&pool, composio, owner, fresh_ids[0], &bot.account, &channel, asker.as_deref(), &text).await {
+                            Ok(true) => return tracing::info!(surface = "trigger-demo", "demo reply posted"),
+                            Ok(false) => {},
+                            Err(error) => return tracing::warn!(%error, "Slack demo reply failed"),
+                        }
+                    }
                     match dossiers::handle(&dossier_engine,composio,owner,fresh_ids[0],&bot.team,&bot.account,&channel,root,thread.as_deref(),asker.as_deref(),&text,named || reply::mentions(&text)).await {
                         Ok(true) => return tracing::info!(surface = "trigger-dossier", reply_ms = received.elapsed().as_millis() as u64, "dossier reply posted"),
                         Ok(false) => {},

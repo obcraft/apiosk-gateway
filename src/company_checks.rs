@@ -299,6 +299,15 @@ fn named_kvk_numbers(question: &str) -> Option<Vec<Company>> {
     (!companies.is_empty()).then_some(companies)
 }
 
+/// The one company a request names with its KVK number, such as a Slack
+/// "screen Mollie B.V. KVK 30204462". Several companies or none: None.
+pub fn single_company(text: &str) -> Option<Company> {
+    match named_kvk_numbers(text)?.as_slice() {
+        [company] => Some(company.clone()),
+        _ => None,
+    }
+}
+
 /// The text without a trailing KVK label and its punctuation, and whether a
 /// label was removed.
 fn strip_label(mut text: &str) -> (&str, bool) {
