@@ -26,6 +26,7 @@ async fn ordinary_api_executes_without_wallet_or_network_and_records_internal_re
     let db = crate::db::Database {
         pool: pool.clone(),
         log_pool: pool.clone(),
+        request_log_queue: crate::db::request_log::RequestLogQueue::new(),
     };
     // Pass the disposable database explicitly; no process-global credential
     // needs changing and neither payer nor external credentials are constructed.

@@ -17,6 +17,7 @@ mod models;
 pub mod plans;
 mod policies;
 mod provider_stats;
+pub(crate) mod request_log;
 mod resell;
 mod resolvers;
 mod source_providers;
@@ -63,17 +64,9 @@ pub(crate) use usage::endpoint_price_supports_credits;
 #[derive(Clone)]
 pub struct Database {
     pub(crate) pool: PgPool,
-    /// Dedicated pool for the per-request gateway request log.
-    ///
-    /// The request log is written from `traffic::track_request` under a 250ms
-    /// budget. On the main pool it competes with the catalog reads that back
-    /// `/.well-known/x402`, which run 1.4-2.0s; under crawler load the insert
-    /// spent its whole budget waiting to acquire a connection and the event was
-    /// dropped ("Timed out logging gateway request event"), so the dashboard
-    /// under-reported real traffic. A separate pool means neither side can
-    /// starve the other. Falls back to `pool` if it cannot be built, which is
-    /// exactly the previous behaviour.
+    /// Dedicated pool and bounded background work for best-effort request logs.
     pub(crate) log_pool: PgPool,
+    pub(crate) request_log_queue: request_log::RequestLogQueue,
 }
 
 impl Database {
@@ -89,7 +82,9 @@ impl Database {
     }
 
     pub async fn connect(database_url: &str) -> Result<Self> {
-        let connect_options = PgConnectOptions::from_str(database_url)?.statement_cache_capacity(0);
+        let connect_options = PgConnectOptions::from_str(database_url)?
+            .statement_cache_capacity(0)
+            .application_name("apiosk-commerce");
 
         // Pool size is env-tunable so it can be raised WITHOUT a rebuild (set the
         // Fly secret GATEWAY_DB_POOL_SIZE and restart). Default raised 10 -> 20
@@ -143,7 +138,11 @@ impl Database {
             }
         };
 
-        Ok(Self { pool, log_pool })
+        Ok(Self {
+            pool,
+            log_pool,
+            request_log_queue: request_log::RequestLogQueue::new(),
+        })
     }
 
     /// Build a small, SEPARATE pool for a telemetry writer so telemetry inserts
@@ -154,9 +153,12 @@ impl Database {
     /// pool. Returns a bare `PgPool` (the caller owns it); failure here leaves
     /// that writer degraded, not the gateway.
     pub async fn connect_side_pool(database_url: &str, max_connections: u32) -> Result<PgPool> {
-        let connect_options = PgConnectOptions::from_str(database_url)?.statement_cache_capacity(0);
+        let connect_options = PgConnectOptions::from_str(database_url)?
+            .statement_cache_capacity(0)
+            .application_name("apiosk-commerce-telemetry");
         let pool = PgPoolOptions::new()
             .max_connections(max_connections.max(1))
+            .acquire_timeout(std::time::Duration::from_secs(10))
             .after_connect(|conn, _meta| {
                 Box::pin(async move {
                 sqlx::query("SET search_path TO public, gateway_v2, kyb, providers, catalog, actions, billing, agents, wallets, research, integrations, observability, support, content, operations, identity, extensions")
