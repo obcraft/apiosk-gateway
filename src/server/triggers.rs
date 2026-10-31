@@ -523,6 +523,56 @@ pub(super) async fn control(
         Err(e) => db_error(e),
     }
 }
+/// Removes a trigger with its activity (cascade) and the Slack dossiers it
+/// started. Monitoring schedules and purchased results are stored separately
+/// and stay. The Composio subscription belongs to the channel and may serve
+/// another trigger, so it stays; its events no longer match this trigger.
+pub(super) async fn remove(
+    State(state): State<ServerState>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+) -> Response {
+    let owner = match app_person(&state, &headers).await {
+        Ok(p) => p.owner,
+        Err(r) => return r,
+    };
+    let removed = async {
+        let mut tx = state.engine.store.pool.begin().await?;
+        let dossiers = sqlx::query("DELETE FROM gateway_v2.slack_dossiers WHERE trigger_id=$1 AND owner_id=$2")
+            .bind(id).bind(owner).execute(&mut *tx).await?.rows_affected();
+        let triggers = sqlx::query("DELETE FROM gateway_v2.inbound_triggers WHERE id=$1 AND owner_id=$2")
+            .bind(id).bind(owner).execute(&mut *tx).await?.rows_affected();
+        tx.commit().await?;
+        Ok::<_, sqlx::Error>((triggers, dossiers))
+    }
+    .await;
+    match removed {
+        Ok((1, dossiers)) => {
+            let _ = changed().send(owner);
+            Json(json!({"removed": true, "dossiers": dossiers})).into_response()
+        }
+        Ok(_) => StatusCode::NOT_FOUND.into_response(),
+        Err(e) => db_error(e),
+    }
+}
+/// Clears the owner's whole activity feed; triggers and dossiers stay.
+pub(super) async fn clear_activity(State(state): State<ServerState>, headers: HeaderMap) -> Response {
+    let owner = match app_person(&state, &headers).await {
+        Ok(p) => p.owner,
+        Err(r) => return r,
+    };
+    match sqlx::query("DELETE FROM gateway_v2.inbound_trigger_events WHERE owner_id=$1")
+        .bind(owner)
+        .execute(&state.engine.store.pool)
+        .await
+    {
+        Ok(r) => {
+            let _ = changed().send(owner);
+            Json(json!({"cleared": r.rows_affected()})).into_response()
+        }
+        Err(e) => db_error(e),
+    }
+}
 pub(super) async fn rotate(
     State(state): State<ServerState>,
     headers: HeaderMap,

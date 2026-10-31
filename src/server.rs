@@ -202,6 +202,8 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/triggers/channels", get(triggers::channels).post(triggers::create_conversation))
         .route("/v2/triggers/members", get(triggers::members))
         .route("/v2/triggers/events", get(triggers::stream))
+        .route("/v2/triggers/activity/clear", post(triggers::clear_activity))
+        .route("/v2/triggers/:id/remove", post(triggers::remove))
         .route("/v2/triggers/:id/control", post(triggers::control))
         .route("/v2/triggers/:id/approver", post(triggers::update_approver))
         .route("/v2/triggers/:id/rotate", post(triggers::rotate))

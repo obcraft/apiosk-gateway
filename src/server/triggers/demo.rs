@@ -152,6 +152,7 @@ pub(super) struct Approval {
     channel: String,
     company: Company,
     user: String,
+    user_name: String,
     card_ts: String,
     response_url: String,
 }
@@ -171,20 +172,21 @@ pub(super) fn approval(payload: &Value) -> Option<Approval> {
         channel: id(&value["c"])?,
         company: Company { name, kvk_number },
         user: id(&payload["user"]["id"])?,
+        user_name: payload["user"]["name"].as_str().filter(|s| s.chars().count() <= 120).unwrap_or_default().to_owned(),
         card_ts: id(&payload["message"]["ts"])?,
         response_url: payload["response_url"].as_str()?.to_owned(),
     })
 }
 
 pub(super) async fn approve(pool: PgPool, c: &'static Composio, a: Approval) {
-    let Approval { owner, trigger, bot, channel, company, user, card_ts, response_url } = a;
+    let Approval { owner, trigger, bot, channel, company, user, user_name, card_ts, response_url } = a;
     if !enabled_for(owner) {
         return;
     }
     let line = format!("✅ {PRICE} approved by <@{user}>. Checking the business register, sanctions lists and news…");
     let key = format!("demo-approval:{channel}:{card_ts}");
     match activity::record(&pool, trigger, owner, &key, &line, false, &json!({"kind":"approval_decision","status":"approved","demo":true,"company":company.name,
-        "approver_id":user,"channel_id":channel,"message_ts":card_ts,"request_key":key})).await {
+        "approver_id":user,"approver_name":user_name,"channel_id":channel,"message_ts":card_ts,"request_key":key})).await {
         Ok(true) => {},
         Ok(false) => return, // Already approved; ownership is enforced on insertion.
         Err(e) => return tracing::warn!(error = %e, "demo approval not saved"),

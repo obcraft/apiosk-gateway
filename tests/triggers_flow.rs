@@ -140,6 +140,7 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         .unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030110340_slack_dossiers.sql")).execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030170000_slack_dossier_company_hint.sql")).execute(&pool).await.unwrap();
+    sqlx::raw_sql(include_str!("../supabase/migrations/20261031120000_trigger_owner_deletes.sql")).execute(&pool).await.unwrap();
     sqlx::raw_sql(include_str!("../supabase/migrations/20261030133913_trigger_approval_mode.sql")).execute(&pool).await.unwrap();
     let calls = Arc::new(Mutex::new(vec![]));
     let provider=serve(Router::new().route("/auth/v1/user",get(auth))
@@ -606,7 +607,8 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
     let count:i64=sqlx::query_scalar("SELECT count(*) FROM gateway_v2.slack_dossiers").fetch_one(&pool).await.unwrap();
     assert_eq!(count,1,"retries and follow-ups must not duplicate dossiers");
     let posts=calls.lock().unwrap().clone();
-    assert!(posts.iter().any(|v|v["channel"]=="C123" && v["thread_ts"].is_null() && v.to_string().contains("Yes, I'll set up a screening dossier")),"a new request is acknowledged with a new channel message");
+    assert!(posts.iter().any(|v|v["channel"]=="C123" && v["thread_ts"].is_null() && v.to_string().contains(&format!("dossier={dossier}"))),"a new request is answered with a new channel message");
+    assert!(!posts.iter().any(|v|v.to_string().contains("Yes, I'll set up a screening dossier")),"an exact company needs no acknowledgement");
     let posts:Vec<_>=posts.iter().filter(|v|v.to_string().contains(&format!("dossier={dossier}"))).collect();
     assert_eq!(posts.len(),3,"one initial card and two status responses");
     assert_eq!(posts.iter().filter(|v|v["thread_ts"]=="2000.001").count(),1,"only a question asked in a thread is answered there");
@@ -647,6 +649,19 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
         tokio::time::sleep(Duration::from_millis(20)).await;
     }
     assert!(approved,"the selected approver decision must be visible on the dossier");
+    // Clearing and removing are owner-scoped; a removed trigger takes its dossiers along.
+    value(http.post(format!("{endpoint}/activity/clear")).bearer_auth("other").send().await.unwrap()).await;
+    assert_ne!(value(http.get(&endpoint).bearer_auth("owner").send().await.unwrap()).await["events"], json!([]));
+    value(http.post(format!("{endpoint}/activity/clear")).bearer_auth("owner").send().await.unwrap()).await;
+    let cleared=value(http.get(&endpoint).bearer_auth("owner").send().await.unwrap()).await;
+    assert_eq!(cleared["events"], json!([]));
+    assert!(cleared["triggers"].as_array().unwrap().iter().any(|t|t["id"]==json!(slack_id)), "clearing keeps triggers");
+    assert_eq!(http.post(format!("{endpoint}/{slack_id}/remove")).bearer_auth("other").send().await.unwrap().status(), 404);
+    let removed=value(http.post(format!("{endpoint}/{slack_id}/remove")).bearer_auth("owner").send().await.unwrap()).await;
+    assert_eq!(removed["dossiers"], 1);
+    assert_eq!(http.get(&read_url).bearer_auth("owner").send().await.unwrap().status(), 404);
+    let after=value(http.get(&endpoint).bearer_auth("owner").send().await.unwrap()).await;
+    assert!(!after["triggers"].as_array().unwrap().iter().any(|t|t["id"]==json!(slack_id)));
     if std::env::var("TRIGGERS_PREVIEW").as_deref() == Ok("true") {
         println!("TRIGGERS_PREVIEW_URL={base}");
         std::future::pending::<()>().await;
