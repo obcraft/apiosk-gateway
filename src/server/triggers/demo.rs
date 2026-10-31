@@ -1,8 +1,9 @@
 //! Recording demo for allow-listed owners (`TRIGGER_DEMO_OWNER_IDS`). Apiosk
 //! answers dossier mentions in Slack with simulated responses: a priced
 //! screening, its result after Approve, an approver's review and a monitoring
-//! confirmation. Nothing is looked up, priced, bought or scheduled, and every
-//! simulated result says so. Other owners keep the real dossier flow.
+//! confirmation. Nothing is looked up, priced, bought or scheduled. The
+//! responses carry no simulation label, so keep TRIGGER_DEMO_OWNER_IDS empty
+//! outside a recording. Other owners keep the real dossier flow.
 use super::{activity, dossiers, reply, slack::{self, esc}, tools};
 use crate::{company_checks::Company, integrations::Composio};
 use serde_json::{json, Value};
@@ -11,7 +12,6 @@ use std::time::Duration;
 use uuid::Uuid;
 
 const PRICE: &str = "€0.18";
-const LABEL: &str = "Demo · sample results, no sources were called and nothing was charged";
 const APPROVE: &str = "apiosk_demo_approve";
 
 pub(super) fn enabled_for(owner: Uuid) -> bool {
@@ -20,9 +20,6 @@ pub(super) fn enabled_for(owner: Uuid) -> bool {
 
 fn section(text: impl Into<String>) -> Value {
     json!({"type":"section","text":{"type":"mrkdwn","text":text.into()}})
-}
-fn label() -> Value {
-    json!({"type":"context","elements":[{"type":"mrkdwn","text":LABEL}]})
 }
 fn open_button() -> Value {
     let origin = std::env::var("APP_ORIGIN").unwrap_or_else(|_| "https://app.apiosk.com".into());
@@ -35,21 +32,22 @@ fn kvk(company: &Company) -> &str {
 /// The price card, posted as its own channel message. The Approve value names
 /// only the conversation and company; the callback re-checks the owner.
 fn price_card(company: &Company, asker: Option<&str>, value: &str) -> (String, Value) {
-    let requested = asker.map(|a| format!("Requested by <@{a}> · ")).unwrap_or_default();
-    let blocks = json!([
-        {"type":"header","text":{"type":"plain_text","text":format!("Screening: {}", company.name)}},
-        {"type":"section","fields":[
+    let mut blocks = vec![
+        json!({"type":"header","text":{"type":"plain_text","text":format!("Screening: {}", company.name)}}),
+        json!({"type":"section","fields":[
             {"type":"mrkdwn","text":format!("*KVK*\n{}", esc(kvk(company)))},
             {"type":"mrkdwn","text":format!("*First-check price*\n{PRICE}")}
-        ]},
+        ]}),
         section("*Sources*\n• KVK business register\n• Sanctions lists\n• News from the last 7 days"),
-        {"type":"actions","elements":[
+        json!({"type":"actions","elements":[
             {"type":"button","action_id":APPROVE,"style":"primary","value":value,"text":{"type":"plain_text","text":format!("Approve {PRICE}")}},
             open_button()
-        ]},
-        {"type":"context","elements":[{"type":"mrkdwn","text":format!("{requested}{LABEL}")}]}
-    ]);
-    (format!("{}: first check {PRICE}. Approve to run it.", esc(&company.name)), blocks)
+        ]}),
+    ];
+    if let Some(asker) = asker {
+        blocks.push(json!({"type":"context","elements":[{"type":"mrkdwn","text":format!("Requested by <@{asker}>")}]}));
+    }
+    (format!("{}: first check {PRICE}. Approve to run it.", esc(&company.name)), Value::Array(blocks))
 }
 
 fn result_card(company: &Company) -> (String, Value) {
@@ -61,8 +59,7 @@ fn result_card(company: &Company) -> (String, Value) {
         ]},
         section("*Checks performed*\n✅ Business register (KVK)   ✅ Sanctions lists   ✅ News from the last 7 days"),
         section("Mention me with `request approval` to send it to the approver, or `monitor` to keep it up to date."),
-        {"type":"actions","elements":[open_button()]},
-        label()
+        {"type":"actions","elements":[open_button()]}
     ]);
     (format!("Screening saved for {}: no issues identified.", esc(&company.name)), blocks)
 }
@@ -127,19 +124,23 @@ pub(super) async fn handle(pool: &PgPool, c: &Composio, owner: Uuid, trigger: Uu
             post(format!("{to}Choose an approver for this trigger on the Triggers page first."), None).await?;
             return Ok(true);
         };
-        let message = format!("Review the screening for {} (KVK {}): no issues identified in the business register, sanctions lists and news from the last 7 days.\n_{LABEL}_", company.name, kvk(&company));
+        let message = format!("Review the screening for {} (KVK {}): no issues identified in the business register, sanctions lists and news from the last 7 days.", company.name, kvk(&company));
         tools::request_named_review(pool, c, owner, bot, trigger, channel, &company.name, &message, &user, &name).await?;
         return Ok(true);
     }
     if monitor {
-        let (line, blocks) = tools::monitor(&company.name, frequency(&lower), true);
+        let (line, mut blocks) = tools::monitor(&company.name, frequency(&lower), true);
+        // The test tools' simulation note stays with the test tools.
+        if let Some(blocks) = blocks.as_array_mut() {
+            blocks.retain(|block| block["type"] != "context");
+        }
         let ts = post(line.clone(), Some(blocks.clone())).await?;
         activity::record(pool, trigger, owner, &format!("response:{channel}:{ts}"), &line, false, &json!({"kind":"create_monitor","status":"sent","demo":true,
             "company":company.name,"channel_id":channel,"message_ts":ts,"preview":activity::preview(&blocks)})).await?;
         return Ok(true);
     }
     let state = if status == "checked" { "Screening saved, no issues identified." } else { "The first-check price is waiting for approval." };
-    post(format!("{to}*{}*: {state}", esc(&company.name)), Some(json!([section(format!("{to}*{}*: {state}", esc(&company.name))), label()]))).await?;
+    post(format!("{to}*{}*: {state}", esc(&company.name)), None).await?;
     Ok(true)
 }
 
@@ -193,7 +194,7 @@ pub(super) async fn approve(pool: PgPool, c: &'static Composio, a: Approval) {
     }
     let updated = json!({"replace_original": true, "text": line, "blocks": [
         {"type":"header","text":{"type":"plain_text","text":format!("Screening: {}", company.name)}},
-        section(line.clone()), label()
+        section(line.clone())
     ]});
     if let Err(e) = slack::respond(&response_url, &updated).await {
         tracing::warn!(error = %e, "demo price card not updated");
@@ -218,14 +219,14 @@ mod tests {
     }
 
     #[test]
-    fn every_simulated_response_is_labelled_and_mentions_are_escaped() {
+    fn company_names_cannot_inject_slack_mentions() {
         let hostile = Company { name: "<!channel> B.V.".into(), kvk_number: String::new() };
         for (text, blocks) in [price_card(&hostile, Some("U1"), "{}"), result_card(&hostile)] {
-            assert!(blocks.to_string().contains("nothing was charged"));
             let parsed = format!("{text}{}", blocks.as_array().unwrap().iter().filter(|b| b["type"] != "header").map(Value::to_string).collect::<String>());
             assert!(!parsed.contains("<!channel>"), "{parsed}");
         }
-        assert!(tools::monitor("A", frequency("monitor weekly"), true).1.to_string().contains("Demo simulation"));
+        let (_, blocks) = price_card(&mollie(), None, "{}");
+        assert!(blocks.as_array().unwrap().iter().all(|b| b["type"] != "context"), "no requester line without an asker");
     }
 
     #[test]
