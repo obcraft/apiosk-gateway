@@ -76,7 +76,7 @@ De workflow:
    exact dezelfde commit. De selectie controleert workflow, repository,
    branch, resultaat en het niet-verlopen image-artifact. Deze job heeft alleen
    leesrechten op GitHub en ontvangt geen Fly-token.
-2. Wacht zo nodig maximaal twintig minuten op een bestaande CI-run. De
+2. Wacht zo nodig maximaal zestig minuten op een bestaande CI-run. De
    release start geen nieuwe build en voert geen Rust-tests opnieuw uit.
 3. Controleert na een eventuele productiegoedkeuring opnieuw dat dezelfde
    CI-run, poging en hetzelfde artifact nog geldig zijn. Downloadt dat artifact
@@ -160,3 +160,13 @@ De implementatie volgt de
 [cargo-chef-laagcache](https://github.com/LukeMathWalker/cargo-chef), de
 [Docker GitHub Actions-cache](https://docs.docker.com/build/cache/backends/gha/)
 en de [Fly GitHub Actions-deployment](https://docs.fly.io/launch/continuous-deployment-with-github-actions).
+
+## Requestdiagnostiek onder belasting
+
+Best-effort requestlogging laat maximaal 32 schrijftaken tegelijk toe, inclusief
+taken die wachten op een databaseverbinding. Bij een volle wachtrij wordt nieuwe
+diagnostiek overgeslagen; er ontstaat geen onbeperkte taak- of retrywachtrij.
+Een toegelaten write wordt niet met een korte externe timeout afgebroken: de
+pool- en database-timeouts begrenzen de uitvoering. Fouten bevatten een apart
+`error`-veld voor filtering in de logs. Dit betreft requestdiagnostiek;
+betaal- en ledgerwrites blijven onderdeel van de afgewachte uitvoering.

@@ -2,19 +2,29 @@
 use std::{future::Future, sync::Arc};
 use tokio::sync::Semaphore;
 
+// Bound both running writes and tasks waiting for a pool connection.
+const MAX_IN_FLIGHT_WRITES: usize = 32;
+
+/// Best-effort request diagnostics only; billing writes must remain awaited.
 #[derive(Clone)]
-pub(crate) struct RequestLogQueue(Arc<Semaphore>);
+pub(crate) struct RequestLogQueue {
+    permits: Arc<Semaphore>,
+}
 
 impl RequestLogQueue {
     pub(crate) fn new() -> Self {
-        Self(Arc::new(Semaphore::new(32)))
+        Self {
+            permits: Arc::new(Semaphore::new(MAX_IN_FLIGHT_WRITES)),
+        }
     }
 
+    /// Returns false immediately on overload without polling the supplied future.
+    #[must_use = "handle dropped request diagnostics on overload"]
     pub(crate) fn submit<F>(&self, write: F) -> bool
     where
         F: Future<Output = anyhow::Result<()>> + Send + 'static,
     {
-        let Ok(permit) = self.0.clone().try_acquire_owned() else {
+        let Ok(permit) = self.permits.clone().try_acquire_owned() else {
             return false;
         };
         tokio::spawn(async move {
@@ -23,7 +33,7 @@ impl RequestLogQueue {
             // execution. Let SQLx consume the result and return the connection
             // instead of dropping its future at an arbitrary 250ms deadline.
             if let Err(error) = write.await {
-                tracing::warn!("Failed to log gateway request event: {error}");
+                tracing::warn!(error = %error, "Failed to log gateway request event");
             }
         });
         true
@@ -40,7 +50,7 @@ mod tests {
         let queue = RequestLogQueue::new();
         let gate = Arc::new(Semaphore::new(0));
         let completed = Arc::new(AtomicUsize::new(0));
-        for _ in 0..32 {
+        for _ in 0..MAX_IN_FLIGHT_WRITES {
             let gate = gate.clone();
             let completed = completed.clone();
             assert!(queue.submit(async move {
@@ -53,10 +63,12 @@ mod tests {
         assert!(!queue.submit(async { panic!("overflow must not execute") }));
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
         assert_eq!(completed.load(Ordering::SeqCst), 0);
-        assert_eq!(queue.0.available_permits(), 0);
-        gate.add_permits(32);
+        assert_eq!(queue.permits.available_permits(), 0);
+        gate.add_permits(MAX_IN_FLIGHT_WRITES);
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while completed.load(Ordering::SeqCst) != 32 || queue.0.available_permits() != 32 {
+            while completed.load(Ordering::SeqCst) != MAX_IN_FLIGHT_WRITES
+                || queue.permits.available_permits() != MAX_IN_FLIGHT_WRITES
+            {
                 tokio::task::yield_now().await;
             }
         })
@@ -75,7 +87,7 @@ mod tests {
             anyhow::bail!("database unavailable")
         }));
         tokio::time::timeout(std::time::Duration::from_secs(2), async {
-            while queue.0.available_permits() != 32 {
+            while queue.permits.available_permits() != MAX_IN_FLIGHT_WRITES {
                 tokio::task::yield_now().await;
             }
         })
