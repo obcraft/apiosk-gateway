@@ -29,7 +29,6 @@ use crate::{
 };
 
 const PRESENCE_LOOKUP_TIMEOUT: Duration = Duration::from_millis(250);
-const REQUEST_LOG_TIMEOUT: Duration = Duration::from_millis(250);
 
 pub async fn track_request(
     State(state): State<Arc<AppState>>,
@@ -205,42 +204,26 @@ pub async fn track_request(
         .record_read(&path, response.status(), &headers, ip_hash.as_deref());
 
     if !should_skip_db_tracking {
-        match timeout(
-            REQUEST_LOG_TIMEOUT,
-            state.db.log_request_event(GatewayRequestLogInsert {
-                request_id,
-                session_id: presence.as_ref().map(|ctx| ctx.session_id),
-                managed_wallet_id: presence.as_ref().and_then(|ctx| ctx.managed_wallet_id),
-                client_id: presence.as_ref().map(|ctx| ctx.client_id.as_str()),
-                method: &method,
-                path: &path,
-                query_string: query_string.as_deref(),
-                status_code,
-                latency_ms,
-                api_slug,
-                is_api_route,
-                user_agent,
-                ip_hash: ip_hash.as_deref(),
-                origin,
-                referrer,
-                request_headers: &request_headers,
-                response_bytes,
-                error_code,
-            }),
-        )
-        .await
-        {
-            Ok(Ok(())) => {}
-            Ok(Err(err)) => {
-                warn!("Failed to log gateway request event: {}", err);
-            }
-            Err(_) => {
-                warn!(
-                    "Timed out logging gateway request event for {} {}",
-                    method, path
-                );
-            }
-        }
+        state.db.log_request_event(GatewayRequestLogInsert {
+            request_id,
+            session_id: presence.as_ref().map(|ctx| ctx.session_id),
+            managed_wallet_id: presence.as_ref().and_then(|ctx| ctx.managed_wallet_id),
+            client_id: presence.as_ref().map(|ctx| ctx.client_id.as_str()),
+            method: &method,
+            path: &path,
+            query_string: query_string.as_deref(),
+            status_code,
+            latency_ms,
+            api_slug,
+            is_api_route,
+            user_agent,
+            ip_hash: ip_hash.as_deref(),
+            origin,
+            referrer,
+            request_headers: &request_headers,
+            response_bytes,
+            error_code,
+        });
     }
 
     if let (Some(measurement_id), Some(api_secret)) = (

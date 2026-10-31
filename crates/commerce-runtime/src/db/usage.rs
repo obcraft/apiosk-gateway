@@ -678,8 +678,8 @@ impl Database {
         Ok(row)
     }
 
-    pub async fn log_request_event(&self, event: GatewayRequestLogInsert<'_>) -> Result<()> {
-        sqlx::query(
+    pub fn log_request_event(&self, event: GatewayRequestLogInsert<'_>) {
+        let query = sqlx::query(
             r#"INSERT INTO gateway_request_logs
                (request_id, session_id, managed_wallet_id, client_id, method, path,
                 query_string, status_code, latency_ms, api_slug, is_api_route,
@@ -691,27 +691,28 @@ impl Database {
         .bind(event.request_id)
         .bind(event.session_id)
         .bind(event.managed_wallet_id)
-        .bind(event.client_id)
-        .bind(event.method)
-        .bind(event.path)
-        .bind(event.query_string)
+        .bind(event.client_id.map(str::to_owned))
+        .bind(event.method.to_owned())
+        .bind(event.path.to_owned())
+        .bind(event.query_string.map(str::to_owned))
         .bind(event.status_code)
         .bind(event.latency_ms)
-        .bind(event.api_slug)
+        .bind(event.api_slug.map(str::to_owned))
         .bind(event.is_api_route)
-        .bind(event.user_agent)
-        .bind(event.ip_hash)
-        .bind(event.origin)
-        .bind(event.referrer)
-        .bind(event.request_headers)
+        .bind(event.user_agent.map(str::to_owned))
+        .bind(event.ip_hash.map(str::to_owned))
+        .bind(event.origin.map(str::to_owned))
+        .bind(event.referrer.map(str::to_owned))
+        .bind(event.request_headers.clone())
         .bind(event.response_bytes)
-        .bind(event.error_code)
-        // `log_pool`, not `pool`: telemetry must not queue behind the slow
-        // catalog reads on the main pool (see `Database::log_pool`).
-        .execute(&self.log_pool)
-        .await?;
-
-        Ok(())
+        .bind(event.error_code.map(str::to_owned));
+        let pool = self.log_pool.clone();
+        if !self.request_log_queue.submit(async move {
+            query.execute(&pool).await?;
+            Ok(())
+        }) {
+            tracing::warn!("Request log queue full; dropping telemetry event");
+        }
     }
 
     #[allow(clippy::too_many_arguments)]

@@ -338,6 +338,7 @@ mod route_tests {
         let db = super::Database {
             pool: pool.clone(),
             log_pool: pool.clone(),
+            request_log_queue: crate::db::request_log::RequestLogQueue::new(),
         };
         let api = uuid::Uuid::parse_str("804c77ce-bac1-4880-9e83-04f8b701b839").unwrap();
         let profile = db
