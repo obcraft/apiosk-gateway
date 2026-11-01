@@ -166,6 +166,49 @@ impl Service {
         let _permit = self.requests.clone().try_acquire_owned()?;
         tokio::time::timeout(DEADLINE, self.fetch(url, Kind::Page)).await?
     }
+    /// Research identifies itself and checks robots on every page redirect.
+    /// Access failures are skipped, never retried with browser impersonation.
+    pub(crate) async fn research_html(&self, raw: &str) -> Result<(Url, Vec<u8>)> {
+        let _permit = self.requests.clone().try_acquire_owned()?;
+        tokio::time::timeout(Duration::from_secs(12), async {
+            let mut url = public_url(raw)?;
+            for hop in 0..=3 {
+                let host = url.host_str().context("missing host")?.to_owned();
+                // Serialize reads on one host across concurrent research runs.
+                static HOSTS: OnceLock<moka::future::Cache<String, Arc<tokio::sync::Mutex<()>>>> = OnceLock::new();
+                let hosts = HOSTS.get_or_init(|| moka::future::Cache::builder().max_capacity(512).build());
+                let lock = hosts.get_with(host.clone(), async { Arc::new(tokio::sync::Mutex::new(())) }).await;
+                let _host = lock.lock().await;
+                let addresses = self.addresses(&url).await?;
+                let client = reqwest::Client::builder().no_proxy()
+                    .redirect(reqwest::redirect::Policy::none())
+                    .resolve_to_addrs(&host, &addresses)
+                    .connect_timeout(Duration::from_secs(2)).timeout(DEADLINE)
+                    .user_agent("ApioskResearchBot/1.0 (+https://apiosk.com)").build()?;
+                let robots = client.get(url.join("/robots.txt")?).header("accept-encoding", "identity").send().await?;
+                if !matches!(robots.status().as_u16(), 404 | 410) {
+                    // Redirected/unverifiable robots fails closed. No page is fetched.
+                    ensure!(robots.status().as_u16() == 200, "robots unavailable");
+                    let bytes = research_body(robots, 128 * 1024).await?;
+                    let delay = crate::web_research::robots_delay(&String::from_utf8_lossy(&bytes), &url)?;
+                    tokio::time::sleep(delay).await;
+                }
+                let response = client.get(url.clone()).header("accept", Kind::Page.accept())
+                    .header("accept-encoding", "identity").send().await?;
+                if response.status().is_redirection() {
+                    ensure!(hop < 3, "redirect limit");
+                    url = redirect_target(&url, response.headers().get("location").context("missing redirect")?.to_str()?)?;
+                    continue;
+                }
+                ensure!(response.status().as_u16() == 200, "page unavailable");
+                let mime = response.headers().get("content-type").and_then(|h| h.to_str().ok()).unwrap_or("").split(';').next().unwrap_or("");
+                ensure!(Kind::Page.accepts(mime.trim()), "unsupported page type");
+                ensure!(!response.headers().get("x-robots-tag").and_then(|h| h.to_str().ok()).is_some_and(crate::web_research::restricted), "restricted page");
+                return Ok((url, research_body(response, HTML_BYTES).await?));
+            }
+            anyhow::bail!("redirect limit")
+        }).await?
+    }
     /// Public search feeds use the same bounded, DNS-pinned fetch as HTML.
     pub(crate) async fn public_feed(&self, raw: &str) -> Result<(Url, Vec<u8>)> {
         let url = public_url(raw)?;
@@ -269,6 +312,17 @@ impl Service {
         }
         unreachable!()
     }
+}
+
+async fn research_body(response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
+    let mut bytes = Vec::new();
+    let mut stream = response.bytes_stream();
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        ensure!(bytes.len() + chunk.len() <= limit, "research body too large");
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }
 
 /// HTML needs only its bounded head/prefix, even when the full page is large.

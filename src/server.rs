@@ -27,6 +27,7 @@ mod ask_v2_guest;
 mod integrations;
 mod link_preview;
 mod news;
+mod web_research;
 mod recurring;
 mod company_checks;
 mod monitoring;
@@ -108,6 +109,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/ask-v2/runs/*rest", any(ask_moved))
         .route("/v2/ask-v2/parse", post(ask_v2::parse).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/news", post(news::search).layer(DefaultBodyLimit::max(8 * 1024)))
+        .route("/v2/ask-v2/web-research", post(web_research::research).layer(DefaultBodyLimit::max(96 * 1024)))
         .route("/v2/ask-v2/guest/preview", post(ask_v2_guest::preview).layer(DefaultBodyLimit::max(128 * 1024)))
         .route("/v2/ask-v2/guest/approve", post(ask_v2_guest::approve).layer(DefaultBodyLimit::max(256 * 1024)))
         .route("/v2/ask-v2/search", post(ask_v2::search).layer(DefaultBodyLimit::max(256 * 1024)))

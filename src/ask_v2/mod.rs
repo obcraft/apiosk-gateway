@@ -109,6 +109,40 @@ enum Operation {
 }
 
 impl Client {
+    /// Web synthesis shares the configured transport and credential, with its
+    /// own prompt and bounded response. No catalog planning or source purchase.
+    pub(crate) async fn synthesize_web(&self, input: Value) -> Result<Value> {
+        use futures_util::StreamExt;
+        let model = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
+        let payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
+            "response_format":{"type":"json_object"},
+            "messages":[{"role":"system","content":include_str!("../../contracts/web-research-prompt.txt")},
+                {"role":"user","content":input.to_string()}]});
+        let mut call = crate::telemetry::model_call("web-research-synthesis", 1, model, payload.to_string().len());
+        crate::telemetry::record_model_http_request();
+        let outcome = async {
+            let response = self.http.post(&self.endpoint).bearer_auth(&self.key)
+                .timeout(Duration::from_secs(27)).json(&payload).send().await?;
+            ensure!(response.status().is_success(), "web synthesis unavailable");
+            let mut bytes = Vec::new();
+            let mut stream = response.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                ensure!(bytes.len() + chunk.len() <= 128 * 1024, "web synthesis too large");
+                bytes.extend_from_slice(&chunk);
+            }
+            let body: Value = serde_json::from_slice(&bytes)?;
+            call.received(&body, bytes.len());
+            let content = body["choices"][0]["message"]["content"].as_str().ok_or_else(|| anyhow!("missing web answer"))?;
+            let mut answer: Value = serde_json::from_str(content)?;
+            ensure!(answer.is_object(), "invalid web answer envelope");
+            answer["usage"] = body["usage"].clone();
+            call.finish(crate::telemetry::Outcome::Ok, "received");
+            Ok::<Value, anyhow::Error>(answer)
+        };
+        tokio::time::timeout(Duration::from_secs(29), outcome).await?
+    }
+
     /// Canonical interpretation for the App and public Ask API. Both callers
     /// consume this saved shape rather than normalizing the model differently.
     pub async fn interpret(&self, question: &str, known_slugs: &[String]) -> Result<Value> {

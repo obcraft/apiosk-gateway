@@ -58,6 +58,7 @@ mod supporting_news;
 mod subject_context;
 mod website_read;
 pub mod web_search;
+mod web_research;
 pub use supporting_news::start_background_refresh as start_supporting_news;
 pub mod state;
 pub mod store;

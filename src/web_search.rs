@@ -98,30 +98,73 @@ const WEB: [Provider; 3] = [Provider::Searxng, Provider::DuckDuckGo, Provider::W
 /// Runs one Tavily-shaped request body and returns a Tavily-shaped body.
 pub async fn search(input: &Value) -> anyhow::Result<Value> {
     let started = Instant::now();
-    let request = request(input)?;
+    let request = request_with_limit(input, MAX_QUERY_CHARS)?;
+    let merge = collect(&request, MIN_RESULTS, None, |provider| run(provider, &request)).await;
+    finish(&request, merge, started.elapsed())
+}
+
+/// Keep backup candidates for the five-page research reader. The ordinary
+/// search contract retains its existing provider cutoff.
+pub(crate) async fn research_candidates(input: &Value) -> anyhow::Result<Value> {
+    let started = Instant::now();
+    let request = request_with_limit(input, 16_000)?;
+    // A full primary response already provides five pages and five backups.
+    // Finish before the adapter's 20s deadline, preserving earlier results if
+    // an optional fallback is slow rather than failing the whole question.
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(18);
+    let merge = collect(&request, PER_PROVIDER, Some(deadline), |provider| run(provider, &request)).await;
+    finish(&request, merge, started.elapsed())
+}
+
+async fn collect<F, Fut>(request: &Request, minimum: usize, deadline: Option<tokio::time::Instant>, mut fetch: F) -> Merge
+where
+    F: FnMut(Provider) -> Fut,
+    Fut: std::future::Future<Output = Option<anyhow::Result<Vec<Item>>>>,
+{
     let mut merge = Merge::default();
     for provider in if request.news { NEWS } else { WEB } {
-        match run(provider, &request).await {
+        let result = if let Some(deadline) = deadline {
+            match tokio::time::timeout_at(deadline, fetch(provider)).await {
+                Ok(result) => result,
+                Err(_) => {
+                    merge.failed = true;
+                    tracing::warn!(surface = "web-search", provider = provider.name(), "research search deadline reached; keeping collected results");
+                    break;
+                }
+            }
+        } else {
+            fetch(provider).await
+        };
+        match result {
             None => continue,
-            Some(Ok(found)) => merge.add(&request, provider.name(), found),
+            Some(Ok(found)) => merge.add(request, provider.name(), found),
             Some(Err(error)) => {
                 merge.failed = true;
                 tracing::warn!(surface = "web-search", provider = provider.name(), error = %error, "web search provider failed");
             }
         }
-        if merge.done() {
+        if merge.items.len() >= minimum {
             break;
         }
     }
-    anyhow::ensure!(!(merge.items.is_empty() && merge.failed), "web search unavailable");
-    Ok(response(&request.query, &merge, started.elapsed()))
+    merge
 }
 
+fn finish(request: &Request, merge: Merge, elapsed: Duration) -> anyhow::Result<Value> {
+    anyhow::ensure!(!(merge.items.is_empty() && merge.failed), "web search unavailable");
+    Ok(response(&request.query, &merge, elapsed))
+}
+
+#[cfg(test)]
 fn request(input: &Value) -> anyhow::Result<Request> {
+    request_with_limit(input, MAX_QUERY_CHARS)
+}
+
+fn request_with_limit(input: &Value, query_limit: usize) -> anyhow::Result<Request> {
     let query = input["query"].as_str().map(str::trim).unwrap_or_default();
     anyhow::ensure!(
-        !query.is_empty() && query.chars().count() <= MAX_QUERY_CHARS,
-        "Enter a search query of at most {MAX_QUERY_CHARS} characters."
+        !query.is_empty() && query.chars().count() <= query_limit,
+        "Enter a search query of at most {query_limit} characters."
     );
     let domains = |key: &str| -> Vec<String> {
         input[key].as_array().into_iter().flatten().filter_map(Value::as_str)
@@ -189,6 +232,7 @@ impl Merge {
             self.providers.push(provider);
         }
     }
+    #[cfg(test)]
     fn done(&self) -> bool {
         self.items.len() >= MIN_RESULTS
     }
@@ -589,5 +633,52 @@ mod tests {
         let mut dated = Merge::default();
         dated.add(&request, "SearXNG", vec![Item { published: parse_date("2026-10-28"), ..item("https://c.example/1", false) }]);
         assert_eq!(response("q", &dated, Duration::ZERO)["results"][0]["published_date"], "2026-10-28T00:00:00Z");
+    }
+
+    #[tokio::test]
+    async fn research_keeps_collected_results_when_a_later_provider_times_out() {
+        let request = req(false);
+        let mut attempted = Vec::new();
+        let deadline = tokio::time::Instant::now() + Duration::from_millis(10);
+        let merge = collect(&request, PER_PROVIDER, Some(deadline), |provider| {
+            attempted.push(provider);
+            async move {
+                if provider == Provider::Searxng {
+                    Some(Ok((0..5).map(|i| item(&format!("https://a.example/{i}"), false)).collect()))
+                } else {
+                    std::future::pending().await
+                }
+            }
+        }).await;
+        assert_eq!(attempted, [Provider::Searxng, Provider::DuckDuckGo]);
+        assert!(merge.failed);
+        let body = finish(&request, merge, Duration::from_millis(10)).unwrap();
+        assert_eq!(body["results"].as_array().unwrap().len(), 5);
+        assert_eq!(body["providers"], json!(["SearXNG"]));
+    }
+
+    #[tokio::test]
+    async fn research_stops_after_a_full_primary_response_without_waiting_for_backups() {
+        let request = req(false);
+        let mut attempted = Vec::new();
+        let merge = collect(&request, PER_PROVIDER, Some(tokio::time::Instant::now() + Duration::from_secs(1)), |provider| {
+            attempted.push(provider);
+            async move { Some(Ok((0..PER_PROVIDER).map(|i| item(&format!("https://a.example/{i}"), false)).collect())) }
+        }).await;
+        assert_eq!(attempted, [Provider::Searxng]);
+        assert_eq!(merge.items.len(), 10);
+        assert!(!merge.failed);
+    }
+
+    #[tokio::test]
+    async fn ordinary_search_keeps_its_existing_five_result_cutoff() {
+        let request = req(false);
+        let mut attempted = Vec::new();
+        let merge = collect(&request, MIN_RESULTS, None, |provider| {
+            attempted.push(provider);
+            async move { Some(Ok((0..MIN_RESULTS).map(|i| item(&format!("https://a.example/{i}"), false)).collect())) }
+        }).await;
+        assert_eq!(attempted, [Provider::Searxng]);
+        assert_eq!(merge.items.len(), MIN_RESULTS);
     }
 }
