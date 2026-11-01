@@ -149,8 +149,10 @@ impl Client {
     pub(crate) async fn synthesize_web(&self, input: Value) -> Result<Value> {
         use futures_util::StreamExt;
         let model = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
+        let (input,ids)=crate::web_research::synthesis_input(&input)?;
         let payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
-            "response_format":{"type":"json_object"},
+            "provider":{"require_parameters":true,"sort":"latency"},
+            "response_format":{"type":"json_schema","json_schema":{"name":"web_research_answer","strict":true,"schema":crate::web_research::answer_schema(&ids)}},
             "messages":[{"role":"system","content":include_str!("../../contracts/web-research-prompt.txt")},
                 {"role":"user","content":input.to_string()}]});
         let mut call = crate::telemetry::model_call("web-research-synthesis", 1, model, payload.to_string().len());
@@ -169,8 +171,7 @@ impl Client {
             let body: Value = serde_json::from_slice(&bytes)?;
             call.received(&body, bytes.len());
             let content = body["choices"][0]["message"]["content"].as_str().ok_or_else(|| anyhow!("missing web answer"))?;
-            let mut answer: Value = serde_json::from_str(content)?;
-            ensure!(answer.is_object(), "invalid web answer envelope");
+            let mut answer = crate::web_research::parse_answer(content,ids.len())?;
             answer["usage"] = body["usage"].clone();
             call.finish(crate::telemetry::Outcome::Ok, "received");
             Ok::<Value, anyhow::Error>(answer)

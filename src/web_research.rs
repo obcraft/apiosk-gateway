@@ -46,6 +46,82 @@ pub(crate) struct Answer {
     pub limitations: Vec<String>,
 }
 
+pub(crate) fn answer_schema(ids: &[usize]) -> Value {
+    json!({"type":"object","additionalProperties":false,"required":["blocks","limitations"],"properties":{
+        "blocks":{"type":"array","maxItems":12,"items":{"type":"object","additionalProperties":false,
+            "required":["heading","text","citations"],"properties":{
+                "heading":{"type":["string","null"],"maxLength":120},
+                "text":{"type":"string","minLength":1,"maxLength":1000},
+                "citations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"integer","enum":ids}}}}},
+        "limitations":{"type":"array","maxItems":5,"items":{"type":"string","minLength":1,"maxLength":500}}
+    }})
+}
+
+/// Keep operational provenance outside the model context. Citations refer to
+/// these same read-source IDs and their final public URLs.
+pub(crate) fn synthesis_input(input: &Value) -> Result<(Value, Vec<usize>)> {
+    let sources = input["sources"]
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("missing web evidence"))?;
+    ensure!(
+        !sources.is_empty() && sources.len() <= TARGET,
+        "invalid web evidence count"
+    );
+    let ids = sources
+        .iter()
+        .map(|s| {
+            s["id"]
+                .as_u64()
+                .map(|v| v as usize)
+                .ok_or_else(|| anyhow::anyhow!("invalid evidence id"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    ensure!(
+        ids.iter().copied().eq(1..=sources.len()),
+        "invalid evidence identity"
+    );
+    let evidence = sources
+        .iter()
+        .map(|s| {
+            json!({"id":s["id"],"title":s["title"],"url":s.get("final_url").unwrap_or(&s["url"]),
+        "retrieved_at":s["retrieved_at"],"text":s["text"],"trimmed":s["trimmed"]})
+        })
+        .collect::<Vec<_>>();
+    let mut compact = input.clone();
+    compact["sources"] = json!(evidence);
+    Ok((compact, ids))
+}
+
+fn answer_rejection(value: &Value, count: usize, category: &'static str) -> anyhow::Error {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static REJECTIONS: AtomicU64 = AtomicU64::new(0);
+    let blocks = value["blocks"].as_array();
+    let max_text_chars = blocks
+        .into_iter()
+        .flatten()
+        .filter_map(|b| b["text"].as_str())
+        .map(|t| t.chars().count())
+        .max()
+        .unwrap_or(0);
+    tracing::warn!(
+        operation = "web-research-validation",
+        category,
+        rejections = REJECTIONS.fetch_add(1, Ordering::Relaxed) + 1,
+        source_count = count,
+        block_count = blocks.map_or(0, Vec::len),
+        max_text_chars,
+        "web answer rejected"
+    );
+    anyhow::anyhow!("web_answer_invalid_{category}")
+}
+
+pub(crate) fn parse_answer(raw: &str, count: usize) -> Result<Value> {
+    let answer =
+        serde_json::from_str(raw).map_err(|_| answer_rejection(&Value::Null, count, "json"))?;
+    validate_answer(&answer, count)?;
+    Ok(answer)
+}
+
 pub(crate) struct SearchQuery {
     pub query: String,
     pub elapsed_ms: u64,
@@ -401,36 +477,39 @@ fn relevant(question: &str, source: &Source) -> bool {
 }
 
 pub(crate) fn validate_answer(value: &Value, count: usize) -> Result<Answer> {
-    let answer: Answer = serde_json::from_value(value.clone())?;
-    ensure!(
-        answer.blocks.len() <= 12 && answer.limitations.len() <= 5,
-        "answer too large"
-    );
-    for block in &answer.blocks {
-        ensure!(
-            !block.text.trim().is_empty()
-                && block.text.chars().count() <= 1000
-                && block
-                    .heading
-                    .as_ref()
-                    .is_none_or(|h| h.chars().count() <= 120)
-                && !block.citations.is_empty()
-                && block.citations.len() <= TARGET
-                && block.citations.iter().all(|id| (1..=count).contains(id)),
-            "invalid cited paragraph"
-        );
+    let answer: Answer = serde_json::from_value(value.clone())
+        .map_err(|_| answer_rejection(value, count, "shape"))?;
+    if answer.blocks.len() > 12 || answer.limitations.len() > 5 {
+        return Err(answer_rejection(value, count, "answer_size"));
     }
-    ensure!(
-        answer
-            .limitations
-            .iter()
-            .all(|s| !s.trim().is_empty() && s.chars().count() <= 500),
-        "invalid limitation"
-    );
-    ensure!(
-        !answer.blocks.is_empty() || !answer.limitations.is_empty(),
-        "empty answer"
-    );
+    for block in &answer.blocks {
+        if block.text.trim().is_empty() || block.text.chars().count() > 1000 {
+            return Err(answer_rejection(value, count, "paragraph_text"));
+        }
+        if block
+            .heading
+            .as_ref()
+            .is_some_and(|h| h.chars().count() > 120)
+        {
+            return Err(answer_rejection(value, count, "heading"));
+        }
+        if block.citations.is_empty()
+            || block.citations.len() > TARGET
+            || !block.citations.iter().all(|id| (1..=count).contains(id))
+        {
+            return Err(answer_rejection(value, count, "citations"));
+        }
+    }
+    if !answer
+        .limitations
+        .iter()
+        .all(|s| !s.trim().is_empty() && s.chars().count() <= 500)
+    {
+        return Err(answer_rejection(value, count, "limitation"));
+    }
+    if answer.blocks.is_empty() && answer.limitations.is_empty() {
+        return Err(answer_rejection(value, count, "empty_answer"));
+    }
     Ok(answer)
 }
 
@@ -724,8 +803,10 @@ mod tests {
         let received = Arc::new(Mutex::new(Vec::<Value>::new()));
         let capture = received.clone();
         let app=Router::new().route("/",post(move |Json(body):Json<Value>| {
+            let input:Value=serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+            let citations=if input["question"]=="TEST FIXTURE INVALID CITATION" {json!([6])} else {json!([1,2,3,4,5])};
             capture.lock().unwrap().push(body);
-            async {Json(json!({"choices":[{"message":{"content":json!({"blocks":[{"heading":"Developments","text":"One consolidated finding","citations":[1,2,3,4,5]}],"limitations":[]}).to_string()}}],"usage":{"prompt_tokens":100,"completion_tokens":20,"cost":0.001}}))}
+            async move {Json(json!({"choices":[{"message":{"content":json!({"blocks":[{"heading":"Developments","text":"One consolidated finding","citations":citations}],"limitations":[]}).to_string()}}],"usage":{"prompt_tokens":100,"completion_tokens":20,"cost":0.001}}))}
         }));
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
@@ -739,16 +820,50 @@ mod tests {
         )
         .with_local_endpoint(format!("http://{address}/"))
         .unwrap();
-        let input = json!({"question":"What are the latest developments in AI compliance?","sources":(1..=5).map(|id|json!({"id":id,"text":format!("Evidence {id}")})).collect::<Vec<_>>()});
+        let input = json!({"question":"TEST FIXTURE ONLY: Combine these five synthetic project findings, explain the common result and cite every factual paragraph.","current_date":"2026-11-01","sources":(1..=5).map(|id|json!({"id":id,"title":format!("TEST FIXTURE {id}"),"url":format!("https://example.org/original-fixture/{id}"),"final_url":format!("https://example.org/test-fixture/{id}"),"retrieved_at":"2026-11-01T00:00:00Z","text":format!("TEST FIXTURE {id}: This is synthetic evidence, not a real event. In the imaginary project, team {id} completed its review. Each team used the same checklist and recorded one improvement."),"trimmed":false,"search_rank":id,"text_sha256":"not-for-model-context"})).collect::<Vec<_>>()});
         let reply = client.synthesize_web(input.clone()).await.unwrap();
         assert_eq!(validate_answer(&reply, 5).unwrap().blocks.len(), 1);
         assert_eq!(reply["usage"]["cost"], 0.001);
         let calls = received.lock().unwrap();
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0]["model"], crate::parser::MULTISOURCE_ANALYSIS_MODEL);
+        assert_eq!(calls[0]["provider"]["require_parameters"], true);
+        assert_eq!(calls[0]["provider"]["sort"], "latency");
+        assert_eq!(calls[0]["response_format"]["type"], "json_schema");
+        assert_eq!(calls[0]["response_format"]["json_schema"]["strict"], true);
+        let schema = &calls[0]["response_format"]["json_schema"]["schema"];
+        assert_eq!(
+            schema["properties"]["blocks"]["items"]["properties"]["citations"]["items"]["enum"],
+            json!([1, 2, 3, 4, 5])
+        );
+        let invalid = json!({"blocks":[{"heading":null,"text":"Unsupported claim","citations":[6]}],"limitations":[]});
+        assert!(!jsonschema::is_valid(schema, &invalid));
+        if let Ok(path) = std::env::var("WEB_RESEARCH_TEST_PAYLOAD") {
+            std::fs::write(path, serde_json::to_vec_pretty(&calls[0]).unwrap()).unwrap();
+        }
         let sent: Value =
             serde_json::from_str(calls[0]["messages"][1]["content"].as_str().unwrap()).unwrap();
-        assert_eq!(sent, input);
+        assert_eq!(sent["question"], input["question"]);
+        assert_eq!(sent, synthesis_input(&input).unwrap().0);
+        assert!(sent["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|s| s.as_object().unwrap().len() == 6
+                && s.get("search_rank").is_none()
+                && s.get("text_sha256").is_none()
+                && s.get("final_url").is_none()));
+        drop(calls);
+        let mut invalid_input = input;
+        invalid_input["question"] = json!("TEST FIXTURE INVALID CITATION");
+        assert_eq!(
+            client
+                .synthesize_web(invalid_input)
+                .await
+                .unwrap_err()
+                .to_string(),
+            "web_answer_invalid_citations"
+        );
         server.abort();
     }
     #[test]
