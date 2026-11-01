@@ -1,4 +1,4 @@
-# Inbound triggers — Hello world milestone
+# Production Slack triggers and dossiers
 
 `/triggers` is a separate authenticated app page. Users choose their own trigger
 name and optional Composio connection label. They can select a Slack conversation,
@@ -9,11 +9,11 @@ stored in that draft.
 
 Triggers match every new message by default, or a configurable case-insensitive
 prefix. Slack bold formatting and extra whitespace do not affect prefix matching.
-The supplier example is illustrative only. The sole action is a **Hello world**
-alert in the open Triggers page, with durable activity history. No Ask execution,
-paid research, supplier verification, or reply to Slack occurs.
+The supplier example is illustrative only. Incoming messages are recorded in durable activity history. A mention of Apiosk with a screening request creates a real dossier and prepares its actual first-check quote. Source execution requires explicit approval in Apiosk. Results and review requests refer to that saved dossier; no static screening result or fixed demo price is used.
 
 ## Enable in an environment
+
+The dated deployment notes below describe the initial ingress milestone, not full end-to-end acceptance.
 
 Production status on 2026-10-29: migration `20261029161428_inbound_triggers`
 is applied to `apiosk-production` (`jgjoiyqdyypouskftzeq`). Both tables have RLS
@@ -63,7 +63,7 @@ OAuth ingress setup in step 4 is not needed for those configurations.
    must be granted. A connection alone does not prove event delivery.
 5. Open `/triggers`, name the trigger, connect/select Slack, choose a conversation
    and create the trigger. Send a **new** human message there. Verify an activity
-   entry without the “Test event” label and a Hello world alert. The page's Live
+   entry without the “Test event” label and its real dossier or activity entry. The page's Live
    indicator describes the gateway event stream, not proof of Slack delivery.
 
 Slack creation stays disabled when the delivery signing secret is absent. OAuth
@@ -117,7 +117,7 @@ The bot's Slack user and workspace come from `auth.test` through Composio's
 proxy; with several workspaces, the event's `team_id` picks the bot. Existing
 channels need `/invite @Apiosk` once.
 
-Owners in `TRIGGER_TOOL_TEST_OWNER_IDS` see **Test tools** on `/triggers`. They
+Only development builds may expose **Test tools** to owners in `TRIGGER_TOOL_TEST_OWNER_IDS`. Release builds always disable them, including the synthetic ingress endpoint. They
 post each Slack agent response (chat reply, screening, approval request,
 monitoring) through their Apiosk bot with labelled test data. Only the chat reply calls
 a model; nothing is screened, bought or scheduled. Slack responses and approval decisions
@@ -126,8 +126,7 @@ approver and outcome. Approval buttons update the DM and post the decision in th
 channel thread. The first decision is stored durably, so duplicate clicks across
 restarts do not create conflicting outcomes. Existing inbound messages are unchanged.
 Apply `20261030094736_trigger_response_activity.sql` before deploying this version.
-Monitoring is shown as a demo simulation: production monitoring is paused and
-has no news source yet.
+The recording-only screening/approval/monitoring implementation has been removed. Production activity hides historical simulation and synthetic events. Monitoring uses the existing owner-limited recurring workflow and its actual source coverage; an unavailable news source must remain an explicit coverage gap.
 
 ## Normal trigger approvers
 
@@ -260,3 +259,9 @@ for accounts where that feature is disabled.
 
 Storage: `gateway_v2.slack_dossiers`, migration `slack_dossiers`; gateway-runtime
 access only, owner/workspace checks in handlers, no public Data API grants.
+
+## Production acceptance
+
+A real Slack message must create a durable `gateway_v2.slack_dossiers` row and an actual first-check quote. The source check waits for approval in Apiosk. The recording route and its hard-coded price/results have been removed; old recording buttons cannot authorize work. Historical demo/test activity stays out of the normal feed.
+
+Monitoring is owner-limited by `RECURRING_ALLOWED_OWNER_IDS`; its live enablement is controlled by the `RECURRING_ORDERS_ENABLED` production secret. Before enabling, inspect existing active orders, queued runs and pending deliveries. Never treat a simulated scheduling message as an authorized recurring order.

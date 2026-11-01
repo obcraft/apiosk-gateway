@@ -23,9 +23,9 @@ const NOTE: &str = "🧪 Test · sample data, no real checks and no charges";
 const TEST_KVK: &str = "00000000";
 
 /// `TRIGGER_TOOL_TEST_OWNER_IDS`, comma-separated owner UUIDs. A partly
-/// malformed setting grants nobody access.
+/// malformed setting grants nobody access. Release builds always disable these tools.
 pub(super) fn enabled_for(owner: Uuid) -> bool {
-    crate::recurring::parse_allowed_owners(std::env::var("TRIGGER_TOOL_TEST_OWNER_IDS").ok().as_deref()).contains(&owner)
+    cfg!(debug_assertions) && crate::recurring::parse_allowed_owners(std::env::var("TRIGGER_TOOL_TEST_OWNER_IDS").ok().as_deref()).contains(&owner)
 }
 
 #[derive(Clone, Copy, Deserialize)]
@@ -265,18 +265,6 @@ pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, own
     }
 }
 
-/// The recording demo's review request: the ordinary DM and decision, for a named company.
-#[allow(clippy::too_many_arguments)]
-pub(super) async fn request_named_review(pool: &sqlx::PgPool, composio: &Composio, owner: Uuid, bot: &str,
-    trigger: Uuid, channel: &str, company: &str, message: &str, approver: &str, name: &str) -> anyhow::Result<()> {
-    let posted = send_approval(Poster { composio, owner, bot }, channel, trigger, company.into(),
-        approver.into(), Some(name.into()), false, false, Some(message), None).await?;
-    let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
-    super::activity::record(pool, trigger, owner, &format!("response:{channel}:{ts}"), &posted.text, false, &posted.activity).await?;
-    if let Some(e) = posted.delivery_error { return Err(e.into()); }
-    Ok(())
-}
-
 pub(super) async fn request_dossier_review(pool:&sqlx::PgPool,c:&Composio,owner:Uuid,bot:&str,trigger:Uuid,channel:&str,thread:&str,d:&Value,approver:&str,name:&str)->anyhow::Result<()> {
     let id:Uuid=d["id"].as_str().unwrap_or_default().parse()?;
     let mut lock=pool.begin().await?;
@@ -487,10 +475,11 @@ pub(in crate::server) async fn slack_interactions(State(state): State<ServerStat
     else {
         return StatusCode::BAD_REQUEST.into_response();
     };
+    if payload["actions"].as_array().is_some_and(|actions| actions.iter().any(|a| a["action_id"] == "apiosk_demo_approve")) {
+        return Json(json!({"response_type":"ephemeral","text":"This button belongs to an old recording and cannot run a check. Mention Apiosk with a new screening request to receive a real price and dossier."})).into_response();
+    }
     if let (Some(d), Ok(composio)) = (decision(&payload), client()) {
         tokio::spawn(decide(state.engine.store.pool.clone(), composio, d));
-    } else if let (Some(approval), Ok(composio)) = (super::demo::approval(&payload), client()) {
-        tokio::spawn(super::demo::approve(state.engine.store.pool.clone(), composio, approval));
     }
     StatusCode::OK.into_response()
 }

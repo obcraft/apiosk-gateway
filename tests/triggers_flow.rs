@@ -267,12 +267,12 @@ async fn trigger_ingress_ownership_deduplication_and_live_delivery() {
             .unwrap(),
     )
     .await;
-    assert_eq!(result["action"], "Hello world");
+    assert_eq!(result["action"], "record_activity");
     let streamed = tokio::time::timeout(Duration::from_secs(4), async {
         let mut content = String::new();
         while let Some(bytes) = sse.chunk().await.unwrap() {
             content.push_str(&String::from_utf8_lossy(&bytes));
-            if content.contains("Hello world") {
+            if content.contains("record_activity") {
                 return content;
             }
         }

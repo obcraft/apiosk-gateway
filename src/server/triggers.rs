@@ -3,7 +3,6 @@
 mod activity;
 pub(super) mod dossiers;
 mod approvers;
-mod demo;
 mod reply;
 mod slack;
 mod tools;
@@ -136,7 +135,7 @@ fn matches(text: &str, prefix: &str) -> bool {
 }
 
 const TRIGGER_SELECT: &str = "SELECT to_jsonb(t) - 'webhook_secret_hash' AS value FROM gateway_v2.inbound_triggers t WHERE owner_id=$1 ORDER BY created_at DESC LIMIT 100";
-const EVENT_FIELDS: &str = "jsonb_build_object('id',e.id::text,'trigger_id',e.trigger_id,'trigger_name',t.name,'source',t.source,'channel_name',t.channel_name,'text',e.text,'matched',e.matched,'is_test',e.is_test,'received_at',e.received_at,'activity',e.activity,'action',CASE WHEN e.matched THEN 'Hello world' ELSE NULL END)";
+const EVENT_FIELDS: &str = "jsonb_build_object('id',e.id::text,'trigger_id',e.trigger_id,'trigger_name',t.name,'source',t.source,'channel_name',t.channel_name,'text',e.text,'matched',e.matched,'is_test',e.is_test,'received_at',e.received_at,'activity',e.activity,'action',CASE WHEN e.matched THEN 'record_activity' ELSE NULL END)";
 
 async fn events(pool: &PgPool, owner: Uuid, after: Option<i64>) -> Result<Vec<Value>, sqlx::Error> {
     let query = if after.is_some() {
@@ -699,7 +698,7 @@ async fn record(
     tx.commit().await.map_err(db_error)?;
     let _ = changed().send(owner);
     Ok(
-        json!({"accepted":true,"matched":matched,"action":if matched {Some("Hello world")} else {None},
+        json!({"accepted":true,"matched":matched,"action":if matched {Some("record_activity")} else {None},
             "approver_id":row.get::<Option<String>,_>("approver_id"),"approver_name":row.get::<Option<String>,_>("approver_name"),"approval_mode":row.get::<String,_>("approval_mode")}),
     )
 }
@@ -871,13 +870,6 @@ pub(super) async fn composio_webhook(
             if named || reply::mentions(&text) || thread.is_some() {
                 if let Some(ref bot) = bot {
                     let root = thread.as_deref().unwrap_or(&event_ts);
-                    if demo::enabled_for(owner) && (named || reply::mentions(&text)) {
-                        match demo::handle(&pool, composio, owner, fresh_ids[0], &bot.account, &channel, asker.as_deref(), &text).await {
-                            Ok(true) => return tracing::info!(surface = "trigger-demo", "demo reply posted"),
-                            Ok(false) => {},
-                            Err(error) => return tracing::warn!(%error, "Slack demo reply failed"),
-                        }
-                    }
                     match dossiers::handle(&dossier_engine,composio,owner,fresh_ids[0],&bot.team,&bot.account,&channel,root,thread.as_deref(),asker.as_deref(),&text,named || reply::mentions(&text)).await {
                         Ok(true) => return tracing::info!(surface = "trigger-dossier", reply_ms = received.elapsed().as_millis() as u64, "dossier reply posted"),
                         Ok(false) => {},
@@ -921,6 +913,10 @@ pub(super) async fn test(
     Path(id): Path<Uuid>,
     Json(body): Json<Incoming>,
 ) -> Response {
+    // Synthetic ingress is a development tool, never a production action.
+    if !cfg!(debug_assertions) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
     let owner = match app_person(&state, &headers).await {
         Ok(p) => p.owner,
         Err(r) => return r,
