@@ -154,7 +154,16 @@ async fn run(
         )
     } else {
         phase(sender, "generating", count).await?;
-        let output = client.synthesize_web(input).await.map_err(|error| {
+        let output = client.synthesize_web_streaming(input, |answer| {
+            tracing::info!(operation="web-research-answer-stream",elapsed_ms=start.elapsed().as_millis() as u64,
+                block_count=answer["blocks"].as_array().map_or(0,Vec::len),source_count=count,"cited paragraphs streamed");
+            let snapshot=json!({"phase":"answer","source_count":count,"result":{"question":question,
+                "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
+                "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
+                    "search":{"elapsed_ms":search_ms,"cost_usd":0},"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
+                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::parser::MULTISOURCE_ANALYSIS_MODEL,"usage":null}}}});
+            async move {sender.send(snapshot).await?;Ok(())}
+        }).await.map_err(|error| {
             tracing::warn!(
                 operation = "web-research-synthesis",
                 status = "failed",

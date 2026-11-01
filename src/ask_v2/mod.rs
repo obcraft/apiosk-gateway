@@ -144,35 +144,94 @@ impl Client {
         tokio::time::timeout(Duration::from_secs(4),outcome).await?
     }
 
-    /// Web synthesis shares the configured transport and credential, with its
-    /// own prompt and bounded response. No catalog planning or source purchase.
+    /// Non-streaming compatibility for callers that need only the final value.
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) async fn synthesize_web(&self, input: Value) -> Result<Value> {
+        self.synthesize_web_with(input, false, |_| async { Ok(()) }).await
+    }
+
+    /// Publish complete cited paragraphs as they arrive from the provider.
+    /// The caller receives the same strictly validated final answer afterward.
+    pub(crate) async fn synthesize_web_streaming<F, Fut>(&self, input: Value, on_answer: F) -> Result<Value>
+    where F: FnMut(Value) -> Fut + Send, Fut: std::future::Future<Output=Result<()>> + Send {
+        self.synthesize_web_with(input, true, on_answer).await
+    }
+
+    async fn synthesize_web_with<F, Fut>(&self, input: Value, streaming: bool, mut on_answer: F) -> Result<Value>
+    where F: FnMut(Value) -> Fut + Send, Fut: std::future::Future<Output=Result<()>> + Send {
         use futures_util::StreamExt;
         let model = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
         let (input,ids)=crate::web_research::synthesis_input(&input)?;
-        let payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
+        let mut payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
             "provider":{"require_parameters":true,"sort":"latency"},
             "response_format":{"type":"json_schema","json_schema":{"name":"web_research_answer","strict":true,"schema":crate::web_research::answer_schema(&ids)}},
             "messages":[{"role":"system","content":include_str!("../../contracts/web-research-prompt.txt")},
                 {"role":"user","content":input.to_string()}]});
+        if streaming {
+            payload["stream"] = json!(true);
+            payload["stream_options"] = json!({"include_usage":true});
+        }
         let mut call = crate::telemetry::model_call("web-research-synthesis", 1, model, payload.to_string().len());
         crate::telemetry::record_model_http_request();
         let outcome = async {
             let response = self.http.post(&self.endpoint).bearer_auth(&self.key)
                 .timeout(Duration::from_secs(27)).json(&payload).send().await?;
             ensure!(response.status().is_success(), "web synthesis unavailable");
-            let mut bytes = Vec::new();
-            let mut stream = response.bytes_stream();
-            while let Some(chunk) = stream.next().await {
-                let chunk = chunk?;
-                ensure!(bytes.len() + chunk.len() <= 128 * 1024, "web synthesis too large");
-                bytes.extend_from_slice(&chunk);
-            }
-            let body: Value = serde_json::from_slice(&bytes)?;
-            call.received(&body, bytes.len());
-            let content = body["choices"][0]["message"]["content"].as_str().ok_or_else(|| anyhow!("missing web answer"))?;
-            let mut answer = crate::web_research::parse_answer(content,ids.len())?;
-            answer["usage"] = body["usage"].clone();
+            let (content,usage,provider,output_bytes) = if streaming {
+                ensure!(response.headers().get("content-type").and_then(|v|v.to_str().ok())
+                    .is_some_and(|v|v.starts_with("text/event-stream")), "web synthesis stream unavailable");
+                let mut events = Sse { wait_for_usage:true, max_wire_bytes:Some(2*1024*1024), max_text_bytes:Some(128*1024), ..Sse::default() };
+                let mut emitted = json!([]);
+                let mut stream = response.bytes_stream();
+                let mut usage_deadline = None;
+                loop {
+                    let next = if let Some(deadline) = usage_deadline {
+                        match tokio::time::timeout_at(deadline, stream.next()).await { Ok(next)=>next, Err(_)=>break }
+                    } else { stream.next().await };
+                    let Some(chunk) = next else { break; };
+                    events.push(&chunk?)?;
+                    if events.content_done && usage_deadline.is_none() {
+                        usage_deadline=Some(tokio::time::Instant::now()+Duration::from_secs(1));
+                    }
+                    if let Some(answer) = crate::web_research::streamed_answer(&events.text,ids.len())? {
+                        let blocks=&answer["blocks"];
+                        let previous=emitted.as_array().unwrap();
+                        let next=blocks.as_array().unwrap();
+                        ensure!(next.starts_with(previous), "web answer stream changed prior content");
+                        if next.len()>previous.len() {
+                            emitted=blocks.clone();
+                            on_answer(answer).await?;
+                        }
+                    }
+                    if events.done { break; }
+                }
+                events.flush()?;
+                let bytes=events.bytes;
+                let provider=events.provider.clone();
+                // An EOF with a syntactically complete prefix is not a finished
+                // model response. Length/content-filter/provider errors fail.
+                let completed=events.content_done;
+                let (text,usage)=events.finish_with_usage()?;
+                ensure!(completed, "web synthesis stream incomplete");
+                let answer=crate::web_research::parse_answer(&text,ids.len())?;
+                ensure!(answer["blocks"].as_array().unwrap().starts_with(emitted.as_array().unwrap()),
+                    "web answer stream changed prior content");
+                (text,serde_json::to_value(usage.unwrap_or_default())?,provider,bytes)
+            } else {
+                let mut bytes = Vec::new();
+                let mut stream = response.bytes_stream();
+                while let Some(chunk) = stream.next().await {
+                    let chunk = chunk?;
+                    ensure!(bytes.len() + chunk.len() <= 128 * 1024, "web synthesis too large");
+                    bytes.extend_from_slice(&chunk);
+                }
+                let body: Value = serde_json::from_slice(&bytes)?;
+                let content = body["choices"][0]["message"]["content"].as_str().ok_or_else(|| anyhow!("missing web answer"))?;
+                (content.to_owned(),body["usage"].clone(),body["provider"].as_str().map(str::to_owned),bytes.len())
+            };
+            call.received(&json!({"usage":usage,"provider":provider}),output_bytes);
+            let mut answer = crate::web_research::parse_answer(&content,ids.len())?;
+            answer["usage"] = usage;
             call.finish(crate::telemetry::Outcome::Ok, "received");
             Ok::<Value, anyhow::Error>(answer)
         };
@@ -576,6 +635,9 @@ struct Sse {
     wait_for_usage: bool,
     content_done: bool,
     usage: Option<ModelUsage>,
+    provider: Option<String>,
+    max_wire_bytes: Option<usize>,
+    max_text_bytes: Option<usize>,
 }
 
 impl Sse {
@@ -588,7 +650,7 @@ impl Sse {
             .checked_add(chunk.len())
             .ok_or_else(|| anyhow!("ask_v2_model_response_too_large"))?;
         ensure!(
-            self.bytes <= MAX_STREAM_BYTES,
+            self.bytes <= self.max_wire_bytes.unwrap_or(MAX_STREAM_BYTES),
             "ask_v2_model_response_too_large"
         );
         self.pending.extend_from_slice(chunk);
@@ -631,6 +693,9 @@ impl Sse {
             chunk.get("error").is_none_or(Value::is_null),
             "ask_v2_model_stream_unavailable"
         );
+        if let Some(provider)=chunk["provider"].as_str().filter(|s|s.len()<=128) {
+            self.provider=Some(provider.to_owned());
+        }
         if let Some(usage) = chunk.get("usage").filter(|value| value.is_object()) {
             self.usage = serde_json::from_value(usage.clone()).ok();
         }
@@ -638,6 +703,8 @@ impl Sse {
             .pointer("/choices/0/delta/content")
             .and_then(Value::as_str)
         {
+            ensure!(self.text.len().checked_add(content.len()).is_some_and(|length|length<=self.max_text_bytes.unwrap_or(MAX_STREAM_BYTES)),
+                "ask_v2_model_response_too_large");
             self.text.push_str(content);
         }
         // The final choice already terminates content. Some providers delay
@@ -651,7 +718,7 @@ impl Sse {
         Ok(())
     }
 
-    fn finish_with_usage(mut self) -> Result<(String, Option<ModelUsage>)> {
+    fn flush(&mut self) -> Result<()> {
         if !self.done {
             let line = std::mem::take(&mut self.pending);
             if !line.is_empty() {
@@ -659,6 +726,11 @@ impl Sse {
             }
             self.event()?;
         }
+        Ok(())
+    }
+
+    fn finish_with_usage(mut self) -> Result<(String, Option<ModelUsage>)> {
+        self.flush()?;
         ensure!(!self.text.trim().is_empty(), "ask_v2_model_empty_response");
         Ok((self.text, self.usage))
     }
@@ -677,6 +749,19 @@ mod tests {
     };
     use futures_util::StreamExt;
     use std::convert::Infallible;
+
+    #[test]
+    fn web_stream_wire_budget_keeps_intake_and_answer_text_bounds_separate() {
+        let frame=format!("data: {}\n\n",json!({"choices":[{"delta":{"content":"a"}}]}));
+        let wire=frame.repeat(6000);
+        assert!(wire.len()>MAX_STREAM_BYTES);
+        assert_eq!(Sse::default().push(wire.as_bytes()).unwrap_err().to_string(),"ask_v2_model_response_too_large");
+        let mut web=Sse{wait_for_usage:true,max_wire_bytes:Some(2*1024*1024),max_text_bytes:Some(128*1024),..Sse::default()};
+        web.push(wire.as_bytes()).unwrap();
+        assert_eq!(web.text.len(),6000);
+        let excessive=format!("data: {}\n\n",json!({"choices":[{"delta":{"content":"a".repeat(128*1024)}}]}));
+        assert_eq!(web.push(excessive.as_bytes()).unwrap_err().to_string(),"ask_v2_model_response_too_large");
+    }
 
     fn client() -> Client {
         Client::new(

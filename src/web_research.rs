@@ -122,6 +122,96 @@ pub(crate) fn parse_answer(raw: &str, count: usize) -> Result<Value> {
     Ok(answer)
 }
 
+/// Read only complete objects from the root `blocks` array. No unfinished
+/// string, draft sentence or citation is exposed. Other root properties may
+/// precede blocks, so find the array with a JSON parser rather than substring
+/// matching text that could itself contain `"blocks"`.
+pub(crate) fn streamed_answer(raw: &str, count: usize) -> Result<Option<Value>> {
+    fn whitespace(bytes: &[u8], position: &mut usize) {
+        while bytes.get(*position).is_some_and(u8::is_ascii_whitespace) {
+            *position += 1;
+        }
+    }
+    fn value(raw: &str, position: &mut usize) -> Result<Option<Value>> {
+        let mut reader = serde_json::Deserializer::from_str(&raw[*position..]).into_iter::<Value>();
+        match reader.next() {
+            Some(Ok(value)) => {
+                *position += reader.byte_offset();
+                Ok(Some(value))
+            }
+            Some(Err(error)) if error.is_eof() => Ok(None),
+            None => Ok(None),
+            _ => anyhow::bail!("invalid streamed web answer"),
+        }
+    }
+    let bytes = raw.as_bytes();
+    let mut position = 0;
+    whitespace(bytes, &mut position);
+    if bytes.get(position) != Some(&b'{') {
+        return Ok(None);
+    }
+    position += 1;
+    loop {
+        whitespace(bytes, &mut position);
+        if bytes.get(position).is_none_or(|c| *c == b'}') {
+            return Ok(None);
+        }
+        let Some(key) = value(raw, &mut position)? else {
+            return Ok(None);
+        };
+        let Some(key) = key.as_str() else {
+            anyhow::bail!("invalid streamed answer property");
+        };
+        whitespace(bytes, &mut position);
+        let Some(separator) = bytes.get(position) else {
+            return Ok(None);
+        };
+        ensure!(*separator == b':', "invalid streamed answer property");
+        position += 1;
+        whitespace(bytes, &mut position);
+        if key == "blocks" {
+            let Some(start) = bytes.get(position) else {
+                return Ok(None);
+            };
+            ensure!(*start == b'[', "invalid streamed answer blocks");
+            position += 1;
+            let mut blocks = Vec::new();
+            loop {
+                whitespace(bytes, &mut position);
+                if bytes.get(position).is_none_or(|c| *c == b']') {
+                    break;
+                }
+                let Some(block) = value(raw, &mut position)? else {
+                    break;
+                };
+                blocks.push(block);
+                ensure!(blocks.len() <= 12, "streamed answer too large");
+                whitespace(bytes, &mut position);
+                match bytes.get(position) {
+                    Some(b',') => position += 1,
+                    Some(b']') | None => break,
+                    _ => anyhow::bail!("invalid streamed answer separator"),
+                }
+            }
+            if blocks.is_empty() {
+                return Ok(None);
+            }
+            let answer = json!({"blocks":blocks,"limitations":[]});
+            validate_answer(&answer, count)?;
+            return Ok(Some(answer));
+        }
+        if value(raw, &mut position)?.is_none() {
+            return Ok(None);
+        }
+        whitespace(bytes, &mut position);
+        match bytes.get(position) {
+            Some(b',') => position += 1,
+            Some(b'}') | None => return Ok(None),
+            _ => anyhow::bail!("invalid streamed answer separator"),
+        }
+    }
+}
+
 pub(crate) struct SearchQuery {
     pub query: String,
     pub elapsed_ms: u64,
@@ -794,6 +884,163 @@ mod tests {
         )
         .await;
         assert!(sources.is_empty());
+    }
+
+    #[test]
+    fn streamed_blocks_wait_for_citations_and_parse_only_the_root_array() {
+        let first = json!({"heading":null,"text":"Evidence with an escaped \"blocks\" label and emoji ✅.","citations":[1]});
+        let prefix = format!(
+            "{{\"limitations\":[\"The word blocks is not a property here\"],\"blocks\":[{first},"
+        );
+        let ready = streamed_answer(&prefix, 1).unwrap().unwrap();
+        assert_eq!(ready["blocks"], json!([first]));
+        assert!(streamed_answer(
+            r#"{"blocks":[{"heading":null,"text":"Do not show an uncited draft"#,
+            1
+        )
+        .unwrap()
+        .is_none());
+        assert!(streamed_answer(
+            r#"{"blocks":[{"heading":null,"text":"Invalid citation","citations":[2]}"#,
+            1
+        )
+        .is_err());
+        assert!(streamed_answer(
+            r#"{"blocks":[{"heading":null,"text":"Malformed escape \q"#,
+            1
+        )
+        .is_err());
+    }
+
+    #[tokio::test]
+    async fn provider_stream_publishes_a_cited_block_before_the_provider_finishes() {
+        use axum::{
+            body::{Body, Bytes},
+            http::Response,
+            routing::post,
+            Json, Router,
+        };
+        use std::{convert::Infallible, sync::Arc};
+        use tokio::sync::{mpsc, Notify};
+        let gate = Arc::new(Notify::new());
+        let provider_gate = gate.clone();
+        let first = json!({"heading":"First finding","text":"The first supported finding arrives early.","citations":[1]});
+        let second = json!({"heading":"Second finding","text":"The later supported finding arrives afterward.","citations":[1]});
+        let first_content = format!("{{\"blocks\":[{first},");
+        let last_content = format!("{second}],\"limitations\":[]}}");
+        let app=Router::new().route("/",post(move |Json(payload):Json<Value>| {
+            assert_eq!(payload["stream"],true);
+            assert_eq!(payload["stream_options"]["include_usage"],true);
+            assert_eq!(payload["response_format"]["type"],"json_schema");
+            let gate=provider_gate.clone();let first=first_content.clone();let last=last_content.clone();
+            async move {
+                let frames=futures_util::stream::unfold((0,gate,first,last),|(step,gate,first,last)|async move {
+                    let frame=match step {
+                        0=>json!({"provider":"fixture","choices":[{"delta":{"content":first},"finish_reason":null}]}).to_string(),
+                        1=>{gate.notified().await;json!({"choices":[{"delta":{"content":last},"finish_reason":"stop"}]}).to_string()},
+                        2=>json!({"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":25,"cost":0.001}}).to_string(),
+                        3=>"[DONE]".into(),
+                        _=>return None,
+                    };
+                    Some((Ok::<_,Infallible>(Bytes::from(format!("data: {frame}\n\n"))),(step+1,gate,first,last)))
+                });
+                Response::builder().header("content-type","text/event-stream").body(Body::from_stream(frames)).unwrap()
+            }
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let client = crate::ask_v2::Client::new(
+            reqwest::Client::new(),
+            "fixture-key".into(),
+            "unused".into(),
+        )
+        .with_local_endpoint(format!("http://{address}/"))
+        .unwrap();
+        let input = json!({"question":"TEST FIXTURE streaming evidence","sources":[{"id":1,"text":"Synthetic evidence"}]});
+        let (sender, mut receiver) = mpsc::channel(4);
+        let work = tokio::spawn(async move {
+            client
+                .synthesize_web_streaming(input, move |answer| {
+                    let sender = sender.clone();
+                    async move {
+                        sender.send(answer).await?;
+                        Ok(())
+                    }
+                })
+                .await
+        });
+        let early = tokio::time::timeout(Duration::from_secs(2), receiver.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(early["blocks"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            early["blocks"][0]["text"],
+            "The first supported finding arrives early."
+        );
+        assert!(
+            !work.is_finished(),
+            "the first paragraph must arrive while the provider is still held open"
+        );
+        gate.notify_one();
+        let final_answer = tokio::time::timeout(Duration::from_secs(2), work)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert_eq!(final_answer["blocks"].as_array().unwrap().len(), 2);
+        assert_eq!(final_answer["usage"]["cost"], 0.001);
+        assert_eq!(
+            receiver.recv().await.unwrap()["blocks"]
+                .as_array()
+                .unwrap()
+                .len(),
+            2
+        );
+        server.abort();
+    }
+
+    #[tokio::test]
+    async fn provider_eof_without_a_finish_reason_is_not_a_successful_answer() {
+        use axum::{body::Body, http::Response, routing::post, Router};
+        let answer = json!({"blocks":[{"heading":null,"text":"A complete JSON object is not a completed provider stream.","citations":[1]}],"limitations":[]});
+        let frame = format!(
+            "data: {}\n\n",
+            json!({"choices":[{"delta":{"content":answer.to_string()}}]})
+        );
+        let app = Router::new().route(
+            "/",
+            post(move || {
+                let frame = frame.clone();
+                async move {
+                    Response::builder()
+                        .header("content-type", "text/event-stream")
+                        .body(Body::from(frame))
+                        .unwrap()
+                }
+            }),
+        );
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let client = crate::ask_v2::Client::new(
+            reqwest::Client::new(),
+            "fixture-key".into(),
+            "unused".into(),
+        )
+        .with_local_endpoint(format!("http://{address}/"))
+        .unwrap();
+        let result=client.synthesize_web_streaming(json!({"question":"TEST FIXTURE EOF","sources":[{"id":1,"text":"Synthetic evidence"}]}),|_|async {Ok(())}).await;
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "web synthesis stream incomplete"
+        );
+        server.abort();
     }
 
     #[tokio::test]
