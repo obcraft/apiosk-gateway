@@ -32,6 +32,8 @@ pub const DEFAULT_MODEL: &str = "openai/gpt-oss-120b";
 /// The one fallback: the same prompt again, without reasoning overhead, when
 /// the default model's request fails (an outage, not an invalid parse).
 pub const FALLBACK_MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
+/// A short, isolated context-resolution stage before web retrieval.
+pub(crate) const WEB_QUERY_MODEL: &str = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // The parse contract: connected chatbots fill in exactly this shape
@@ -109,6 +111,39 @@ enum Operation {
 }
 
 impl Client {
+    /// Resolve conversational references for retrieval only. The original
+    /// question still owns synthesis, and a failure falls back at the caller.
+    pub(crate) async fn resolve_web_query(&self, question: &str, earlier: &str) -> Result<(String, Value)> {
+        use futures_util::StreamExt;
+        let payload = json!({"model":WEB_QUERY_MODEL,"temperature":0,"max_tokens":160,
+            "response_format":{"type":"json_object"},
+            "messages":[{"role":"system","content":include_str!("../../contracts/web-query-prompt.txt")},
+                {"role":"user","content":json!({"question":question,"earlier_conversation":earlier}).to_string()}]});
+        let mut call = crate::telemetry::model_call("web-query-resolution",1,WEB_QUERY_MODEL,payload.to_string().len());
+        crate::telemetry::record_model_http_request();
+        let outcome = async {
+            let response = self.http.post(&self.endpoint).bearer_auth(&self.key)
+                .timeout(Duration::from_secs(3)).json(&payload).send().await?;
+            ensure!(response.status().is_success(),"web query resolution unavailable");
+            let mut bytes = Vec::new();
+            let mut stream = response.bytes_stream();
+            while let Some(chunk) = stream.next().await {
+                let chunk = chunk?;
+                ensure!(bytes.len()+chunk.len()<=16*1024,"web query response too large");
+                bytes.extend_from_slice(&chunk);
+            }
+            let body: Value = serde_json::from_slice(&bytes)?;
+            call.received(&body,bytes.len());
+            let content=body["choices"][0]["message"]["content"].as_str().ok_or_else(||anyhow!("missing web query"))?;
+            let parsed: Value=serde_json::from_str(content)?;
+            let query=parsed["query"].as_str().map(str::trim).ok_or_else(||anyhow!("missing web query"))?;
+            ensure!(!query.is_empty() && query.chars().count()<=300 && !query.chars().any(char::is_control),"invalid web query");
+            call.finish(crate::telemetry::Outcome::Ok,"validated");
+            Ok((query.to_owned(),body["usage"].clone()))
+        };
+        tokio::time::timeout(Duration::from_secs(4),outcome).await?
+    }
+
     /// Web synthesis shares the configured transport and credential, with its
     /// own prompt and bounded response. No catalog planning or source purchase.
     pub(crate) async fn synthesize_web(&self, input: Value) -> Result<Value> {

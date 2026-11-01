@@ -46,6 +46,48 @@ pub(crate) struct Answer {
     pub limitations: Vec<String>,
 }
 
+pub(crate) struct SearchQuery {
+    pub query: String,
+    pub elapsed_ms: u64,
+    pub method: &'static str,
+    pub usage: Value,
+}
+
+/// Retrieval can resolve a follow-up without rewriting the question that
+/// synthesis answers. Resolver outages never block an otherwise usable search.
+pub(crate) async fn search_query(
+    client: &crate::ask_v2::Client,
+    question: &str,
+    earlier: &str,
+) -> SearchQuery {
+    if earlier.trim().is_empty() {
+        return SearchQuery {
+            query: question.into(),
+            elapsed_ms: 0,
+            method: "original",
+            usage: Value::Null,
+        };
+    }
+    let started = Instant::now();
+    let (query, usage, method) = match client.resolve_web_query(question, earlier).await {
+        Ok((query, usage)) => (query, usage, "context_model"),
+        Err(_) => {
+            tracing::warn!(
+                operation = "web-query-resolution",
+                status = "fallback",
+                "research operation"
+            );
+            (question.into(), Value::Null, "fallback")
+        }
+    };
+    SearchQuery {
+        query,
+        usage,
+        method,
+        elapsed_ms: started.elapsed().as_millis() as u64,
+    }
+}
+
 fn normalized(raw: &str, limit: usize) -> String {
     raw.split_whitespace()
         .collect::<Vec<_>>()
@@ -533,6 +575,67 @@ fn glob_match(pattern: &str, target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn follow_up_query_uses_context_and_resolution_failures_keep_the_original() {
+        use axum::{routing::post, Json, Router};
+        use std::sync::{Arc, Mutex};
+        let received = Arc::new(Mutex::new(Vec::<Value>::new()));
+        let capture = received.clone();
+        let app=Router::new().route("/",post(move |Json(body):Json<Value>| {
+            capture.lock().unwrap().push(body.clone());
+            async move {
+                let input:Value=serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
+                if input["question"]=="Timeout" {tokio::time::sleep(Duration::from_secs(5)).await;}
+                let content=if input["question"]=="Malformed" {"not JSON".into()}
+                    else if input["question"]=="Too long" {json!({"query":"a".repeat(301)}).to_string()}
+                    else {json!({"query":"latest AI compliance developments in the Netherlands"}).to_string()};
+                Json(json!({"choices":[{"message":{"content":content}}],"usage":{"prompt_tokens":50,"completion_tokens":12,"cost":0.0001}}))
+            }
+        }));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let server = tokio::spawn(async move {
+            axum::serve(listener, app).await.unwrap();
+        });
+        let client = crate::ask_v2::Client::new(
+            reqwest::Client::new(),
+            "fixture-key".into(),
+            "unused-parser-model".into(),
+        )
+        .with_local_endpoint(format!("http://{address}/"))
+        .unwrap();
+        let question = "And in the Netherlands?";
+        let earlier = "user: What are the latest developments in AI compliance?";
+        let initial = search_query(&client, question, "").await;
+        assert_eq!(initial.query, question);
+        assert_eq!(initial.method, "original");
+        assert!(received.lock().unwrap().is_empty());
+        let resolved = search_query(&client, question, earlier).await;
+        assert_eq!(
+            resolved.query,
+            "latest AI compliance developments in the Netherlands"
+        );
+        assert_eq!(resolved.method, "context_model");
+        assert_eq!(resolved.usage["cost"], 0.0001);
+        let calls = received.lock().unwrap();
+        assert_eq!(calls[0]["model"], crate::ask_v2::WEB_QUERY_MODEL);
+        let input: Value =
+            serde_json::from_str(calls[0]["messages"][1]["content"].as_str().unwrap()).unwrap();
+        assert_eq!(
+            input,
+            json!({"question":question,"earlier_conversation":earlier})
+        );
+        drop(calls);
+        for original in ["Malformed", "Too long", "Timeout"] {
+            let started = Instant::now();
+            let fallback = search_query(&client, original, earlier).await;
+            assert_eq!(fallback.query, original);
+            assert_eq!(fallback.method, "fallback");
+            assert!(started.elapsed() < Duration::from_secs(4));
+        }
+        server.abort();
+    }
+
     #[tokio::test]
     async fn reads_in_parallel_and_replaces_failed_duplicate_and_irrelevant_pages() {
         use std::sync::{
