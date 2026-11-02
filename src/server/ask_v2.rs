@@ -357,6 +357,8 @@ pub(super) struct ParseRequest {
     #[serde(default)]
     known_slugs: Vec<String>,
     correction: Option<String>,
+    /// Catalog suggestions alongside web research already have page evidence.
+    include_web_context: Option<bool>,
 }
 
 fn valid_slug(slug: &str) -> bool {
@@ -447,15 +449,21 @@ pub(super) async fn parse(
         "planning_token":token,"attempts":interpretation.attempts,"model_calls":crate::telemetry::model_http_requests(),
         "timing":{"parse_ms":started.elapsed().as_millis() as u64,"model_ms":interpretation.output.timing.parse_ms}});
     tracing::info!(request_id=%request.request_id, model=%output["model"], attempts=interpretation.attempts, parse_ms=%output["timing"]["parse_ms"], "Ask v2 capabilities parsed");
+    if request.include_web_context == Some(false) {
+        output["company_context"] = json!([]);
+        output["context_status"] = json!("completed");
+        return Json(output).into_response();
+    }
     if headers.get("accept").and_then(|value| value.to_str().ok()).is_some_and(|value| value.contains("application/x-ndjson")) {
         // The canonical parse is useful before public web context finishes.
         // Stream snapshots from this same request; never re-run the model.
+        let question = question.to_owned();
         return parse_progress(output, move |update| async move {
             let _permit = _permit;
-            crate::subject_context::collect_with_updates(&parsed, update).await
+            crate::subject_context::collect_for_question(&parsed, &question, update).await
         });
     }
-    output["company_context"] = json!(crate::subject_context::collect(&parsed).await);
+    output["company_context"] = json!(crate::subject_context::collect_for_question(&parsed, question, |_, _| {}).await);
     Json(output).into_response()
 }
 
@@ -1310,6 +1318,7 @@ mod tests {
             question: "Company officers?".into(),
             known_slugs: vec![],
             correction: None,
+            include_web_context: None,
         }
     }
 

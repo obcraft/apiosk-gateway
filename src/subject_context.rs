@@ -25,6 +25,70 @@ pub(crate) async fn collect(parsed: &ParsedRequest) -> Vec<Value> {
     collect_with_updates(parsed, |_, _| {}).await
 }
 
+/// The Ask page carries the original question separately from its signed
+/// catalog parse. Public page excerpts inform context, never paid checks.
+pub(crate) async fn collect_for_question(parsed: &ParsedRequest, question: &str, update: impl Fn(usize, Value) + Send + Sync) -> Vec<Value> {
+    join_all(named_subjects(parsed).into_iter().enumerate().map(|(index, subject)| {
+        let update = &update;
+        async move {
+            let key = question_cache_key(subject, question);
+            // The existing interpretation provides the requested concepts in
+            // addition to the user's wording (for example Dutch questions
+            // about ownership on English registry pages). No extra model call.
+            let concepts = parsed.capabilities.iter().filter(|cap| cap.subject_id.as_deref() == Some(subject.id.as_str()))
+                .map(|cap| format!("{} {}", cap.name, cap.outputs.join(" "))).collect::<Vec<_>>().join("\n");
+            let selection_question = format!("{question}\n{concepts}");
+            let value = cached_context(key, async {
+                let mut value = fetch_with_updates(subject, &|v| update(index, v)).await;
+                value["content_status"] = json!("reading");
+                update(index, value.clone());
+                let candidates = context_candidates(&value);
+                let (sources, failures) = crate::web_research::read_context(candidates, &selection_question).await;
+                attach_page_context(&mut value, &sources, &failures);
+                value
+            }).await;
+            update(index, value.clone());
+            value
+        }
+    })).await
+}
+
+fn question_cache_key(subject: &Subject, question: &str) -> String {
+    // The same company can be researched for ownership, revenue or products.
+    // Reusing another question's selected passages would change the evidence.
+    crate::state::digest(&(context_cache_key(subject), "question-passages-v1", question.trim()))
+}
+
+fn context_candidates(value: &Value) -> Vec<crate::web_research::Candidate> {
+    let mut seen = std::collections::HashSet::new();
+    value["pages"].as_array().into_iter().flatten().enumerate().filter_map(|(rank, page)| {
+        let url = page["url"].as_str()?;
+        if !seen.insert(url) { return None; }
+        Some(crate::web_research::Candidate { title: page["title"].as_str().unwrap_or(url).into(), url: url.into(), rank: rank + 1 })
+    }).collect()
+}
+
+fn attach_page_context(value: &mut Value, sources: &[crate::web_research::Source], failures: &[Value]) {
+    if let Some(pages) = value["pages"].as_array_mut() {
+        for page in pages {
+            if let Some(source) = sources.iter().find(|source| page["url"].as_str() == Some(&source.url)) {
+                page["relevant_text"] = json!(source.text);
+                page["content_status"] = json!("read");
+                page["final_url"] = json!(source.final_url);
+                page["retrieved_at"] = json!(source.retrieved_at);
+                page["text_sha256"] = json!(source.text_sha256);
+                page["trimmed"] = json!(source.trimmed);
+            } else {
+                page["content_status"] = json!("unavailable");
+                page["content_reason"] = failures.iter().find(|failure| failure["url"] == page["url"])
+                    .map(|failure| failure["reason"].clone()).unwrap_or(json!("not_read_within_budget"));
+            }
+        }
+    }
+    value["content_status"] = json!("completed");
+    value["content_sources_read"] = json!(sources.len());
+}
+
 pub(crate) async fn collect_with_updates(parsed: &ParsedRequest, update: impl Fn(usize, Value) + Send + Sync) -> Vec<Value> {
     let subjects = named_subjects(parsed);
     join_all(subjects.into_iter().enumerate().map(|(index, subject)| {
@@ -46,7 +110,8 @@ async fn cached_context(key: String, fetch: impl std::future::Future<Output = Va
     // Coalesce simultaneous lookups, but let the next question retry a failure.
     cache().try_get_with(key, async {
         let value = fetch.await;
-        if value["pages"].as_array().is_some_and(|pages| !pages.is_empty()) {
+        if value["pages"].as_array().is_some_and(|pages| !pages.is_empty())
+            && (value["content_status"] != "completed" || value["content_sources_read"].as_u64().unwrap_or(0) > 0) {
             Ok(value)
         } else {
             Err(value)
@@ -521,6 +586,28 @@ fn homepage_page(url: &Url, bytes: &[u8], label: &str) -> Option<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn selected_page_context_retains_provenance_and_does_not_promote_snippets() {
+        let mut context = json!({"pages":[
+            {"kind":"search_result","url":"https://example.org/a","description":"Search preview only"},
+            {"kind":"search_result","url":"https://example.org/b","description":"Unavailable preview"}
+        ]});
+        let source = crate::web_research::Source { id: 1, title: "Filing".into(),
+            url: "https://example.org/a".into(), final_url: "https://example.org/filing".into(), search_rank: 1,
+            retrieved_at: "2026-11-02T00:00:00Z".into(), text: "The relevant ownership passage.".into(),
+            text_sha256: "hash-of-selected-text".into(), trimmed: true };
+        attach_page_context(&mut context, &[source], &[json!({"url":"https://example.org/b","reason":"blocked"})]);
+        assert_eq!(context["content_sources_read"], 1);
+        assert_eq!(context["pages"][0]["description"], "Search preview only");
+        assert_eq!(context["pages"][0]["relevant_text"], "The relevant ownership passage.");
+        assert_eq!(context["pages"][0]["final_url"], "https://example.org/filing");
+        assert_eq!(context["pages"][0]["trimmed"], true);
+        assert_eq!(context["pages"][1]["content_reason"], "blocked");
+        assert!(context["pages"][1]["relevant_text"].is_null());
+        let subject = Subject { id: "1".into(), kind: "company".into(), label: "Monzo".into(), identifiers: Default::default() };
+        assert_ne!(question_cache_key(&subject, "Monzo owners"), question_cache_key(&subject, "Monzo revenue"));
+        assert_eq!(question_cache_key(&subject, "Monzo owners"), question_cache_key(&subject, " Monzo owners "));
+    }
     #[test]
     fn topic_results_match_content_without_weakening_entity_names() {
         let label = "business and financial headlines";

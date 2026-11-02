@@ -131,7 +131,8 @@ async fn run(
     );
     phase(sender, "reading", candidates.len().min(5)).await?;
     let start = Instant::now();
-    let (sources, failures) = crate::web_research::read(candidates, &query.query).await;
+    let evidence_question = format!("{question}\n{}", query.query);
+    let (sources, failures) = crate::web_research::read(candidates, &evidence_question).await;
     let extract_ms = start.elapsed().as_millis() as u64;
     phase(sender, "analyzing", sources.len()).await?;
     let start = Instant::now();

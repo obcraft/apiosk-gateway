@@ -11,6 +11,7 @@ use std::{
     time::{Duration, Instant},
 };
 use url::Url;
+mod passages;
 
 pub(crate) const TARGET: usize = 5;
 const MAX_CANDIDATES: usize = 15;
@@ -343,20 +344,7 @@ fn excluded(element: ElementRef<'_>) -> bool {
                     .any(|word| v.contains(word))
             })
 }
-fn readable(root: ElementRef<'_>) -> String {
-    let parts = root
-        .descendants()
-        .filter_map(|node| {
-            let text = node.value().as_text()?;
-            if node.ancestors().filter_map(ElementRef::wrap).any(excluded) {
-                return None;
-            }
-            Some(text.text.as_ref())
-        })
-        .collect::<Vec<_>>();
-    normalized(&parts.join(" "), TEXT_CHARS + 1)
-}
-fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8]) -> Result<Source> {
+fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str) -> Result<Source> {
     let html = Html::parse_document(&String::from_utf8_lossy(bytes));
     let meta = Selector::parse("meta[name='robots'],meta[name='ApioskResearchBot']").unwrap();
     ensure!(
@@ -372,18 +360,16 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8]) -> Result<Source
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| candidate.title.clone());
     let roots = Selector::parse("main,article,[role='main']").unwrap();
-    let content = html
+    let mut content: Vec<_> = html
         .select(&roots)
-        .map(readable)
-        .max_by_key(String::len)
-        .unwrap_or_else(|| readable(html.root_element()));
-    ensure!(content.chars().count() >= 200, "insufficient readable text");
-    let beginning = format!(
-        "{} {}",
-        title,
-        content.chars().take(200).collect::<String>()
-    )
-    .to_ascii_lowercase();
+        .filter(|element| !element.ancestors().filter_map(ElementRef::wrap).any(|parent|
+            matches!(parent.value().name(), "main" | "article") || parent.value().attr("role") == Some("main")))
+        .flat_map(passages::readable).collect();
+    if content.is_empty() { content = passages::readable(html.root_element()); }
+    ensure!(passages::size(&content) >= 200, "insufficient readable text");
+    let beginning = format!("{} {}", title,
+        normalized(&html.root_element().text().take(20).collect::<Vec<_>>().join(" "), 200))
+        .to_ascii_lowercase();
     ensure!(
         ![
             "just a moment",
@@ -397,8 +383,8 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8]) -> Result<Source
         .any(|s| beginning.contains(s)),
         "blocked page"
     );
-    let trimmed = content.chars().count() > TEXT_CHARS;
-    let text: String = content.chars().take(TEXT_CHARS).collect();
+    let (text, trimmed) = passages::select(&content, question, &title, TEXT_CHARS)
+        .ok_or_else(|| anyhow::anyhow!("irrelevant page"))?;
     Ok(Source {
         id: 0,
         title,
@@ -415,15 +401,25 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8]) -> Result<Source
 /// Each batch reads only as many pages as still needed, concurrently. Failed,
 /// duplicate and irrelevant pages leave room for lower ranked replacements.
 pub(crate) async fn read(candidates: Vec<Candidate>, question: &str) -> (Vec<Source>, Vec<Value>) {
-    read_with(candidates, question, |candidate| async move {
+    read_for(candidates, question, Duration::from_secs(26)).await
+}
+
+/// Optional context is bounded separately and never blocks catalog delivery.
+pub(crate) async fn read_context(candidates: Vec<Candidate>, question: &str) -> (Vec<Source>, Vec<Value>) {
+    read_for(candidates, question, Duration::from_secs(8)).await
+}
+
+async fn read_for(candidates: Vec<Candidate>, question: &str, budget: Duration) -> (Vec<Source>, Vec<Value>) {
+    read_with_budget(candidates, question, budget, |candidate| async move {
         let (url, bytes) = crate::link_preview::Service::shared()
             .research_html(&candidate.url)
             .await?;
-        extract(&candidate, url, &bytes)
+        extract(&candidate, url, &bytes, question)
     })
     .await
 }
 
+#[cfg(test)]
 async fn read_with<F, Fut>(
     candidates: Vec<Candidate>,
     question: &str,
@@ -433,13 +429,22 @@ where
     F: Fn(Candidate) -> Fut,
     Fut: std::future::Future<Output = Result<Source>>,
 {
+    read_with_budget(candidates, question, Duration::from_secs(26), fetch).await
+}
+
+async fn read_with_budget<F, Fut>(candidates: Vec<Candidate>, question: &str, budget: Duration, fetch: F) -> (Vec<Source>, Vec<Value>)
+where
+    F: Fn(Candidate) -> Fut,
+    Fut: std::future::Future<Output = Result<Source>>,
+{
     let mut sources = Vec::new();
     let mut failures = Vec::new();
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(26);
+    let deadline = tokio::time::Instant::now() + budget;
     let mut pending = candidates.into_iter();
     let mut seen = HashSet::new();
     let mut hashes = HashSet::new();
     loop {
+        if tokio::time::Instant::now() >= deadline { break; }
         let batch = pending
             .by_ref()
             .take(TARGET - sources.len())
@@ -447,6 +452,7 @@ where
         if batch.is_empty() {
             break;
         }
+        let attempted = batch.clone();
         let reads = stream::iter(batch.into_iter().map(|candidate| {
             let fetch = &fetch;
             async move {
@@ -455,12 +461,21 @@ where
                 (candidate, result, started.elapsed().as_millis() as u64)
             }
         }))
-        .buffered(TARGET)
-        .collect::<Vec<_>>();
-        let Ok(reads) = tokio::time::timeout_at(deadline, reads).await else {
-            break;
-        };
-        for (candidate, result, ms) in reads {
+        .buffer_unordered(TARGET);
+        futures_util::pin_mut!(reads);
+        let mut completed = Vec::new();
+        while let Ok(Some(read)) = tokio::time::timeout_at(deadline, reads.next()).await {
+            completed.push(read);
+        }
+        // Retain completed reads when one page stalls, but preserve search rank
+        // and deterministic duplicate selection regardless of arrival order.
+        completed.sort_by_key(|(candidate, _, _)| candidate.rank);
+        for candidate in &attempted {
+            if !completed.iter().any(|(read, _, _)| read.rank == candidate.rank) {
+                failures.push(json!({"url":candidate.url,"rank":candidate.rank,"reason":"timeout"}));
+            }
+        }
+        for (candidate, result, ms) in completed {
             let (accepted, reason) = match result {
                 Ok(source) if !relevant(question, &source) => (None, "irrelevant"),
                 Ok(source)
@@ -479,6 +494,8 @@ where
                             || message.contains("blocked")
                         {
                             "blocked"
+                        } else if message.contains("irrelevant") {
+                            "irrelevant"
                         } else if message.contains("insufficient") {
                             "insufficient_content"
                         } else if message.contains("too large") {
@@ -494,6 +511,8 @@ where
                 rank = candidate.rank,
                 elapsed_ms = ms,
                 status = reason,
+                selected_chars = accepted.as_ref().map_or(0, |source| source.text.chars().count()),
+                selection = "question_passages",
                 cost_usd = 0,
                 "research operation"
             );
@@ -744,6 +763,29 @@ fn glob_match(pattern: &str, target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn a_slow_page_does_not_discard_completed_page_evidence() {
+        let candidates = (1..=2).map(|rank| Candidate { title: "AI compliance".into(), url: format!("https://example.org/{rank}"), rank }).collect();
+        let (sources, failures) = read_with_budget(candidates, "AI compliance", Duration::from_millis(50), |candidate| async move {
+            if candidate.rank == 1 { std::future::pending::<()>().await; }
+            Ok(Source { id: 0, title: candidate.title, url: candidate.url.clone(), final_url: candidate.url,
+                search_rank: candidate.rank, retrieved_at: "2026-11-02T00:00:00Z".into(),
+                text: "AI compliance evidence from the completed page.".into(), text_sha256: "fixture".into(), trimmed: false })
+        }).await;
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].search_rank, 2);
+        assert_eq!(sources[0].id, 1);
+        assert_eq!(failures[0]["reason"], "timeout");
+    }
+
+    #[test]
+    fn relevant_article_is_found_alongside_a_larger_unrelated_article() {
+        let candidate = Candidate { title: "Research archive".into(), url: "https://example.org/".into(), rank: 1 };
+        let html = format!("<title>Research archive</title><article><p>{}</p></article><article><h2>AI compliance</h2><p>New compliance requirements apply to model documentation and risk assessments. The obligations have different effective dates depending on the provider and model type.</p></article>", "Sailing trips and ocean weather updates. ".repeat(100));
+        let source = extract(&candidate, Url::parse(&candidate.url).unwrap(), html.as_bytes(), "AI compliance").unwrap();
+        assert!(source.text.contains("documentation"));
+        assert!(!source.text.contains("Sailing"));
+    }
     #[tokio::test]
     async fn follow_up_query_uses_context_and_resolution_failures_keep_the_original() {
         use axum::{routing::post, Json, Router};
@@ -1147,6 +1189,7 @@ mod tests {
             &c,
             Url::parse("https://example.org/final").unwrap(),
             html.as_bytes(),
+            "AI compliance",
         )
         .unwrap();
         assert!(source.text.contains(&text.trim()));
@@ -1168,13 +1211,13 @@ mod tests {
         assert!(extract(
             &c,
             Url::parse(&c.url).unwrap(),
-            format!("<title>Just a moment</title><p>{text}</p>").as_bytes()
+            format!("<title>Just a moment</title><p>{text}</p>").as_bytes(), "AI compliance"
         )
         .is_err());
         assert!(extract(
             &c,
             Url::parse(&c.url).unwrap(),
-            format!("<meta name='robots' content='nosnippet'><p>{text}</p>").as_bytes()
+            format!("<meta name='robots' content='nosnippet'><p>{text}</p>").as_bytes(), "AI compliance"
         )
         .is_err());
     }
