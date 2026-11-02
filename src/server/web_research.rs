@@ -164,7 +164,7 @@ async fn run(
                 "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
                 "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
                     "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
-                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::parser::MULTISOURCE_ANALYSIS_MODEL,"usage":null}}}});
+                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":null}}}});
             async move {sender.send(snapshot).await?;Ok(())}
         }).await.map_err(|error| {
             tracing::warn!(
@@ -202,7 +202,7 @@ async fn run(
         "provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
         "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
             "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
-            "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":crate::parser::MULTISOURCE_ANALYSIS_MODEL,"usage":usage}}
+            "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":usage}}
     }})).await?;
     Ok(())
 }

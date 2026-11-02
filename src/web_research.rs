@@ -1150,7 +1150,7 @@ mod tests {
         assert_eq!(reply["usage"]["cost"], 0.001);
         let calls = received.lock().unwrap();
         assert_eq!(calls.len(), 1);
-        assert_eq!(calls[0]["model"], crate::parser::MULTISOURCE_ANALYSIS_MODEL);
+        assert_eq!(calls[0]["model"], crate::ask_v2::WEB_SYNTHESIS_MODEL);
         assert_eq!(calls[0]["provider"]["require_parameters"], true);
         assert_eq!(calls[0]["provider"]["sort"], "latency");
         assert_eq!(calls[0]["response_format"]["type"], "json_schema");

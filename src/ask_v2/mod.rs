@@ -32,8 +32,10 @@ pub const DEFAULT_MODEL: &str = "openai/gpt-oss-120b";
 /// The one fallback: the same prompt again, without reasoning overhead, when
 /// the default model's request fails (an outage, not an invalid parse).
 pub const FALLBACK_MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
-/// A short, isolated context-resolution stage before web retrieval.
-pub(crate) const WEB_QUERY_MODEL: &str = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
+/// Web research needs faithful evidence synthesis, including declining facts
+/// that the retrieved pages do not establish. Other analysis flows are separate.
+pub(crate) const WEB_SYNTHESIS_MODEL: &str = "openai/gpt-4.1-mini";
+pub(crate) const WEB_QUERY_MODEL: &str = WEB_SYNTHESIS_MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
 // The parse contract: connected chatbots fill in exactly this shape
@@ -160,7 +162,7 @@ impl Client {
     async fn synthesize_web_with<F, Fut>(&self, input: Value, streaming: bool, mut on_answer: F) -> Result<Value>
     where F: FnMut(Value) -> Fut + Send, Fut: std::future::Future<Output=Result<()>> + Send {
         use futures_util::StreamExt;
-        let model = crate::parser::MULTISOURCE_ANALYSIS_MODEL;
+        let model = WEB_SYNTHESIS_MODEL;
         let (input,ids)=crate::web_research::synthesis_input(&input)?;
         let mut payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
             "provider":{"require_parameters":true,"sort":"latency"},

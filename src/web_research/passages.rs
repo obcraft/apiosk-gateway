@@ -7,6 +7,7 @@ use std::collections::{BTreeSet, HashSet};
 #[derive(Debug)]
 pub(super) struct Passage {
     heading: String,
+    section: String,
     text: String,
 }
 
@@ -186,14 +187,22 @@ pub(super) fn readable(root: ElementRef<'_>) -> Vec<Passage> {
             headings.retain(|(previous, _)| *previous < level);
             // Profile facts such as a person's job title can be headings with
             // no paragraph before the next heading. They are still evidence.
-            passages.push(Passage {
-                heading: headings
-                    .iter()
-                    .map(|(_, text)| text.as_str())
-                    .collect::<Vec<_>>()
-                    .join(" — "),
-                text: text.clone(),
-            });
+            if level > b'1' {
+                passages.push(Passage {
+                    heading: headings
+                        .iter()
+                        .map(|(_, text)| text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" — "),
+                    section: headings
+                        .iter()
+                        .filter(|(level, _)| *level > b'1')
+                        .map(|(_, text)| text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" — "),
+                    text: text.clone(),
+                });
+            }
             headings.push((level, text.chars().take(160).collect()));
             continue;
         }
@@ -225,6 +234,12 @@ pub(super) fn readable(root: ElementRef<'_>) -> Vec<Passage> {
             if !part.is_empty() {
                 passages.push(Passage {
                     heading: heading.clone(),
+                    section: headings
+                        .iter()
+                        .filter(|(level, _)| *level > b'1')
+                        .map(|(_, text)| text.as_str())
+                        .collect::<Vec<_>>()
+                        .join(" — "),
                     text: part.into(),
                 });
             }
@@ -253,7 +268,9 @@ pub(super) fn select(
     }
     let title_terms = words(subject.unwrap_or(title));
     let body_terms: Vec<_> = passages.iter().map(|p| words(&p.text)).collect();
-    let heading_terms: Vec<_> = passages.iter().map(|p| words(&p.heading)).collect();
+    // A page-wide title is provenance, not evidence that every related story
+    // below it concerns that person or company. Rank local sections only.
+    let heading_terms: Vec<_> = passages.iter().map(|p| words(&p.section)).collect();
     let mut focus: BTreeSet<_> = terms.difference(&title_terms).cloned().collect();
     if subject.is_some() {
         // Generic field names are not evidence for a more specific question:
@@ -348,6 +365,26 @@ pub(super) fn select(
         }
         selected.insert(index);
         used += cost;
+        // A profile may put its role and dates in short headings/fields before
+        // the matching biography paragraph. Keep this adjacent factual context
+        // without treating the page title as a match for unrelated articles.
+        for prior in (0..index).rev().take(7) {
+            let field = &passages[prior];
+            if field.text.chars().count() > 40
+                || field.heading.is_empty()
+                || field.heading.split(" — ").next() != p.heading.split(" — ").next()
+            {
+                break;
+            }
+            let cost = field.text.chars().count() + field.heading.chars().count() + 10;
+            if used + cost > limit || selected.len() >= 8 {
+                break;
+            }
+            if !selected.contains(&prior) && seen.insert(field.text.to_lowercase()) {
+                selected.insert(prior);
+                used += cost;
+            }
+        }
         // Keep a following qualification with its claim, not a later section.
         if let Some(next) = passages.get(index + 1) {
             let lower = next.text.to_lowercase();
@@ -432,6 +469,16 @@ mod tests {
     #[test]
     fn title_and_acronym_substrings_are_not_body_evidence() {
         assert!(select_html("<title>AI compliance</title><p>Sailing holidays and the best boats for an ocean adventure.</p>", "AI compliance", "AI compliance").is_none());
+    }
+    #[test]
+    fn archive_title_does_not_make_unrelated_headlines_relevant() {
+        let html = "<h1>Ada Example – founder</h1><h2>Stay tuned with daily stories</h2><h3>New payment cards launched across Asia</h3><p>A bank expands its consumer card business in the region.</p><h3>Digital euro service providers</h3><p>The central bank selected providers for another technology project.</p>";
+        assert!(select_html(
+            html,
+            "What is Ada Example's role at Example Ventures?",
+            "Ada Example founder archive"
+        )
+        .is_none());
     }
     #[test]
     fn company_context_requires_the_requested_topic_not_generic_customer_help() {
