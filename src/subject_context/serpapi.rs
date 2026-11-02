@@ -26,7 +26,7 @@ fn selected(provider: &str, has_key: bool) -> bool {
     }
 }
 
-pub(super) fn enabled() -> bool {
+pub(crate) fn enabled() -> bool {
     selected(
         &std::env::var("ASK_WEB_SEARCH_PROVIDER").unwrap_or_default(),
         api_key().is_some(),
@@ -46,6 +46,16 @@ pub(super) async fn search(
     query: &str,
     topic: bool,
 ) -> Result<Vec<Value>, &'static str> {
+    pages(&search_payload(query).await?, label, topic)
+}
+
+/// Normal Ask research uses the same configured search API as source context,
+/// with spare candidates for blocked pages and no named-subject-only filter.
+pub(crate) async fn research(query: &str) -> Result<Vec<Value>, &'static str> {
+    scoped_pages(&search_payload(query).await?, None, 15)
+}
+
+async fn search_payload(query: &str) -> Result<Value, &'static str> {
     let key = api_key().ok_or("missing_api_key")?;
     static CLIENT: OnceLock<Option<Client>> = OnceLock::new();
     let client = CLIENT
@@ -59,8 +69,7 @@ pub(super) async fn search(
         })
         .as_ref()
         .ok_or("client_unavailable")?;
-    let payload = request(client, ENDPOINT, &key, query).await?;
-    pages(&payload, label, topic)
+    request(client, ENDPOINT, &key, query).await
 }
 
 async fn request(
@@ -96,6 +105,14 @@ async fn request(
 }
 
 fn pages(payload: &Value, label: &str, topic: bool) -> Result<Vec<Value>, &'static str> {
+    scoped_pages(payload, Some((label, topic)), 5)
+}
+
+fn scoped_pages(
+    payload: &Value,
+    subject: Option<(&str, bool)>,
+    limit: usize,
+) -> Result<Vec<Value>, &'static str> {
     if !payload["error"].is_null()
         || payload["search_metadata"]["status"].as_str() != Some("Success")
     {
@@ -115,7 +132,7 @@ fn pages(payload: &Value, label: &str, topic: bool) -> Result<Vec<Value>, &'stat
         let host = url.host_str()?;
         let title = compact(row["title"].as_str()?, 240);
         let description = compact(row["snippet"].as_str().unwrap_or(""), 600);
-        if title.is_empty() || !matches_result(label, &title, host, &description, topic) || !seen.insert(url.to_string()) { return None; }
+        if title.is_empty() || subject.is_some_and(|(label, topic)| !matches_result(label, &title, host, &description, topic)) || !seen.insert(url.to_string()) { return None; }
         let publisher = row["source"].as_str().filter(|source| !source.trim().is_empty()).unwrap_or(host);
         let mut page = json!({"kind":"search_result","url":url.as_str(),"title":title,"description":description,
             "publisher":compact(publisher,200),"search_provider":"serpapi","retrieved_at":chrono::Utc::now().to_rfc3339()});
@@ -123,7 +140,7 @@ fn pages(payload: &Value, label: &str, topic: bool) -> Result<Vec<Value>, &'stat
             page["published_at"] = json!(compact(date,120));
         }
         Some(page)
-    }).take(5).collect())
+    }).take(limit).collect())
 }
 
 #[cfg(test)]
@@ -133,10 +150,17 @@ mod tests {
     #[tokio::test]
     #[ignore = "uses one configured SerpApi search credit; requires SERPAPI_API_KEY"]
     async fn live_configured_serpapi_returns_public_source_pages() {
-        let rows = search("Amsterdam", "Amsterdam official website", false).await.unwrap();
-        assert!(!rows.is_empty(), "SerpApi returned no relevant public pages");
+        let rows = search("Amsterdam", "Amsterdam official website", false)
+            .await
+            .unwrap();
+        assert!(
+            !rows.is_empty(),
+            "SerpApi returned no relevant public pages"
+        );
         assert!(rows.iter().all(|page| page["search_provider"] == "serpapi"
-            && page["url"].as_str().is_some_and(|url| url.starts_with("http"))
+            && page["url"]
+                .as_str()
+                .is_some_and(|url| url.starts_with("http"))
             && page["retrieved_at"].is_string()));
     }
 
@@ -166,6 +190,16 @@ mod tests {
         assert_eq!(rows[0]["published_at"], "Oct 22, 2026");
         assert!(rows[0]["retrieved_at"].is_string());
         assert!(!rows[0].to_string().contains("provider-id"));
+    }
+
+    #[test]
+    fn research_keeps_ranked_backups_without_requiring_every_question_word_in_a_snippet() {
+        let payload = json!({"search_metadata":{"status":"Success"},"organic_results":
+            (1..=12).map(|i| json!({"title":format!("Useful evidence {i}"),"link":format!("https://example.org/{i}"),"snippet":"Relevant retrieved result."})).collect::<Vec<_>>()});
+        let rows = scoped_pages(&payload, None, 15).unwrap();
+        assert_eq!(rows.len(), 12);
+        assert_eq!(rows[0]["url"], "https://example.org/1");
+        assert_eq!(rows[11]["url"], "https://example.org/12");
     }
 
     #[test]

@@ -283,8 +283,30 @@ fn url_key(raw: &str) -> Option<String> {
     Some(url.as_str().trim_end_matches('/').to_owned())
 }
 
-pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value)> {
-    let data = crate::web_search::research_candidates(&json!({"query":question})).await?;
+pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+    let started = Instant::now();
+    let mut accounting = json!({"cost_usd":0,"configured_api_requests":0});
+    // Respect the Ask search provider already selected by the operator. Normal
+    // questions must not silently use different discovery from source mode.
+    if crate::subject_context::serpapi::enabled() {
+        // Subscription credits are an operator cost, not a free request or a
+        // buyer charge. No unit price is available here, so do not invent one.
+        accounting = json!({"cost_usd":null,"configured_api_requests":1,"billing":"operator_subscription"});
+        match crate::subject_context::serpapi::research(question).await {
+            Ok(pages) if !pages.is_empty() => {
+                let mut seen = HashSet::new();
+                let candidates = pages.iter().enumerate().filter_map(|(rank, page)| {
+                    let url = page["url"].as_str()?;
+                    if !seen.insert(url_key(url)?) { return None; }
+                    Some(Candidate { title: normalized(page["title"].as_str().unwrap_or(url), 300), url: url.into(), rank: rank + 1 })
+                }).take(MAX_CANDIDATES).collect::<Vec<_>>();
+                if !candidates.is_empty() { return Ok((candidates, json!(["SerpApi"]), accounting)); }
+            },
+            Ok(_) => {},
+            Err(reason) => tracing::warn!(operation="web-research-search",provider="SerpApi",reason,"configured search unavailable; trying public search"),
+        }
+    }
+    let data = crate::web_search::research_candidates(&json!({"query":question}), Duration::from_secs(18).saturating_sub(started.elapsed())).await?;
     let mut seen = HashSet::new();
     let candidates = data["results"]
         .as_array()
@@ -305,7 +327,7 @@ pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value)> {
         })
         .take(MAX_CANDIDATES)
         .collect();
-    Ok((candidates, data["providers"].clone()))
+    Ok((candidates, data["providers"].clone(), accounting))
 }
 
 pub(crate) fn restricted(value: &str) -> bool {
@@ -344,7 +366,7 @@ fn excluded(element: ElementRef<'_>) -> bool {
                     .any(|word| v.contains(word))
             })
 }
-fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str) -> Result<Source> {
+fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str, subject: Option<&str>) -> Result<Source> {
     let html = Html::parse_document(&String::from_utf8_lossy(bytes));
     let meta = Selector::parse("meta[name='robots'],meta[name='ApioskResearchBot']").unwrap();
     ensure!(
@@ -383,7 +405,7 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str) 
         .any(|s| beginning.contains(s)),
         "blocked page"
     );
-    let (text, trimmed) = passages::select(&content, question, &title, TEXT_CHARS)
+    let (text, trimmed) = passages::select(&content, question, &title, TEXT_CHARS, subject)
         .ok_or_else(|| anyhow::anyhow!("irrelevant page"))?;
     Ok(Source {
         id: 0,
@@ -401,20 +423,20 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str) 
 /// Each batch reads only as many pages as still needed, concurrently. Failed,
 /// duplicate and irrelevant pages leave room for lower ranked replacements.
 pub(crate) async fn read(candidates: Vec<Candidate>, question: &str) -> (Vec<Source>, Vec<Value>) {
-    read_for(candidates, question, Duration::from_secs(26)).await
+    read_for(candidates, question, Duration::from_secs(26), None).await
 }
 
 /// Optional context is bounded separately and never blocks catalog delivery.
-pub(crate) async fn read_context(candidates: Vec<Candidate>, question: &str) -> (Vec<Source>, Vec<Value>) {
-    read_for(candidates, question, Duration::from_secs(8)).await
+pub(crate) async fn read_context(candidates: Vec<Candidate>, question: &str, subject: &str) -> (Vec<Source>, Vec<Value>) {
+    read_for(candidates, question, Duration::from_secs(8), Some(subject)).await
 }
 
-async fn read_for(candidates: Vec<Candidate>, question: &str, budget: Duration) -> (Vec<Source>, Vec<Value>) {
+async fn read_for(candidates: Vec<Candidate>, question: &str, budget: Duration, subject: Option<&str>) -> (Vec<Source>, Vec<Value>) {
     read_with_budget(candidates, question, budget, |candidate| async move {
         let (url, bytes) = crate::link_preview::Service::shared()
             .research_html(&candidate.url)
             .await?;
-        extract(&candidate, url, &bytes, question)
+        extract(&candidate, url, &bytes, question, subject)
     })
     .await
 }
@@ -782,7 +804,7 @@ mod tests {
     fn relevant_article_is_found_alongside_a_larger_unrelated_article() {
         let candidate = Candidate { title: "Research archive".into(), url: "https://example.org/".into(), rank: 1 };
         let html = format!("<title>Research archive</title><article><p>{}</p></article><article><h2>AI compliance</h2><p>New compliance requirements apply to model documentation and risk assessments. The obligations have different effective dates depending on the provider and model type.</p></article>", "Sailing trips and ocean weather updates. ".repeat(100));
-        let source = extract(&candidate, Url::parse(&candidate.url).unwrap(), html.as_bytes(), "AI compliance").unwrap();
+        let source = extract(&candidate, Url::parse(&candidate.url).unwrap(), html.as_bytes(), "AI compliance", None).unwrap();
         assert!(source.text.contains("documentation"));
         assert!(!source.text.contains("Sailing"));
     }
@@ -1190,6 +1212,7 @@ mod tests {
             Url::parse("https://example.org/final").unwrap(),
             html.as_bytes(),
             "AI compliance",
+            None,
         )
         .unwrap();
         assert!(source.text.contains(&text.trim()));
@@ -1211,13 +1234,13 @@ mod tests {
         assert!(extract(
             &c,
             Url::parse(&c.url).unwrap(),
-            format!("<title>Just a moment</title><p>{text}</p>").as_bytes(), "AI compliance"
+            format!("<title>Just a moment</title><p>{text}</p>").as_bytes(), "AI compliance", None
         )
         .is_err());
         assert!(extract(
             &c,
             Url::parse(&c.url).unwrap(),
-            format!("<meta name='robots' content='nosnippet'><p>{text}</p>").as_bytes(), "AI compliance"
+            format!("<meta name='robots' content='nosnippet'><p>{text}</p>").as_bytes(), "AI compliance", None
         )
         .is_err());
     }

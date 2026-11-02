@@ -105,13 +105,13 @@ pub async fn search(input: &Value) -> anyhow::Result<Value> {
 
 /// Keep backup candidates for the five-page research reader. The ordinary
 /// search contract retains its existing provider cutoff.
-pub(crate) async fn research_candidates(input: &Value) -> anyhow::Result<Value> {
+pub(crate) async fn research_candidates(input: &Value, budget: Duration) -> anyhow::Result<Value> {
     let started = Instant::now();
     let request = request_with_limit(input, 16_000)?;
     // A full primary response already provides five pages and five backups.
     // Finish before the adapter's 20s deadline, preserving earlier results if
     // an optional fallback is slow rather than failing the whole question.
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(18);
+    let deadline = tokio::time::Instant::now() + budget;
     let merge = collect(&request, PER_PROVIDER, Some(deadline), |provider| run(provider, &request)).await;
     finish(&request, merge, started.elapsed())
 }

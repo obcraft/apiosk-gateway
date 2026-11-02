@@ -8,7 +8,7 @@ use scraper::{Html, Selector};
 use serde_json::{json, Value};
 use std::{sync::OnceLock, time::Duration};
 use url::Url;
-mod serpapi;
+pub(crate) mod serpapi;
 
 // Search, encyclopedia and supplied homepages start together. Every result is
 // published on arrival; the final snapshot still supports non-streaming clients.
@@ -36,14 +36,14 @@ pub(crate) async fn collect_for_question(parsed: &ParsedRequest, question: &str,
             // addition to the user's wording (for example Dutch questions
             // about ownership on English registry pages). No extra model call.
             let concepts = parsed.capabilities.iter().filter(|cap| cap.subject_id.as_deref() == Some(subject.id.as_str()))
-                .map(|cap| format!("{} {}", cap.name, cap.outputs.join(" "))).collect::<Vec<_>>().join("\n");
+                .map(|cap| cap.name.as_str()).collect::<Vec<_>>().join("\n");
             let selection_question = format!("{question}\n{concepts}");
             let value = cached_context(key, async {
-                let mut value = fetch_with_updates(subject, &|v| update(index, v)).await;
+                let mut value = fetch_with_query(subject, Some(question), &|v| update(index, v)).await;
                 value["content_status"] = json!("reading");
                 update(index, value.clone());
                 let candidates = context_candidates(&value);
-                let (sources, failures) = crate::web_research::read_context(candidates, &selection_question).await;
+                let (sources, failures) = crate::web_research::read_context(candidates, &selection_question, &subject.label).await;
                 attach_page_context(&mut value, &sources, &failures);
                 value
             }).await;
@@ -56,21 +56,29 @@ pub(crate) async fn collect_for_question(parsed: &ParsedRequest, question: &str,
 fn question_cache_key(subject: &Subject, question: &str) -> String {
     // The same company can be researched for ownership, revenue or products.
     // Reusing another question's selected passages would change the evidence.
-    crate::state::digest(&(context_cache_key(subject), "question-passages-v1", question.trim()))
+    crate::state::digest(&(context_cache_key(subject), "question-passages-v2", question.trim()))
 }
 
 fn context_candidates(value: &Value) -> Vec<crate::web_research::Candidate> {
     let mut seen = std::collections::HashSet::new();
-    value["pages"].as_array().into_iter().flatten().enumerate().filter_map(|(rank, page)| {
+    let mut pages = value["pages"].as_array().into_iter().flatten().collect::<Vec<_>>();
+    // Question-directed search is stronger than a generic encyclopedia or
+    // homepage preview, regardless of which network request arrived first.
+    pages.sort_by_key(|page| context_priority(page));
+    pages.into_iter().enumerate().filter_map(|(rank, page)| {
         let url = page["url"].as_str()?;
         if !seen.insert(url) { return None; }
         Some(crate::web_research::Candidate { title: page["title"].as_str().unwrap_or(url).into(), url: url.into(), rank: rank + 1 })
     }).collect()
 }
 
+fn context_priority(page: &Value) -> u8 {
+    if page["kind"] == "homepage" { 2 } else if page["search_provider"] == "wikipedia" { 1 } else { 0 }
+}
+
 fn attach_page_context(value: &mut Value, sources: &[crate::web_research::Source], failures: &[Value]) {
     if let Some(pages) = value["pages"].as_array_mut() {
-        for page in pages {
+        for page in pages.iter_mut() {
             if let Some(source) = sources.iter().find(|source| page["url"].as_str() == Some(&source.url)) {
                 page["relevant_text"] = json!(source.text);
                 page["content_status"] = json!("read");
@@ -84,6 +92,10 @@ fn attach_page_context(value: &mut Value, sources: &[crate::web_research::Source
                     .map(|failure| failure["reason"].clone()).unwrap_or(json!("not_read_within_budget"));
             }
         }
+        // A failed relevance check must not leave an unrelated search snippet
+        // masquerading as useful context once page analysis has completed.
+        pages.retain(|page| page["content_reason"] != "irrelevant");
+        pages.sort_by_key(|page| (page["content_status"] != "read", context_priority(page)));
     }
     value["content_status"] = json!("completed");
     value["content_sources_read"] = json!(sources.len());
@@ -158,9 +170,14 @@ fn empty(label: &str) -> Value {
 async fn fetch(subject: &Subject) -> Value { fetch_with_updates(subject, &|_| {}).await }
 
 async fn fetch_with_updates(subject: &Subject, update: &(dyn Fn(Value) + Send + Sync)) -> Value {
+    fetch_with_query(subject, None, update).await
+}
+
+async fn fetch_with_query(subject: &Subject, question: Option<&str>, update: &(dyn Fn(Value) + Send + Sync)) -> Value {
     let mut result = empty(&subject.label);
     result["subject_type"] = json!(subject.kind);
-    let query = search_query(subject);
+    let query = question.map(str::trim).filter(|value| !value.is_empty())
+        .map(str::to_owned).unwrap_or_else(|| search_query(subject));
     result["search_url"] = json!(search_url(&query).as_str());
     result["search_status"] = json!("loading");
     result["homepage_status"] = json!("loading");
@@ -607,6 +624,26 @@ mod tests {
         let subject = Subject { id: "1".into(), kind: "company".into(), label: "Monzo".into(), identifiers: Default::default() };
         assert_ne!(question_cache_key(&subject, "Monzo owners"), question_cache_key(&subject, "Monzo revenue"));
         assert_eq!(question_cache_key(&subject, "Monzo owners"), question_cache_key(&subject, " Monzo owners "));
+    }
+    #[test]
+    fn question_results_precede_generic_context_and_irrelevant_pages_are_removed() {
+        let mut context = json!({"pages":[
+            {"kind":"search_result","search_provider":"wikipedia","url":"https://en.wikipedia.org/wiki/Monzo"},
+            {"kind":"homepage","url":"https://monzo.com/"},
+            {"kind":"search_result","search_provider":"google","url":"https://example.org/owners"},
+            {"kind":"search_result","search_provider":"google","url":"https://example.org/customer-help"}
+        ]});
+        let candidates = context_candidates(&context);
+        assert_eq!(candidates[0].url, "https://example.org/owners");
+        assert_eq!(candidates[2].url, "https://en.wikipedia.org/wiki/Monzo");
+        let sources: Vec<_> = candidates[..3].iter().enumerate().filter(|(_, c)| !c.url.ends_with("customer-help")).map(|(index, candidate)| crate::web_research::Source {
+            id: index + 1, title: "Ownership".into(), url: candidate.url.clone(), final_url: candidate.url.clone(),
+            search_rank: candidate.rank, retrieved_at: "now".into(), text: "Ownership passage".into(), text_sha256: "hash".into(), trimmed: true,
+        }).collect();
+        attach_page_context(&mut context, &sources, &[json!({"url":"https://example.org/customer-help","reason":"irrelevant"})]);
+        assert_eq!(context["pages"][0]["url"], "https://example.org/owners");
+        assert_eq!(context["pages"].as_array().unwrap().len(), 3);
+        assert_eq!(context["content_sources_read"], 2);
     }
     #[test]
     fn topic_results_match_content_without_weakening_entity_names() {

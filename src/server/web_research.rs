@@ -100,7 +100,7 @@ async fn run(
     phase(sender, "searching", 0).await?;
     let query = crate::web_research::search_query(client, question, earlier).await;
     let start = Instant::now();
-    let (candidates, providers) = tokio::time::timeout(
+    let (candidates, providers, mut search_operation) = tokio::time::timeout(
         Duration::from_secs(20),
         crate::web_research::search(&query.query),
     )
@@ -122,11 +122,13 @@ async fn run(
         error
     })?;
     let search_ms = start.elapsed().as_millis() as u64;
+    search_operation["elapsed_ms"] = json!(search_ms);
     tracing::info!(
         operation = "web-research-search",
         elapsed_ms = search_ms,
         count = candidates.len(),
-        cost_usd = 0,
+        cost_usd = ?search_operation["cost_usd"],
+        configured_api_requests = ?search_operation["configured_api_requests"],
         "research operation"
     );
     phase(sender, "reading", candidates.len().min(5)).await?;
@@ -161,7 +163,7 @@ async fn run(
             let snapshot=json!({"phase":"answer","source_count":count,"result":{"question":question,
                 "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
                 "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
-                    "search":{"elapsed_ms":search_ms,"cost_usd":0},"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
+                    "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
                     "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::parser::MULTISOURCE_ANALYSIS_MODEL,"usage":null}}}});
             async move {sender.send(snapshot).await?;Ok(())}
         }).await.map_err(|error| {
@@ -199,7 +201,7 @@ async fn run(
     sender.send(json!({"phase":"complete","result":{"question":question,"answer":answer,"sources":sources,
         "provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
         "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
-            "search":{"elapsed_ms":search_ms,"cost_usd":0},"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
+            "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
             "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":crate::parser::MULTISOURCE_ANALYSIS_MODEL,"usage":usage}}
     }})).await?;
     Ok(())

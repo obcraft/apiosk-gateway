@@ -34,6 +34,11 @@ fn words(text: &str) -> BTreeSet<String> {
                     "me",
                     "about",
                     "with",
+                    "against",
+                    "does",
+                    "do",
+                    "has",
+                    "have",
                     "in",
                     "on",
                     "at",
@@ -77,6 +82,7 @@ fn words(text: &str) -> BTreeSet<String> {
                     "aan",
                     "voor",
                     "met",
+                    "bij",
                     "om",
                     "uit",
                     "die",
@@ -178,6 +184,16 @@ pub(super) fn readable(root: ElementRef<'_>) -> Vec<Passage> {
         if matches!(tag.as_str(), "h1" | "h2" | "h3" | "h4" | "h5" | "h6") {
             let level = tag.as_bytes()[1];
             headings.retain(|(previous, _)| *previous < level);
+            // Profile facts such as a person's job title can be headings with
+            // no paragraph before the next heading. They are still evidence.
+            passages.push(Passage {
+                heading: headings
+                    .iter()
+                    .map(|(_, text)| text.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" — "),
+                text: text.clone(),
+            });
             headings.push((level, text.chars().take(160).collect()));
             continue;
         }
@@ -229,19 +245,58 @@ pub(super) fn select(
     question: &str,
     title: &str,
     limit: usize,
+    subject: Option<&str>,
 ) -> Option<(String, bool)> {
     let terms = words(question);
     if terms.is_empty() {
         return None;
     }
-    let title_terms = words(title);
+    let title_terms = words(subject.unwrap_or(title));
     let body_terms: Vec<_> = passages.iter().map(|p| words(&p.text)).collect();
     let heading_terms: Vec<_> = passages.iter().map(|p| words(&p.heading)).collect();
-    let focus: BTreeSet<_> = terms.difference(&title_terms).cloned().collect();
-    let focused = body_terms
-        .iter()
-        .chain(&heading_terms)
-        .any(|w| !w.is_disjoint(&focus));
+    let mut focus: BTreeSet<_> = terms.difference(&title_terms).cloned().collect();
+    if subject.is_some() {
+        // Generic field names are not evidence for a more specific question:
+        // an account-number help page does not answer a company ownership or
+        // sanctions request. Keep them when they are the entire requested focus.
+        let specific: BTreeSet<_> = focus
+            .iter()
+            .filter(|term| {
+                ![
+                    "company",
+                    "companies",
+                    "name",
+                    "number",
+                    "profile",
+                    "data",
+                    "record",
+                    "retrieve",
+                    "legal",
+                    "address",
+                    "list",
+                    "lists",
+                    "result",
+                    "results",
+                    "bedrijf",
+                    "naam",
+                    "nummer",
+                    "profiel",
+                    "gegevens",
+                    "adres",
+                ]
+                .contains(&term.as_str())
+            })
+            .cloned()
+            .collect();
+        if !specific.is_empty() {
+            focus = specific;
+        }
+    }
+    let focused = (subject.is_some() && !focus.is_empty())
+        || body_terms
+            .iter()
+            .chain(&heading_terms)
+            .any(|w| !w.is_disjoint(&focus));
     let weights: Vec<_> = terms
         .iter()
         .map(|term| {
@@ -256,7 +311,7 @@ pub(super) fn select(
         .filter_map(|(index, p)| {
             let body = &body_terms[index];
             let heading = &heading_terms[index];
-            if p.text.chars().count() < 30
+            if (p.text.chars().count() < 30 && p.heading.is_empty())
                 || (focused && body.is_disjoint(&focus) && heading.is_disjoint(&focus))
             {
                 return None;
@@ -350,6 +405,7 @@ mod tests {
             question,
             title,
             12_000,
+            None,
         )
     }
     #[test]
@@ -376,6 +432,46 @@ mod tests {
     #[test]
     fn title_and_acronym_substrings_are_not_body_evidence() {
         assert!(select_html("<title>AI compliance</title><p>Sailing holidays and the best boats for an ocean adventure.</p>", "AI compliance", "AI compliance").is_none());
+    }
+    #[test]
+    fn company_context_requires_the_requested_topic_not_generic_customer_help() {
+        let question = "KYB check for MONZO BANK LIMITED, company number 09446231: show its Companies House profile and persons with significant control, and screen the company name against sanctions lists.";
+        let choose = |html: &str, title: &str| {
+            select(
+                &readable(scraper::Html::parse_document(html).root_element()),
+                question,
+                title,
+                12_000,
+                Some("MONZO BANK LIMITED"),
+            )
+        };
+        assert!(choose("<h1>Getting a bank statement</h1><p>Why is an old name or address showing on my statement? Your statement shows your name and address as they were on the final day.</p><h2>Related articles</h2><p>Your account number and sort code are available in the Monzo app.</p>", "Getting a bank statement | Monzo").is_none());
+        assert!(choose("<h1>Monzo</h1><p>Monzo Bank offers colourful cards and useful tools for everyday shopping and spending.</p>", "Monzo Bank").is_none());
+        let (text, _) = choose("<h1>Monzo</h1><p>Monzo's persons with significant control are recorded in the Companies House register.</p><p>However, this filing covers only the position at the filing date.</p><h2>Customer help</h2><p>Your name and address can be changed in the Monzo app.</p>", "Monzo").unwrap();
+        assert!(text.contains("significant control") && text.contains("filing date"));
+        assert!(!text.contains("changed in the Monzo app"));
+    }
+    #[test]
+    fn short_identity_requests_and_name_only_context_still_work() {
+        let passages = readable(scraper::Html::parse_document("<h1>Monzo</h1><p>Monzo Bank Limited is a British bank. Its company number is 09446231.</p>").root_element());
+        assert!(select(
+            &passages,
+            "Monzo company number",
+            "Monzo",
+            12_000,
+            Some("Monzo")
+        )
+        .is_some());
+        assert!(select(&passages, "Monzo", "Monzo", 12_000, Some("Monzo")).is_some());
+    }
+    #[test]
+    fn short_profile_headings_preserve_the_role_before_a_new_section() {
+        let (text, _) = select_html(
+            "<h1>Ada Example</h1><h2>Executive Advisor</h2><h2>Location</h2><p>London</p><h2>Year joined</h2><p>2021</p><h2>Background</h2><p>Ada Example supports technology companies with product and company strategy.</p>",
+            "Wat is de rol van Ada Example bij Example Ventures?", "Ada Example | Example Ventures",
+        ).unwrap();
+        assert!(text.contains("Executive Advisor"));
+        assert!(text.contains("2021"));
     }
     #[test]
     fn unicode_passages_are_bounded_and_unrelated_gaps_are_visible() {
