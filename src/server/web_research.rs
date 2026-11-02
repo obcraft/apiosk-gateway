@@ -100,7 +100,7 @@ async fn run(
     phase(sender, "searching", 0).await?;
     let query = crate::web_research::search_query(client, question, earlier).await;
     let start = Instant::now();
-    let (candidates, providers, mut search_operation) = tokio::time::timeout(
+    let (candidates, mut providers, mut search_operation) = tokio::time::timeout(
         Duration::from_secs(20),
         crate::web_research::search(&query.query),
     )
@@ -134,8 +134,14 @@ async fn run(
     phase(sender, "reading", candidates.len().min(5)).await?;
     let start = Instant::now();
     let evidence_question = format!("{question}\n{}", query.query);
-    let (sources, failures) = crate::web_research::read(candidates, &evidence_question).await;
-    let extract_ms = start.elapsed().as_millis() as u64;
+    let (sources, failures, replacement_search) = crate::web_research::read_replacing(candidates, &evidence_question, &query.query).await;
+    let replacement_ms = replacement_search["elapsed_ms"].as_u64().unwrap_or(0);
+    let extract_ms = (start.elapsed().as_millis() as u64).saturating_sub(replacement_ms);
+    search_operation["elapsed_ms"] = json!(search_ms + replacement_ms);
+    if let (Some(providers), Some(extra)) = (providers.as_array_mut(), replacement_search["providers"].as_array()) {
+        for provider in extra { if !providers.contains(provider) { providers.push(provider.clone()); } }
+    }
+    search_operation["replacement_search"] = replacement_search;
     phase(sender, "analyzing", sources.len()).await?;
     let start = Instant::now();
     let count = sources.len();

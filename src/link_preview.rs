@@ -17,6 +17,9 @@ use url::Url;
 use uuid::Uuid;
 
 const HTML_BYTES: usize = 512 * 1024;
+// Research needs the complete article, including pages with large inline
+// application state. Keep preview and robots limits small and independent.
+const RESEARCH_HTML_BYTES: usize = 4 * 1024 * 1024;
 const IMAGE_BYTES: usize = 1024 * 1024;
 const PREVIEW_BYTES: usize = 96 * 1024;
 const WINDOW: Duration = Duration::from_secs(60);
@@ -204,7 +207,7 @@ impl Service {
                 let mime = response.headers().get("content-type").and_then(|h| h.to_str().ok()).unwrap_or("").split(';').next().unwrap_or("");
                 ensure!(Kind::Page.accepts(mime.trim()), "unsupported page type");
                 ensure!(!response.headers().get("x-robots-tag").and_then(|h| h.to_str().ok()).is_some_and(crate::web_research::restricted), "restricted page");
-                return Ok((url, research_body(response, HTML_BYTES).await?));
+                return Ok((url, research_body(response, RESEARCH_HTML_BYTES).await?));
             }
             anyhow::bail!("redirect limit")
         }).await?
@@ -596,6 +599,26 @@ fn thumbnail(bytes: &[u8]) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn research_reads_large_complete_pages_but_keeps_a_hard_body_limit() {
+        use axum::{body::Body, routing::get, Router};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let app = Router::new().route("/article", get(|| async {
+            let mut page = vec![b' '; 3_900_000];
+            page.extend_from_slice(b"<main><p>The relevant article ends here.</p></main>");
+            Body::from(page)
+        })).route("/oversized", get(|| async { Body::from(vec![b' '; RESEARCH_HTML_BYTES + 1]) }));
+        let server = tokio::spawn(async move { axum::serve(listener, app).await.unwrap(); });
+        let http = reqwest::Client::new();
+        let response = http.get(format!("http://{address}/article")).send().await.unwrap();
+        let body = research_body(response, RESEARCH_HTML_BYTES).await.unwrap();
+        assert!(body.len() > HTML_BYTES);
+        assert!(body.ends_with(b"<main><p>The relevant article ends here.</p></main>"));
+        let response = http.get(format!("http://{address}/oversized")).send().await.unwrap();
+        assert!(research_body(response, RESEARCH_HTML_BYTES).await.unwrap_err().to_string().contains("too large"));
+        server.abort();
+    }
     #[test]
     fn accepts_ordinary_pages_and_preserves_query_but_not_fragment() {
         assert_eq!(

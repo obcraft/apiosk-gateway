@@ -353,7 +353,6 @@ fn excluded(element: ElementRef<'_>) -> bool {
             | "script"
             | "style"
             | "nav"
-            | "header"
             | "footer"
             | "aside"
             | "form"
@@ -361,18 +360,26 @@ fn excluded(element: ElementRef<'_>) -> bool {
             | "noscript"
             | "svg"
             | "template"
-    ) || e.attr("hidden").is_some()
+    ) || (e.name() == "header" && !element.ancestors().filter_map(ElementRef::wrap)
+            .any(|parent| matches!(parent.value().name(), "main" | "article") || parent.value().attr("role") == Some("main")))
+        || e.attr("hidden").is_some()
         || e.attr("aria-hidden") == Some("true")
         || e.attr("role")
             .is_some_and(|r| matches!(r, "navigation" | "banner" | "contentinfo" | "dialog"))
+        // Layout classes on the document (e.g. Drupal's layout-no-sidebars)
+        // describe the page, not removable content. Explicit paywall markers
+        // still exclude content, including when applied to the whole page.
         || [e.attr("id"), e.attr("class")]
             .into_iter()
             .flatten()
             .any(|v| {
                 let v = v.to_ascii_lowercase();
-                ["cookie", "consent", "advert", "sidebar", "paywall"]
-                    .iter()
-                    .any(|word| v.contains(word))
+                v.split_whitespace().any(|class| {
+                    class.contains("paywall") || (!matches!(e.name(), "html" | "body")
+                        && !class.contains("no-sidebar") && !class.contains("without-sidebar")
+                        && ["cookie", "consent", "advert", "sidebar"]
+                            .iter().any(|word| class.contains(word)))
+                })
             })
 }
 fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str, subject: Option<&str>) -> Result<Source> {
@@ -429,10 +436,42 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str, 
     })
 }
 
-/// Each batch reads only as many pages as still needed, concurrently. Failed,
-/// duplicate and irrelevant pages leave room for lower ranked replacements.
-pub(crate) async fn read(candidates: Vec<Candidate>, question: &str) -> (Vec<Source>, Vec<Value>) {
-    read_for(candidates, question, Duration::from_secs(26), None).await
+/// A good search result is not necessarily readable. Once the configured
+/// results are exhausted, try other public search providers within the same
+/// evidence deadline. Search snippets never substitute for fetched pages.
+pub(crate) async fn read_replacing(candidates: Vec<Candidate>, question: &str, query: &str) -> (Vec<Source>, Vec<Value>, Value) {
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(26);
+    let attempted = candidates.len();
+    let rank = candidates.iter().map(|c| c.rank).max().unwrap_or(0);
+    let mut seen: HashSet<_> = candidates.iter().filter_map(|c| url_key(&c.url)).collect();
+    let first_budget = if attempted >= MAX_CANDIDATES { 26 } else { 16 };
+    let (sources, mut failures) = read_for(candidates, question, Duration::from_secs(first_budget), None).await;
+    let mut operation = json!({"cost_usd":0,"elapsed_ms":0,"attempted":false,"providers":[]});
+    if sources.len() >= TARGET || attempted >= MAX_CANDIDATES { return (sources, failures, operation); }
+    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+    if remaining < Duration::from_secs(2) { return (sources, failures, operation); }
+    let start = Instant::now();
+    operation["attempted"] = json!(true);
+    let backup = crate::web_search::research_candidates(&json!({"query":query}), remaining.min(Duration::from_secs(8))).await;
+    operation["elapsed_ms"] = json!(start.elapsed().as_millis() as u64);
+    let data = match backup {
+        Ok(data) => data,
+        Err(_) => { operation["status"] = json!("unavailable"); return (sources, failures, operation); }
+    };
+    operation["providers"] = data["providers"].clone();
+    seen.extend(sources.iter().filter_map(|source| url_key(&source.final_url)));
+    let replacements = data["results"].as_array().into_iter().flatten().filter_map(|row| {
+        let url = row["url"].as_str()?;
+        if !seen.insert(url_key(url)?) { return None; }
+        Some((url.to_owned(), normalized(row["title"].as_str().unwrap_or(url), 300)))
+    }).take(MAX_CANDIDATES - attempted).enumerate().map(|(index, (url, title))|
+        Candidate { url, title, rank: rank + index + 1 }).collect::<Vec<_>>();
+    operation["candidate_count"] = json!(replacements.len());
+    operation["status"] = json!("complete");
+    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+    let (sources, skipped) = read_for_from(replacements, question, remaining, None, sources).await;
+    failures.extend(skipped);
+    (sources, failures, operation)
 }
 
 /// Optional context is bounded separately and never blocks catalog delivery.
@@ -441,7 +480,11 @@ pub(crate) async fn read_context(candidates: Vec<Candidate>, question: &str, sub
 }
 
 async fn read_for(candidates: Vec<Candidate>, question: &str, budget: Duration, subject: Option<&str>) -> (Vec<Source>, Vec<Value>) {
-    read_with_budget(candidates, question, budget, |candidate| async move {
+    read_for_from(candidates, question, budget, subject, Vec::new()).await
+}
+
+async fn read_for_from(candidates: Vec<Candidate>, question: &str, budget: Duration, subject: Option<&str>, sources: Vec<Source>) -> (Vec<Source>, Vec<Value>) {
+    read_with_budget_from(candidates, question, budget, sources, |candidate| async move {
         let (url, bytes) = crate::link_preview::Service::shared()
             .research_html(&candidate.url)
             .await?;
@@ -463,17 +506,25 @@ where
     read_with_budget(candidates, question, Duration::from_secs(26), fetch).await
 }
 
+#[cfg(test)]
 async fn read_with_budget<F, Fut>(candidates: Vec<Candidate>, question: &str, budget: Duration, fetch: F) -> (Vec<Source>, Vec<Value>)
 where
     F: Fn(Candidate) -> Fut,
     Fut: std::future::Future<Output = Result<Source>>,
 {
-    let mut sources = Vec::new();
+    read_with_budget_from(candidates, question, budget, Vec::new(), fetch).await
+}
+
+async fn read_with_budget_from<F, Fut>(candidates: Vec<Candidate>, question: &str, budget: Duration, mut sources: Vec<Source>, fetch: F) -> (Vec<Source>, Vec<Value>)
+where
+    F: Fn(Candidate) -> Fut,
+    Fut: std::future::Future<Output = Result<Source>>,
+{
     let mut failures = Vec::new();
     let deadline = tokio::time::Instant::now() + budget;
     let mut pending = candidates.into_iter();
-    let mut seen = HashSet::new();
-    let mut hashes = HashSet::new();
+    let mut seen: HashSet<_> = sources.iter().filter_map(|source| url_key(&source.final_url)).collect();
+    let mut hashes: HashSet<_> = sources.iter().map(|source| source.text_sha256.clone()).collect();
     loop {
         if tokio::time::Instant::now() >= deadline { break; }
         let batch = pending
@@ -817,6 +868,26 @@ mod tests {
         assert!(source.text.contains("documentation"));
         assert!(!source.text.contains("Sailing"));
     }
+    #[test]
+    fn page_layout_classes_do_not_erase_articles_but_sidebars_still_do() {
+        let candidate = Candidate { title: "Election guide 2026".into(), url: "https://example.org/guide".into(), rank: 1 };
+        for layout in ["layout-no-sidebars", "no-sidebar", "layout-without-sidebar", "has-cookie-consent"] {
+            let html = format!("<body class='{layout}'><main><div class='layout-no-sidebars'><article><h1>Election guide 2026</h1><p>The 2026 midterm elections choose congressional representatives and senators. Voters can check their registration and consult the official election calendar to find the date and deadlines that apply to their district.</p></article></div><aside><p>2026: unrelated shopping offers</p></aside><div class='sidebar'><p>2026: recommended holidays</p></div><div class='cookie-consent'><p>2026 cookie preferences</p></div></main></body>");
+            let source = extract(&candidate, Url::parse(&candidate.url).unwrap(), html.as_bytes(), "mid terms 2026", None).unwrap();
+            assert!(source.text.contains("congressional representatives"), "{layout}");
+            for unwanted in ["shopping", "holidays", "cookie preferences"] { assert!(!source.text.contains(unwanted)); }
+        }
+        let restricted = format!("<body class='paywall'><article><p>{}</p></article></body>", "The 2026 election article requires a subscription. ".repeat(10));
+        assert!(extract(&candidate, Url::parse(&candidate.url).unwrap(), restricted.as_bytes(), "mid terms 2026", None).is_err());
+    }
+    #[test]
+    fn article_header_is_evidence_while_site_navigation_is_not() {
+        let candidate = Candidate { title: "Election guide 2026".into(), url: "https://example.org/guide".into(), rank: 1 };
+        let html = "<body><header><p>2026 subscribe to our newsletter</p></header><main><article><header><h1>Election guide 2026</h1><p>The 2026 election guide explains the voting dates and offices on the ballot.</p></header><p>Voters should check their district's registration deadlines and official voting instructions. The election calendar lists the deadlines and the offices contested in each district in 2026.</p></article></main></body>";
+        let source = extract(&candidate, Url::parse(&candidate.url).unwrap(), html.as_bytes(), "mid terms 2026", None).unwrap();
+        assert!(source.text.contains("offices on the ballot"));
+        assert!(!source.text.contains("newsletter"));
+    }
     #[tokio::test]
     async fn follow_up_query_uses_context_and_resolution_failures_keep_the_original() {
         use axum::{routing::post, Json, Router};
@@ -961,6 +1032,25 @@ mod tests {
         )
         .await;
         assert!(sources.is_empty());
+    }
+
+    #[tokio::test]
+    async fn replacement_reads_keep_existing_citations_and_reject_redirect_and_content_duplicates() {
+        let source = |rank: usize| Source { id: rank, title: "Election 2026".into(),
+            url: format!("https://example.org/{rank}"), final_url: format!("https://example.org/{rank}"),
+            search_rank: rank, retrieved_at: "2026-11-02T00:00:00Z".into(),
+            text: "Relevant election evidence for 2026.".into(), text_sha256: format!("hash-{rank}"), trimmed: false };
+        let candidates = (4..=8).map(|rank| Candidate { title: "Election 2026".into(), url: format!("https://example.org/{rank}"), rank }).collect();
+        let existing = (1..=3).map(source).collect();
+        let (sources, failures) = read_with_budget_from(candidates, "election 2026", Duration::from_secs(1), existing, |candidate| async move {
+            let mut result = source(candidate.rank);
+            if candidate.rank == 4 { result.final_url = "https://example.org/1".into(); }
+            if candidate.rank == 5 { result.text_sha256 = "hash-2".into(); }
+            Ok(result)
+        }).await;
+        assert_eq!(sources.iter().map(|s| (s.id, s.search_rank)).collect::<Vec<_>>(), [(1,1),(2,2),(3,3),(4,6),(5,7)]);
+        assert_eq!(failures.len(), 2);
+        assert!(failures.iter().all(|f| f["reason"] == "duplicate"));
     }
 
     #[test]

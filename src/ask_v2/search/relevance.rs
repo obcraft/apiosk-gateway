@@ -122,6 +122,8 @@ pub(super) struct Request {
     exact_dns_records: bool,
     person_profile: bool,
     company_profile: bool,
+    elections: bool,
+    midterms: bool,
 }
 
 // The historical mail-DNS adapter drops all but the registrable-domain
@@ -359,7 +361,11 @@ impl Request {
                 matches!(word.as_str(), "crypto" | "cryptocurrency")))
             && ["market", "price", "liquidity", "volume", "capitalization"].iter()
                 .any(|word| valuation_words.contains(*word));
+        let elections = identity.contains("election") || name.contains("election");
         Self {
+            elections,
+            midterms: elections && (identity.contains("midterm") || name.contains("midterm")
+                || (name.contains("mid") && name.contains("term"))),
             name_collection_search: collection_domain.is_some(),
             person_profile,
             company_profile,
@@ -428,6 +434,8 @@ impl Request {
         self.exact_dns_records |= other.exact_dns_records;
         self.person_profile |= other.person_profile;
         self.company_profile |= other.company_profile;
+        self.elections |= other.elections;
+        self.midterms |= other.midterms;
         self
     }
 
@@ -603,11 +611,24 @@ impl Request {
             .iter().any(|word| scope.contains(*word) || candidate.contract.contains(*word))
     }
 
+    /// A year or the phrase "mid-term" is not election coverage. National
+    /// election calendars also do not establish coverage of midterm contests.
+    fn election_scope_matches(&self, candidate: &Document) -> bool {
+        if !self.elections && !self.midterms { return true; }
+        let scope: BTreeSet<_> = candidate.topic_scope.union(&candidate.contract).cloned().collect();
+        if !scope.contains("election") { return false; }
+        !self.midterms || scope.contains("midterm")
+            || (scope.contains("mid") && scope.contains("term"))
+            || ["congress", "congressional", "senate"].iter().any(|word| scope.contains(*word))
+            || (scope.contains("house") && scope.contains("representative"))
+    }
+
     /// Whether a listing outside the catalog (a Bazaar resource) is about
     /// what is asked: it shares a concept facet, a key word of the request
     /// (not merely its domain) or two of its output words. Words alone, as
     /// the anchor of [`Request::passes`]; a listing has no reviewed contract.
     pub fn mentions(&self, wanted: &Document, listing: &Document) -> bool {
+        if !self.election_scope_matches(listing) { return false; }
         if !self.profile_scope_matches(listing) { return false; }
         if !self.dns_scope_matches(listing) { return false; }
         if !self.sentiment_scope_matches(listing) || !self.crypto_market_matches(listing) { return false; }
@@ -633,6 +654,7 @@ impl Request {
         index: &Index,
         hinted: bool,
     ) -> bool {
+        if !self.election_scope_matches(candidate) { return false; }
         if !self.profile_scope_matches(candidate) { return false; }
         if !self.dns_scope_matches(candidate) { return false; }
         // A generic financial label, or even an exact accounts slug, does not

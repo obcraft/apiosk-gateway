@@ -1916,6 +1916,48 @@ mod tests {
         assert_eq!(matches[0].coinbase_status, "pending");
     }
 
+    #[test]
+    fn midterm_elections_do_not_offer_european_calendars_trading_or_a_shared_year() {
+        let request = crate::capability_intake::normalize(&json!({"language":"en","subjects":[],
+            "capabilities":[{"slug":"general.elections.midterms","name":"Mid-term elections 2026",
+                "description":"Information about the 2026 mid-term elections","domain":"general",
+                "inputs":[],"outputs":["election_details"],"subject_id":null,"source_hint":null,"confidence":0.9}],
+            "deliverable":{"format":"chat","operations":[]}}).to_string(), "mid terms 2026", "fixture").unwrap();
+        let descriptions = [
+            "Next national election in all 27 EU countries and Switzerland: type, date or year, status and sources.",
+            "Market scanner with mid-term swing trading and long-term position analysis.",
+            "Educational briefing on the latest cars in 2026: range, pricing and what is new.",
+            "US midterm elections 2026: dates, offices and voting deadlines.",
+            "US congressional elections: House and Senate seats, candidates and results.",
+        ];
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        matches[0].coinbase = descriptions.iter().map(|text| bazaar(text)).collect();
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches[0].coinbase.iter().map(|c| c.description.as_str()).collect::<Vec<_>>(), descriptions[3..]);
+        let sources = descriptions.iter().enumerate().map(|(i, description)| known(&format!("election-source-{i}"), "Data source", description)).collect();
+        let found = search(&request, &catalog(vec![], sources));
+        assert!(found[0].apiosk.iter().all(|candidate| descriptions[3..].contains(&candidate.description.as_str())));
+        assert!(!found[0].apiosk.is_empty());
+        // A general calendar is still a valid offer when that is the request.
+        let mut calendar = request.clone();
+        calendar.capabilities[0].slug = "general.elections.calendar".into();
+        calendar.capabilities[0].name = "National election calendar 2026".into();
+        calendar.capabilities[0].description = "Upcoming national elections".into();
+        let mut matches = search(&calendar, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![bazaar(descriptions[0])];
+        filter_coinbase(&calendar, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        let mut trading = request.clone();
+        trading.capabilities[0].slug = "finance.trading.midterm".into();
+        trading.capabilities[0].name = "Mid-term swing trading 2026".into();
+        trading.capabilities[0].description = "Market scanner and trading analysis".into();
+        trading.capabilities[0].outputs = vec!["trading_analysis".into()];
+        let mut matches = search(&trading, &catalog(vec![], vec![]));
+        matches[0].coinbase = vec![bazaar(descriptions[1])];
+        filter_coinbase(&trading, &mut matches);
+        assert_eq!(matches[0].coinbase.len(), 1, "Mid-term trading is not an election request");
+    }
+
     fn building(address: &str) -> ParsedRequest {
         crate::capability_intake::normalize(
             &json!({"language":"en","subjects":[{"id":"s1","label":address,"type":"address","identifiers":{}}],
