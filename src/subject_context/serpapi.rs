@@ -126,8 +126,7 @@ fn scoped_pages(
     };
     let mut seen = BTreeSet::new();
     Ok(rows.iter().take(40).filter_map(|row| {
-        let mut url = Url::parse(row["link"].as_str()?).ok()?;
-        if !matches!(url.scheme(), "http" | "https") || !url.username().is_empty() || url.password().is_some() { return None; }
+        let mut url = destination(row)?;
         url.set_fragment(None);
         let host = url.host_str()?;
         let title = compact(row["title"].as_str()?, 240);
@@ -141,6 +140,15 @@ fn scoped_pages(
         }
         Some(page)
     }).take(limit).collect())
+}
+
+/// Search-engine tracking links are not source pages. Use an explicit public
+/// destination supplied by the provider; never guess a URL from breadcrumbs or
+/// fetch an opaque redirect after its robots policy rejected it.
+fn destination(row: &Value) -> Option<Url> {
+    ["link", "redirect_link", "amp_link"]
+        .into_iter()
+        .find_map(|field| crate::web_search::direct_source_link(row[field].as_str()?))
 }
 
 #[cfg(test)]
@@ -200,6 +208,17 @@ mod tests {
         assert_eq!(rows.len(), 12);
         assert_eq!(rows[0]["url"], "https://example.org/1");
         assert_eq!(rows[11]["url"], "https://example.org/12");
+    }
+
+    #[test]
+    fn opaque_links_use_only_an_explicit_destination_or_leave_room_for_replacements() {
+        let payload = json!({"search_metadata":{"status":"Success"},"organic_results":[
+            {"title":"Resolved profile", "link":"https://www.google.com/goto?url=CAESopaque", "redirect_link":"https://www.google.com/url?url=https%3A%2F%2Fexample.org%2Fprofile"},
+            {"title":"Unresolved profile", "link":"https://www.google.com/goto?url=CAESopaque2", "displayed_link":"https://example.org › team › guessed-profile"}
+        ]});
+        let rows = scoped_pages(&payload, None, 15).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["url"], "https://example.org/profile");
     }
 
     #[test]

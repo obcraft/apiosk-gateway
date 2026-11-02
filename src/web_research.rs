@@ -220,14 +220,14 @@ pub(crate) struct SearchQuery {
     pub usage: Value,
 }
 
-/// Retrieval can resolve a follow-up without rewriting the question that
-/// synthesis answers. Resolver outages never block an otherwise usable search.
+/// Compact conversational questions for search and resolve follow-ups without
+/// rewriting the question synthesis answers. Outages preserve the original.
 pub(crate) async fn search_query(
     client: &crate::ask_v2::Client,
     question: &str,
     earlier: &str,
 ) -> SearchQuery {
-    if earlier.trim().is_empty() {
+    if earlier.trim().is_empty() && question.split_whitespace().count() <= 5 && !question.contains('?') {
         return SearchQuery {
             query: question.into(),
             elapsed_ms: 0,
@@ -237,7 +237,7 @@ pub(crate) async fn search_query(
     }
     let started = Instant::now();
     let (query, usage, method) = match client.resolve_web_query(question, earlier).await {
-        Ok((query, usage)) => (query, usage, "context_model"),
+        Ok((query, usage)) => (query, usage, if earlier.trim().is_empty() { "question_model" } else { "context_model" }),
         Err(_) => {
             tracing::warn!(
                 operation = "web-query-resolution",
@@ -286,6 +286,9 @@ fn url_key(raw: &str) -> Option<String> {
 pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
     let started = Instant::now();
     let mut accounting = json!({"cost_usd":0,"configured_api_requests":0});
+    let mut candidates = Vec::new();
+    let mut providers: Vec<String> = Vec::new();
+    let mut seen = HashSet::new();
     // Respect the Ask search provider already selected by the operator. Normal
     // questions must not silently use different discovery from source mode.
     if crate::subject_context::serpapi::enabled() {
@@ -294,21 +297,26 @@ pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Val
         accounting = json!({"cost_usd":null,"configured_api_requests":1,"billing":"operator_subscription"});
         match crate::subject_context::serpapi::research(question).await {
             Ok(pages) if !pages.is_empty() => {
-                let mut seen = HashSet::new();
-                let candidates = pages.iter().enumerate().filter_map(|(rank, page)| {
+                candidates = pages.iter().enumerate().filter_map(|(rank, page)| {
                     let url = page["url"].as_str()?;
                     if !seen.insert(url_key(url)?) { return None; }
                     Some(Candidate { title: normalized(page["title"].as_str().unwrap_or(url), 300), url: url.into(), rank: rank + 1 })
                 }).take(MAX_CANDIDATES).collect::<Vec<_>>();
-                if !candidates.is_empty() { return Ok((candidates, json!(["SerpApi"]), accounting)); }
+                if !candidates.is_empty() { providers.push("SerpApi".into()); }
+                if candidates.len() >= TARGET { return Ok((candidates, json!(providers), accounting)); }
             },
             Ok(_) => {},
             Err(reason) => tracing::warn!(operation="web-research-search",provider="SerpApi",reason,"configured search unavailable; trying public search"),
         }
     }
-    let data = crate::web_search::research_candidates(&json!({"query":question}), Duration::from_secs(18).saturating_sub(started.elapsed())).await?;
-    let mut seen = HashSet::new();
-    let candidates = data["results"]
+    let data = match crate::web_search::research_candidates(&json!({"query":question}), Duration::from_secs(18).saturating_sub(started.elapsed())).await {
+        Ok(data) => data,
+        Err(_) if !candidates.is_empty() => return Ok((candidates, json!(providers), accounting)),
+        Err(error) => return Err(error),
+    };
+    providers.extend(data["providers"].as_array().into_iter().flatten().filter_map(Value::as_str).map(str::to_owned));
+    let offset = candidates.len();
+    let backup = data["results"]
         .as_array()
         .into_iter()
         .flatten()
@@ -322,12 +330,13 @@ pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Val
             Some(Candidate {
                 title: normalized(row["title"].as_str().unwrap_or(url), 300),
                 url: url.into(),
-                rank: rank + 1,
+                rank: offset + rank + 1,
             })
         })
-        .take(MAX_CANDIDATES)
-        .collect();
-    Ok((candidates, data["providers"].clone(), accounting))
+        .take(MAX_CANDIDATES - candidates.len())
+        .collect::<Vec<_>>();
+    candidates.extend(backup);
+    Ok((candidates, json!(providers), accounting))
 }
 
 pub(crate) fn restricted(value: &str) -> bool {
@@ -839,8 +848,8 @@ mod tests {
         .unwrap();
         let question = "And in the Netherlands?";
         let earlier = "user: What are the latest developments in AI compliance?";
-        let initial = search_query(&client, question, "").await;
-        assert_eq!(initial.query, question);
+        let initial = search_query(&client, "Adriaan Mol", "").await;
+        assert_eq!(initial.query, "Adriaan Mol");
         assert_eq!(initial.method, "original");
         assert!(received.lock().unwrap().is_empty());
         let resolved = search_query(&client, question, earlier).await;
@@ -859,6 +868,10 @@ mod tests {
             json!({"question":question,"earlier_conversation":earlier})
         );
         drop(calls);
+        let standalone = search_query(&client, "What are the latest AI compliance developments in the Netherlands?", "").await;
+        assert_eq!(standalone.query, "latest AI compliance developments in the Netherlands");
+        assert_eq!(standalone.method, "question_model");
+        assert_eq!(standalone.usage["cost"], 0.0001);
         for original in ["Malformed", "Too long", "Timeout"] {
             let started = Instant::now();
             let fallback = search_query(&client, original, earlier).await;

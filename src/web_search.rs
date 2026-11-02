@@ -61,6 +61,7 @@ struct Request {
     range: Option<Range>,
     include: Vec<String>,
     exclude: Vec<String>,
+    direct_links: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -107,7 +108,8 @@ pub async fn search(input: &Value) -> anyhow::Result<Value> {
 /// search contract retains its existing provider cutoff.
 pub(crate) async fn research_candidates(input: &Value, budget: Duration) -> anyhow::Result<Value> {
     let started = Instant::now();
-    let request = request_with_limit(input, 16_000)?;
+    let mut request = request_with_limit(input, 16_000)?;
+    request.direct_links = true;
     // A full primary response already provides five pages and five backups.
     // Finish before the adapter's 20s deadline, preserving earlier results if
     // an optional fallback is slow rather than failing the whole question.
@@ -179,6 +181,7 @@ fn request_with_limit(input: &Value, query_limit: usize) -> anyhow::Result<Reque
         range: input["time_range"].as_str().and_then(Range::parse),
         include: domains("include_domains"),
         exclude: domains("exclude_domains"),
+        direct_links: false,
     })
 }
 
@@ -220,7 +223,12 @@ struct Merge {
 impl Merge {
     fn add(&mut self, request: &Request, provider: &'static str, found: Vec<Item>) {
         let before = self.items.len();
-        for item in found.into_iter().filter(|item| keep(request, item)) {
+        for mut item in found {
+            if request.direct_links {
+                let Some(url) = direct_source_link(&item.url) else { continue; };
+                item.url = url.into();
+            }
+            if !keep(request, &item) { continue; }
             if self.items.len() - before >= PER_PROVIDER {
                 break;
             }
@@ -236,6 +244,22 @@ impl Merge {
     fn done(&self) -> bool {
         self.items.len() >= MIN_RESULTS
     }
+}
+
+/// Normalize explicit destinations without fetching search-engine tracking
+/// pages. Opaque Google /goto links are not usable source evidence and must not
+/// satisfy a provider's result cutoff, which would suppress working fallbacks.
+pub(crate) fn direct_source_link(raw: &str) -> Option<Url> {
+    let mut url = Url::parse(raw).ok()?;
+    for _ in 0..3 {
+        if !matches!(url.scheme(), "http" | "https") || !url.username().is_empty() || url.password().is_some() { return None; }
+        let host = url.host_str()?.trim_start_matches("www.");
+        let google = matches!(host, "google.com" | "google.nl" | "google.co.uk" | "google.de" | "google.fr");
+        if !google || !matches!(url.path(), "/url" | "/goto") { return Some(url); }
+        let target = url.query_pairs().find(|(key, value)| matches!(key.as_ref(), "q" | "url") && (value.starts_with("https://") || value.starts_with("http://")))?.1.into_owned();
+        url = Url::parse(&target).ok()?;
+    }
+    None
 }
 
 /// News rows need a date: the company news projection rejects a whole source
@@ -613,6 +637,33 @@ mod tests {
             item("https://ads.example.com/c", true), item("https://notexample.com/d", true)]);
         let urls: Vec<_> = merge.items.iter().map(|i| i.url.as_str()).collect();
         assert_eq!(urls, ["https://example.com/a", "https://www.example.com/b"]);
+    }
+
+    #[test]
+    fn research_normalizes_explicit_destinations_and_rejects_opaque_tracking_links() {
+        assert_eq!(direct_source_link("https://www.google.com/url?url=https%3A%2F%2Fexample.org%2Fprofile").unwrap().as_str(), "https://example.org/profile");
+        assert!(direct_source_link("https://www.google.com/goto?url=CAESopaque").is_none());
+        assert!(direct_source_link("https://www.google.com/url?q=javascript:alert(1)").is_none());
+        assert!(direct_source_link("https://www.google.com/url?q=https%3A%2F%2Fsecret%40example.org").is_none());
+        assert_eq!(direct_source_link("https://example.org/url?q=keep-this").unwrap().as_str(), "https://example.org/url?q=keep-this");
+    }
+
+    #[tokio::test]
+    async fn opaque_search_redirects_do_not_prevent_replacement_provider_results() {
+        let mut request = req(false);
+        request.direct_links = true;
+        let mut attempted = Vec::new();
+        let merge = collect(&request, MIN_RESULTS, None, |provider| {
+            attempted.push(provider);
+            async move { Some(Ok(if provider == Provider::Searxng {
+                (0..10).map(|i| item(&format!("https://www.google.com/goto?url=CAES{i}"), false)).collect()
+            } else {
+                (0..5).map(|i| item(&format!("https://example.org/evidence/{i}"), false)).collect()
+            })) }
+        }).await;
+        assert_eq!(attempted, vec![Provider::Searxng, Provider::DuckDuckGo]);
+        assert_eq!(merge.items.len(), 5);
+        assert_eq!(merge.providers, vec!["DuckDuckGo"]);
     }
 
     #[test]

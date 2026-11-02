@@ -39,7 +39,7 @@ pub(crate) async fn collect_for_question(parsed: &ParsedRequest, question: &str,
                 .map(|cap| cap.name.as_str()).collect::<Vec<_>>().join("\n");
             let selection_question = format!("{question}\n{concepts}");
             let value = cached_context(key, async {
-                let mut value = fetch_with_query(subject, Some(question), &|v| update(index, v)).await;
+                let mut value = fetch_with_updates(subject, &|v| update(index, v)).await;
                 value["content_status"] = json!("reading");
                 update(index, value.clone());
                 let candidates = context_candidates(&value);
@@ -56,14 +56,15 @@ pub(crate) async fn collect_for_question(parsed: &ParsedRequest, question: &str,
 fn question_cache_key(subject: &Subject, question: &str) -> String {
     // The same company can be researched for ownership, revenue or products.
     // Reusing another question's selected passages would change the evidence.
-    crate::state::digest(&(context_cache_key(subject), "question-passages-v2", question.trim()))
+    crate::state::digest(&(context_cache_key(subject), "question-passages-v3", question.trim()))
 }
 
 fn context_candidates(value: &Value) -> Vec<crate::web_research::Candidate> {
     let mut seen = std::collections::HashSet::new();
     let mut pages = value["pages"].as_array().into_iter().flatten().collect::<Vec<_>>();
-    // Question-directed search is stronger than a generic encyclopedia or
-    // homepage preview, regardless of which network request arrived first.
+    // Search hits take precedence over a generic encyclopedia or homepage
+    // preview, regardless of which network request arrived first. The page
+    // selection below still requires the user's requested topic.
     pages.sort_by_key(|page| context_priority(page));
     pages.into_iter().enumerate().filter_map(|(rank, page)| {
         let url = page["url"].as_str()?;
@@ -170,14 +171,9 @@ fn empty(label: &str) -> Value {
 async fn fetch(subject: &Subject) -> Value { fetch_with_updates(subject, &|_| {}).await }
 
 async fn fetch_with_updates(subject: &Subject, update: &(dyn Fn(Value) + Send + Sync)) -> Value {
-    fetch_with_query(subject, None, update).await
-}
-
-async fn fetch_with_query(subject: &Subject, question: Option<&str>, update: &(dyn Fn(Value) + Send + Sync)) -> Value {
     let mut result = empty(&subject.label);
     result["subject_type"] = json!(subject.kind);
-    let query = question.map(str::trim).filter(|value| !value.is_empty())
-        .map(str::to_owned).unwrap_or_else(|| search_query(subject));
+    let query = search_query(subject);
     result["search_url"] = json!(search_url(&query).as_str());
     result["search_status"] = json!("loading");
     result["homepage_status"] = json!("loading");
