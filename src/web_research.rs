@@ -1,4 +1,4 @@
-//! Five-page evidence research. Search, extraction, processing and synthesis
+//! Bounded multi-page evidence research. Search, extraction, processing and synthesis
 //! are separate bounded operations; search snippets never become evidence.
 use anyhow::{ensure, Result};
 use futures_util::{stream, StreamExt};
@@ -13,8 +13,9 @@ use std::{
 use url::Url;
 mod passages;
 
-pub(crate) const TARGET: usize = 5;
-const MAX_CANDIDATES: usize = 15;
+pub(crate) const TARGET: usize = 10;
+const READ_CONCURRENCY: usize = 5;
+const MAX_CANDIDATES: usize = 25;
 const TEXT_CHARS: usize = 12_000;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -283,6 +284,38 @@ fn url_key(raw: &str) -> Option<String> {
     Some(url.as_str().trim_end_matches('/').to_owned())
 }
 
+/// Keep user-supplied links even when query rewriting omits them. The same
+/// public-URL, DNS, robots and content validation applies when they are read.
+fn question_links(question: &str) -> Vec<Candidate> {
+    let mut seen = HashSet::new();
+    question.split(|c: char| c.is_whitespace() || matches!(c, '<' | '>' | '"' | '\'' | '(' | ')' | '[' | ']'))
+        .filter_map(|part| {
+            let raw = part.trim_end_matches([',', '.', ';', '!', '?']);
+            if !raw.starts_with("https://") && !raw.starts_with("http://") { return None; }
+            let url = crate::link_preview::public_url(raw).ok()?;
+            if !seen.insert(url_key(url.as_str())?) { return None; }
+            Some(Candidate { title: url.host_str()?.to_owned(), url: url.into(), rank: 0 })
+        }).take(TARGET).collect()
+}
+
+fn prioritize_links(mut links: Vec<Candidate>, candidates: Vec<Candidate>) -> Vec<Candidate> {
+    let mut seen: HashSet<_> = links.iter().filter_map(|c| url_key(&c.url)).collect();
+    links.extend(candidates.into_iter().filter(|c| url_key(&c.url).is_some_and(|key| seen.insert(key))));
+    links.truncate(MAX_CANDIDATES);
+    for (index, candidate) in links.iter_mut().enumerate() { candidate.rank = index + 1; }
+    links
+}
+
+pub(crate) async fn search_for_question(query: &str, question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+    let links = question_links(question);
+    match search(query).await {
+        Ok((candidates, providers, operation)) => Ok((prioritize_links(links, candidates), providers, operation)),
+        Err(_) if !links.is_empty() => Ok((prioritize_links(links, Vec::new()), json!([]),
+            json!({"status":"unavailable","cost_usd":null,"configured_api_requests":null,"fallback":"question_links"}))),
+        Err(error) => Err(error),
+    }
+}
+
 pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
     let started = Instant::now();
     let mut accounting = json!({"cost_usd":0,"configured_api_requests":0});
@@ -484,7 +517,7 @@ async fn read_for(candidates: Vec<Candidate>, question: &str, budget: Duration, 
 }
 
 async fn read_for_from(candidates: Vec<Candidate>, question: &str, budget: Duration, subject: Option<&str>, sources: Vec<Source>) -> (Vec<Source>, Vec<Value>) {
-    read_with_budget_from(candidates, question, budget, sources, |candidate| async move {
+    read_with_budget_from(candidates, question, budget, sources, if subject.is_some() { 5 } else { TARGET }, |candidate| async move {
         let (url, bytes) = crate::link_preview::Service::shared()
             .research_html(&candidate.url)
             .await?;
@@ -512,10 +545,10 @@ where
     F: Fn(Candidate) -> Fut,
     Fut: std::future::Future<Output = Result<Source>>,
 {
-    read_with_budget_from(candidates, question, budget, Vec::new(), fetch).await
+    read_with_budget_from(candidates, question, budget, Vec::new(), TARGET, fetch).await
 }
 
-async fn read_with_budget_from<F, Fut>(candidates: Vec<Candidate>, question: &str, budget: Duration, mut sources: Vec<Source>, fetch: F) -> (Vec<Source>, Vec<Value>)
+async fn read_with_budget_from<F, Fut>(candidates: Vec<Candidate>, question: &str, budget: Duration, mut sources: Vec<Source>, target: usize, fetch: F) -> (Vec<Source>, Vec<Value>)
 where
     F: Fn(Candidate) -> Fut,
     Fut: std::future::Future<Output = Result<Source>>,
@@ -529,7 +562,7 @@ where
         if tokio::time::Instant::now() >= deadline { break; }
         let batch = pending
             .by_ref()
-            .take(TARGET - sources.len())
+            .take((target - sources.len()).min(READ_CONCURRENCY))
             .collect::<Vec<_>>();
         if batch.is_empty() {
             break;
@@ -539,11 +572,12 @@ where
             let fetch = &fetch;
             async move {
                 let started = Instant::now();
-                let result = fetch(candidate.clone()).await;
+                let result = tokio::time::timeout(Duration::from_secs(8), fetch(candidate.clone()))
+                    .await.unwrap_or_else(|_| Err(anyhow::anyhow!("page timeout")));
                 (candidate, result, started.elapsed().as_millis() as u64)
             }
         }))
-        .buffer_unordered(TARGET);
+        .buffer_unordered(READ_CONCURRENCY);
         futures_util::pin_mut!(reads);
         let mut completed = Vec::new();
         while let Ok(Some(read)) = tokio::time::timeout_at(deadline, reads.next()).await {
@@ -576,6 +610,8 @@ where
                             || message.contains("blocked")
                         {
                             "blocked"
+                        } else if message.contains("timeout") {
+                            "timeout"
                         } else if message.contains("irrelevant") {
                             "irrelevant"
                         } else if message.contains("insufficient") {
@@ -606,7 +642,7 @@ where
                 failures.push(json!({"url":candidate.url,"rank":candidate.rank,"reason":reason}));
             }
         }
-        if sources.len() == TARGET {
+        if sources.len() == target {
             break;
         }
     }
@@ -685,7 +721,7 @@ pub(crate) fn validate_answer(value: &Value, count: usize) -> Result<Answer> {
             return Err(answer_rejection(value, count, "heading"));
         }
         if block.citations.is_empty()
-            || block.citations.len() > TARGET
+            || block.citations.len() > 5
             || !block.citations.iter().all(|id| (1..=count).contains(id))
         {
             return Err(answer_rejection(value, count, "citations"));
@@ -845,6 +881,22 @@ fn glob_match(pattern: &str, target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn supplied_links_are_prioritized_deduplicated_and_public_only() {
+        let links = question_links("Vergelijk [Alliance](https://example.org/about?utm_source=test) met <https://other.org/research>. Ook https://example.org/about en http://127.0.0.1/private en https://user:secret@example.org/");
+        assert_eq!(links.len(), 2);
+        let candidates = vec![
+            Candidate { title: "duplicate".into(), url: "https://example.org/about".into(), rank: 1 },
+            Candidate { title: "independent".into(), url: "https://third.org/report".into(), rank: 2 },
+        ];
+        let merged = prioritize_links(links, candidates);
+        assert_eq!(merged.len(), 3);
+        assert_eq!(merged[0].title, "example.org");
+        assert_eq!(merged[1].url, "https://other.org/research");
+        assert_eq!(merged[2].title, "independent");
+        assert_eq!(merged.iter().map(|c| c.rank).collect::<Vec<_>>(), vec![1, 2, 3]);
+    }
+
     #[tokio::test]
     async fn a_slow_page_does_not_discard_completed_page_evidence() {
         let candidates = (1..=2).map(|rank| Candidate { title: "AI compliance".into(), url: format!("https://example.org/{rank}"), rank }).collect();
@@ -965,7 +1017,7 @@ mod tests {
         let observed = maximum.clone();
         let attempted = Arc::new(AtomicUsize::new(0));
         let calls = attempted.clone();
-        let candidates = (1..=12)
+        let candidates = (1..=16)
             .map(|rank| Candidate {
                 title: "AI rules".into(),
                 url: format!("https://example.org/{rank}"),
@@ -1011,14 +1063,14 @@ mod tests {
         .await;
         assert_eq!(
             sources.iter().map(|s| s.search_rank).collect::<Vec<_>>(),
-            vec![1, 5, 6, 7, 8]
+            vec![1, 5, 6, 7, 8, 9, 10, 11, 12, 13]
         );
         assert_eq!(
             sources.iter().map(|s| s.id).collect::<Vec<_>>(),
-            vec![1, 2, 3, 4, 5]
+            (1..=10).collect::<Vec<_>>()
         );
         assert_eq!(failures.len(), 3);
-        assert_eq!(calls.load(Ordering::SeqCst), 8);
+        assert_eq!(calls.load(Ordering::SeqCst), 13);
         assert_eq!(observed.load(Ordering::SeqCst), 5);
         assert_eq!(peak.load(Ordering::SeqCst), 0);
         let (sources, _) = read_with(
@@ -1042,13 +1094,13 @@ mod tests {
             text: "Relevant election evidence for 2026.".into(), text_sha256: format!("hash-{rank}"), trimmed: false };
         let candidates = (4..=8).map(|rank| Candidate { title: "Election 2026".into(), url: format!("https://example.org/{rank}"), rank }).collect();
         let existing = (1..=3).map(source).collect();
-        let (sources, failures) = read_with_budget_from(candidates, "election 2026", Duration::from_secs(1), existing, |candidate| async move {
+        let (sources, failures) = read_with_budget_from(candidates, "election 2026", Duration::from_secs(1), existing, TARGET, |candidate| async move {
             let mut result = source(candidate.rank);
             if candidate.rank == 4 { result.final_url = "https://example.org/1".into(); }
             if candidate.rank == 5 { result.text_sha256 = "hash-2".into(); }
             Ok(result)
         }).await;
-        assert_eq!(sources.iter().map(|s| (s.id, s.search_rank)).collect::<Vec<_>>(), [(1,1),(2,2),(3,3),(4,6),(5,7)]);
+        assert_eq!(sources.iter().map(|s| (s.id, s.search_rank)).collect::<Vec<_>>(), [(1,1),(2,2),(3,3),(4,6),(5,7),(6,8)]);
         assert_eq!(failures.len(), 2);
         assert!(failures.iter().all(|f| f["reason"] == "duplicate"));
     }
@@ -1211,14 +1263,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn one_synthesis_call_receives_original_question_and_all_five_pages() {
+    async fn one_synthesis_call_receives_original_question_and_all_ten_pages() {
         use axum::{routing::post, Json, Router};
         use std::sync::{Arc, Mutex};
         let received = Arc::new(Mutex::new(Vec::<Value>::new()));
         let capture = received.clone();
         let app=Router::new().route("/",post(move |Json(body):Json<Value>| {
             let input:Value=serde_json::from_str(body["messages"][1]["content"].as_str().unwrap()).unwrap();
-            let citations=if input["question"]=="TEST FIXTURE INVALID CITATION" {json!([6])} else {json!([1,2,3,4,5])};
+            let citations=if input["question"]=="TEST FIXTURE INVALID CITATION" {json!([11])} else {json!([1,10])};
             capture.lock().unwrap().push(body);
             async move {Json(json!({"choices":[{"message":{"content":json!({"blocks":[{"heading":"Developments","text":"One consolidated finding","citations":citations}],"limitations":[]}).to_string()}}],"usage":{"prompt_tokens":100,"completion_tokens":20,"cost":0.001}}))}
         }));
@@ -1234,9 +1286,9 @@ mod tests {
         )
         .with_local_endpoint(format!("http://{address}/"))
         .unwrap();
-        let input = json!({"question":"TEST FIXTURE ONLY: Combine these five synthetic project findings, explain the common result and cite every factual paragraph.","current_date":"2026-11-01","sources":(1..=5).map(|id|json!({"id":id,"title":format!("TEST FIXTURE {id}"),"url":format!("https://example.org/original-fixture/{id}"),"final_url":format!("https://example.org/test-fixture/{id}"),"retrieved_at":"2026-11-01T00:00:00Z","text":format!("TEST FIXTURE {id}: This is synthetic evidence, not a real event. In the imaginary project, team {id} completed its review. Each team used the same checklist and recorded one improvement."),"trimmed":false,"search_rank":id,"text_sha256":"not-for-model-context"})).collect::<Vec<_>>()});
+        let input = json!({"question":"TEST FIXTURE ONLY: Combine these ten synthetic project findings, explain the common result and cite every factual paragraph.","current_date":"2026-11-01","sources":(1..=10).map(|id|json!({"id":id,"title":format!("TEST FIXTURE {id}"),"url":format!("https://example.org/original-fixture/{id}"),"final_url":format!("https://example.org/test-fixture/{id}"),"retrieved_at":"2026-11-01T00:00:00Z","text":format!("TEST FIXTURE {id}: This is synthetic evidence, not a real event. In the imaginary project, team {id} completed its review. Each team used the same checklist and recorded one improvement."),"trimmed":false,"search_rank":id,"text_sha256":"not-for-model-context"})).collect::<Vec<_>>()});
         let reply = client.synthesize_web(input.clone()).await.unwrap();
-        assert_eq!(validate_answer(&reply, 5).unwrap().blocks.len(), 1);
+        assert_eq!(validate_answer(&reply, 10).unwrap().blocks.len(), 1);
         assert_eq!(reply["usage"]["cost"], 0.001);
         let calls = received.lock().unwrap();
         assert_eq!(calls.len(), 1);
@@ -1248,9 +1300,9 @@ mod tests {
         let schema = &calls[0]["response_format"]["json_schema"]["schema"];
         assert_eq!(
             schema["properties"]["blocks"]["items"]["properties"]["citations"]["items"]["enum"],
-            json!([1, 2, 3, 4, 5])
+            json!([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
         );
-        let invalid = json!({"blocks":[{"heading":null,"text":"Unsupported claim","citations":[6]}],"limitations":[]});
+        let invalid = json!({"blocks":[{"heading":null,"text":"Unsupported claim","citations":[11]}],"limitations":[]});
         assert!(!jsonschema::is_valid(schema, &invalid));
         if let Ok(path) = std::env::var("WEB_RESEARCH_TEST_PAYLOAD") {
             std::fs::write(path, serde_json::to_vec_pretty(&calls[0]).unwrap()).unwrap();

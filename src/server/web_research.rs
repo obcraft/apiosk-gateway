@@ -102,7 +102,7 @@ async fn run(
     let start = Instant::now();
     let (candidates, mut providers, mut search_operation) = tokio::time::timeout(
         Duration::from_secs(20),
-        crate::web_research::search(&query.query),
+        crate::web_research::search_for_question(&query.query, question),
     )
     .await
     .map_err(|error| {
@@ -131,7 +131,7 @@ async fn run(
         configured_api_requests = ?search_operation["configured_api_requests"],
         "research operation"
     );
-    phase(sender, "reading", candidates.len().min(5)).await?;
+    phase(sender, "reading", candidates.len().min(crate::web_research::TARGET)).await?;
     let start = Instant::now();
     let evidence_question = format!("{question}\n{}", query.query);
     let (sources, failures, replacement_search) = crate::web_research::read_replacing(candidates, &evidence_question, &query.query).await;
@@ -146,8 +146,8 @@ async fn run(
     let start = Instant::now();
     let count = sources.len();
     let mut limitations = Vec::new();
-    if count < 5 {
-        limitations.push(format!("Only {count} of 5 requested sources were successfully read and analyzed. Other results were unavailable, blocked, duplicate or irrelevant."));
+    if count < crate::web_research::TARGET {
+        limitations.push(format!("Only {count} of {} requested sources were successfully read and analyzed. Other results were unavailable, blocked, duplicate or irrelevant.", crate::web_research::TARGET));
     }
     let input = json!({"question":question,"search_query":query.query,"earlier_conversation_context_only":earlier,"current_date":chrono::Utc::now().date_naive(),"sources":sources});
     let process_ms = start.elapsed().as_millis() as u64;
