@@ -12,6 +12,7 @@ use std::{
 };
 use url::Url;
 mod passages;
+mod exa;
 
 pub(crate) const TARGET: usize = 10;
 const READ_CONCURRENCY: usize = 5;
@@ -317,6 +318,10 @@ pub(crate) async fn search_for_question(query: &str, question: &str) -> Result<(
 }
 
 pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+    exa::supplement(question).await
+}
+
+async fn primary_search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
     let started = Instant::now();
     let mut accounting = json!({"cost_usd":0,"configured_api_requests":0});
     let mut candidates = Vec::new();
