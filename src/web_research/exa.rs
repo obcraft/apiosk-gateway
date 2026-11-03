@@ -1,6 +1,16 @@
 //! Supplemental discovery only. All results still pass through our page reader.
 use super::*;
 
+/// Explicit Exa actions do not wait for unrelated discovery providers.
+pub(super) async fn only(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+    let key = std::env::var("EXA_API_KEY")
+        .ok()
+        .filter(|key| !key.trim().is_empty())
+        .ok_or_else(|| anyhow::anyhow!("Exa search unavailable"))?;
+    let data = search(question, key.trim()).await?;
+    combine(Ok((vec![], json!([]), json!({"cost_usd":0,"configured_api_requests":0}))), Ok(data))
+}
+
 pub(super) async fn supplement(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
     let key = std::env::var("EXA_API_KEY")
         .ok()
@@ -188,5 +198,16 @@ mod tests {
         let merged = interleave(primary, parse(&result("https://example.org/extra")));
         assert_eq!(merged[1].url, "https://example.org/extra");
         assert_eq!(merged.len(), MAX_CANDIDATES);
+    }
+    #[test]
+    fn explicit_exa_accounts_for_one_search_and_assigns_citable_ranks() {
+        let (rows, providers, operation) = combine(
+            Ok((vec![], json!([]), json!({"cost_usd":0,"configured_api_requests":0}))),
+            Ok(result("https://example.org/evidence")),
+        ).unwrap();
+        assert_eq!(rows[0].rank, 1);
+        assert_eq!(providers, json!(["Exa"]));
+        assert_eq!(operation["cost_usd"], 0.005);
+        assert_eq!(operation["configured_api_requests"], 1);
     }
 }

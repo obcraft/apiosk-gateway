@@ -18,12 +18,22 @@ use std::{
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 
+#[derive(Default, Deserialize, Clone, Copy, PartialEq)]
+#[serde(rename_all = "snake_case")]
+enum SearchProvider {
+    #[default]
+    Combined,
+    Exa,
+}
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Request {
     question: String,
     #[serde(default)]
     earlier: String,
+    #[serde(default)]
+    provider: SearchProvider,
 }
 
 pub(super) async fn research(
@@ -62,13 +72,18 @@ pub(super) async fn research(
     let (sender, receiver) = mpsc::channel::<Value>(8);
     crate::telemetry::spawn(async move {
         let _permit = permit;
-        let work = run(&client, &question, &request.earlier, &sender);
+        let work = run(&client, &question, &request.earlier, request.provider, &sender);
         tokio::select! {
             _ = sender.closed() => {},
             result = tokio::time::timeout(Duration::from_secs(78),work) => {
                 if !matches!(result,Ok(Ok(()))) {
                     tracing::warn!(operation="web-research",status="failed","research operation");
-                    let _=sender.send(json!({"phase":"failed","errors":[{"code":"web_research_failed","message":"Web research could not finish. Retry your question."}]})).await;
+                    let message = if request.provider == SearchProvider::Exa {
+                        "Exa web search could not finish. Try again, or send your question to use the other search providers."
+                    } else {
+                        "Web research could not finish. Retry your question."
+                    };
+                    let _=sender.send(json!({"phase":"failed","errors":[{"code":"web_research_failed","message":message}]})).await;
                 }
             }
         }
@@ -85,6 +100,21 @@ pub(super) async fn research(
     )
         .into_response()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn web_research_provider_is_optional_and_strictly_validated() {
+        let default: Request = serde_json::from_value(json!({"question":"Evidence"})).unwrap();
+        assert!(matches!(default.provider, SearchProvider::Combined));
+        let exa: Request = serde_json::from_value(json!({"question":"Evidence","provider":"exa"})).unwrap();
+        assert!(matches!(exa.provider, SearchProvider::Exa));
+        assert!(serde_json::from_value::<Request>(json!({"question":"Evidence","provider":"unknown"})).is_err());
+        assert!(serde_json::from_value::<Request>(json!({"question":"Evidence","api_key":"browser-key"})).is_err());
+    }
+}
 async fn phase(sender: &mpsc::Sender<Value>, name: &str, count: usize) -> anyhow::Result<()> {
     sender
         .send(json!({"phase":name,"source_count":count}))
@@ -95,6 +125,7 @@ async fn run(
     client: &crate::ask_v2::Client,
     question: &str,
     earlier: &str,
+    provider: SearchProvider,
     sender: &mpsc::Sender<Value>,
 ) -> anyhow::Result<()> {
     phase(sender, "searching", 0).await?;
@@ -102,7 +133,13 @@ async fn run(
     let start = Instant::now();
     let (candidates, mut providers, mut search_operation) = tokio::time::timeout(
         Duration::from_secs(20),
-        crate::web_research::search_for_question(&query.query, question),
+        async {
+            if provider == SearchProvider::Exa {
+                crate::web_research::search_exa_for_question(&query.query, question).await
+            } else {
+                crate::web_research::search_for_question(&query.query, question).await
+            }
+        },
     )
     .await
     .map_err(|error| {

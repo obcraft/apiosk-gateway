@@ -317,6 +317,11 @@ pub(crate) async fn search_for_question(query: &str, question: &str) -> Result<(
     }
 }
 
+pub(crate) async fn search_exa_for_question(query: &str, question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+    let (candidates, providers, operation) = exa::only(query).await?;
+    Ok((prioritize_links(question_links(question), candidates), providers, operation))
+}
+
 pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
     exa::supplement(question).await
 }
