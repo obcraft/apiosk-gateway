@@ -52,7 +52,7 @@ pub(crate) struct Answer {
 pub(crate) fn answer_schema(ids: &[usize]) -> Value {
     json!({"type":"object","additionalProperties":false,"required":["blocks","limitations"],"properties":{
         "blocks":{"type":"array","maxItems":12,"items":{"type":"object","additionalProperties":false,
-            "required":["heading","text","citations"],"properties":{
+            "required":["citations","heading","text"],"properties":{
                 "heading":{"type":["string","null"],"maxLength":120},
                 "text":{"type":"string","minLength":1,"maxLength":1000},
                 "citations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"integer","enum":ids}}}}},
@@ -125,10 +125,8 @@ pub(crate) fn parse_answer(raw: &str, count: usize) -> Result<Value> {
     Ok(answer)
 }
 
-/// Read only complete objects from the root `blocks` array. No unfinished
-/// string, draft sentence or citation is exposed. Other root properties may
-/// precede blocks, so find the array with a JSON parser rather than substring
-/// matching text that could itself contain `"blocks"`.
+/// Completed blocks stay immutable. The current paragraph may grow once its
+/// heading and citation IDs are complete; partial JSON/escapes never reach UI.
 pub(crate) fn streamed_answer(raw: &str, count: usize) -> Result<Option<Value>> {
     fn whitespace(bytes: &[u8], position: &mut usize) {
         while bytes.get(*position).is_some_and(u8::is_ascii_whitespace) {
@@ -179,12 +177,14 @@ pub(crate) fn streamed_answer(raw: &str, count: usize) -> Result<Option<Value>> 
             ensure!(*start == b'[', "invalid streamed answer blocks");
             position += 1;
             let mut blocks = Vec::new();
+            let mut draft = None;
             loop {
                 whitespace(bytes, &mut position);
                 if bytes.get(position).is_none_or(|c| *c == b']') {
                     break;
                 }
                 let Some(block) = value(raw, &mut position)? else {
+                    draft = streamed_block(&raw[position..], count)?;
                     break;
                 };
                 blocks.push(block);
@@ -196,11 +196,15 @@ pub(crate) fn streamed_answer(raw: &str, count: usize) -> Result<Option<Value>> 
                     _ => anyhow::bail!("invalid streamed answer separator"),
                 }
             }
-            if blocks.is_empty() {
+            if blocks.is_empty() && draft.is_none() {
                 return Ok(None);
             }
-            let answer = json!({"blocks":blocks,"limitations":[]});
-            validate_answer(&answer, count)?;
+            let mut answer = json!({"blocks":blocks,"limitations":[]});
+            if !answer["blocks"].as_array().unwrap().is_empty() { validate_answer(&answer, count)?; }
+            if let Some(draft) = draft {
+                ensure!(answer["blocks"].as_array().unwrap().len() < 12, "streamed answer too large");
+                answer["draft"] = draft;
+            }
             return Ok(Some(answer));
         }
         if value(raw, &mut position)?.is_none() {
@@ -213,6 +217,89 @@ pub(crate) fn streamed_answer(raw: &str, count: usize) -> Result<Option<Value>> 
             _ => anyhow::bail!("invalid streamed answer separator"),
         }
     }
+}
+
+/// Decode an unfinished string up to the last complete JSON character. In
+/// particular, a split escape or UTF-16 surrogate pair waits for its next token.
+fn streamed_string(raw: &str) -> Result<Option<String>> {
+    if !raw.starts_with('"') { return Ok(None); }
+    let bytes = raw.as_bytes();
+    let mut end = 1;
+    while end < bytes.len() {
+        match bytes[end] {
+            b'"' => return Ok(Some(serde_json::from_str(&raw[..=end])?)),
+            b'\\' => {
+                let Some(escape) = bytes.get(end + 1) else { break; };
+                if *escape == b'u' {
+                    if end + 6 > bytes.len() { break; }
+                    let hex = std::str::from_utf8(&bytes[end + 2..end + 6])?;
+                    let unit = u16::from_str_radix(hex, 16)?;
+                    if (0xD800..=0xDBFF).contains(&unit) {
+                        if end + 12 > bytes.len() { break; }
+                        ensure!(&bytes[end + 6..end + 8] == b"\\u", "invalid surrogate pair");
+                        let low = u16::from_str_radix(std::str::from_utf8(&bytes[end + 8..end + 12])?, 16)?;
+                        ensure!((0xDC00..=0xDFFF).contains(&low), "invalid surrogate pair");
+                        end += 12;
+                    } else { end += 6; }
+                } else {
+                    ensure!(matches!(*escape, b'"' | b'\\' | b'/' | b'b' | b'f' | b'n' | b'r' | b't'), "invalid JSON escape");
+                    end += 2;
+                }
+            }
+            _ => { end += raw[end..].chars().next().unwrap().len_utf8(); }
+        }
+    }
+    Ok(Some(serde_json::from_str(&format!("{}\"", &raw[..end]))?))
+}
+
+fn streamed_block(raw: &str, count: usize) -> Result<Option<Value>> {
+    let mut rest = raw.trim_start();
+    let Some(after) = rest.strip_prefix('{') else { return Ok(None); };
+    rest = after;
+    let mut fields = serde_json::Map::new();
+    loop {
+        rest = rest.trim_start();
+        let mut key_reader = serde_json::Deserializer::from_str(rest).into_iter::<String>();
+        let key = match key_reader.next() {
+            Some(Ok(key)) => key,
+            Some(Err(e)) if !e.is_eof() => return Err(e.into()),
+            _ => break,
+        };
+        rest = rest[key_reader.byte_offset()..].trim_start();
+        let Some(after) = rest.strip_prefix(':') else { break; };
+        rest = after.trim_start();
+        let mut reader = serde_json::Deserializer::from_str(rest).into_iter::<Value>();
+        match reader.next() {
+            Some(Ok(value)) => {
+                ensure!(fields.insert(key, value).is_none(), "duplicate streamed property");
+                rest = rest[reader.byte_offset()..].trim_start();
+                if let Some(after) = rest.strip_prefix(',') { rest = after; } else { break; }
+            }
+            Some(Err(e)) if e.is_eof() => {
+                if key == "text" {
+                    if let Some(text) = streamed_string(rest)? { fields.insert(key, json!(text)); }
+                }
+                break;
+            }
+            Some(Err(e)) => return Err(e.into()),
+            None => break,
+        }
+    }
+    if !fields.contains_key("heading") || !fields.contains_key("citations")
+        || fields.get("text").and_then(Value::as_str).is_none_or(|s| s.trim().is_empty()) { return Ok(None); }
+    let block = Value::Object(fields);
+    validate_answer(&json!({"blocks":[block],"limitations":[]}), count)?;
+    Ok(Some(block))
+}
+
+pub(crate) fn extends_streamed_answer(previous: &Value, next: &Value) -> bool {
+    let Some(before) = previous["blocks"].as_array() else { return false; };
+    let Some(after) = next["blocks"].as_array() else { return false; };
+    if !after.starts_with(before) { return false; }
+    let Some(draft) = previous.get("draft") else { return true; };
+    let Some(current) = after.get(before.len()).or_else(|| next.get("draft")) else { return false; };
+    current["heading"] == draft["heading"] && current["citations"] == draft["citations"]
+        && current["text"].as_str().zip(draft["text"].as_str()).is_some_and(|(next, before)| next.starts_with(before))
 }
 
 pub(crate) struct SearchQuery {
@@ -1141,8 +1228,28 @@ mod tests {
         .is_err());
     }
 
+    #[test]
+    fn partial_paragraphs_decode_split_unicode_and_escapes_without_rewriting_text() {
+        let raw = r#"{"blocks":[{"citations":[1],"heading":null,"text":"Hello \"world\"\nCafé \uD83D\uDE00 🌍"}],"limitations":[]}"#;
+        let mut previous = json!({"blocks":[],"limitations":[]});
+        let mut drafts = 0;
+        for end in raw.char_indices().map(|(i, _)| i).chain(std::iter::once(raw.len())) {
+            if let Some(next) = streamed_answer(&raw[..end], 1).unwrap() {
+                assert!(extends_streamed_answer(&previous, &next), "prefix at {end}");
+                if next.get("draft").is_some() { drafts += 1; }
+                previous = next;
+            }
+        }
+        assert!(drafts > 10);
+        assert_eq!(previous["blocks"][0]["text"], "Hello \"world\"\nCafé 😀 🌍");
+        assert!(streamed_answer(r#"{"blocks":[{"citations":[2],"heading":null,"text":"Wrong"#, 1).is_err());
+        for malformed in [r#""bad \u💥"#, r#""bad \q"#, r#""bad \uD83D\u0041"#] {
+            assert!(streamed_string(malformed).is_err());
+        }
+    }
+
     #[tokio::test]
-    async fn provider_stream_publishes_a_cited_block_before_the_provider_finishes() {
+    async fn provider_stream_publishes_cited_text_before_the_paragraph_finishes() {
         use axum::{
             body::{Body, Bytes},
             http::Response,
@@ -1155,8 +1262,8 @@ mod tests {
         let provider_gate = gate.clone();
         let first = json!({"heading":"First finding","text":"The first supported finding arrives early.","citations":[1]});
         let second = json!({"heading":"Second finding","text":"The later supported finding arrives afterward.","citations":[1]});
-        let first_content = format!("{{\"blocks\":[{first},");
-        let last_content = format!("{second}],\"limitations\":[]}}");
+        let first_content = "{\"blocks\":[{\"citations\":[1],\"heading\":\"First finding\",\"text\":\"The first supported".to_owned();
+        let last_content = format!(" finding arrives early.\"}},{second}],\"limitations\":[]}}");
         let app=Router::new().route("/",post(move |Json(payload):Json<Value>| {
             assert_eq!(payload["stream"],true);
             assert_eq!(payload["stream_options"]["include_usage"],true);
@@ -1205,14 +1312,14 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(early["blocks"].as_array().unwrap().len(), 1);
+        assert_eq!(early["blocks"].as_array().unwrap().len(), 0);
         assert_eq!(
-            early["blocks"][0]["text"],
-            "The first supported finding arrives early."
+            early["draft"]["text"],
+            "The first supported"
         );
         assert!(
             !work.is_finished(),
-            "the first paragraph must arrive while the provider is still held open"
+            "text must arrive before the paragraph and provider finish"
         );
         gate.notify_one();
         let final_answer = tokio::time::timeout(Duration::from_secs(2), work)
@@ -1221,6 +1328,7 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(final_answer["blocks"].as_array().unwrap().len(), 2);
+        assert_eq!(final_answer["blocks"][0], first);
         assert_eq!(final_answer["usage"]["cost"], 0.001);
         assert_eq!(
             receiver.recv().await.unwrap()["blocks"]

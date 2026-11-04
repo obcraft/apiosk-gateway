@@ -163,7 +163,7 @@ impl Client {
         self.synthesize_web_with(input, false, |_| async { Ok(()) }).await
     }
 
-    /// Publish complete cited paragraphs as they arrive from the provider.
+    /// Publish cited text as it arrives, including the growing current paragraph.
     /// The caller receives the same strictly validated final answer afterward.
     pub(crate) async fn synthesize_web_streaming<F, Fut>(&self, input: Value, on_answer: F) -> Result<Value>
     where F: FnMut(Value) -> Fut + Send, Fut: std::future::Future<Output=Result<()>> + Send {
@@ -194,7 +194,7 @@ impl Client {
                 ensure!(response.headers().get("content-type").and_then(|v|v.to_str().ok())
                     .is_some_and(|v|v.starts_with("text/event-stream")), "web synthesis stream unavailable");
                 let mut events = Sse { wait_for_usage:true, max_wire_bytes:Some(2*1024*1024), max_text_bytes:Some(128*1024), ..Sse::default() };
-                let mut emitted = json!([]);
+                let mut emitted = json!({"blocks":[],"limitations":[]});
                 let mut stream = response.bytes_stream();
                 let mut usage_deadline = None;
                 loop {
@@ -207,12 +207,9 @@ impl Client {
                         usage_deadline=Some(tokio::time::Instant::now()+Duration::from_secs(1));
                     }
                     if let Some(answer) = crate::web_research::streamed_answer(&events.text,ids.len())? {
-                        let blocks=&answer["blocks"];
-                        let previous=emitted.as_array().unwrap();
-                        let next=blocks.as_array().unwrap();
-                        ensure!(next.starts_with(previous), "web answer stream changed prior content");
-                        if next.len()>previous.len() {
-                            emitted=blocks.clone();
+                        ensure!(crate::web_research::extends_streamed_answer(&emitted, &answer), "web answer stream changed prior content");
+                        if answer != emitted {
+                            emitted=answer.clone();
                             on_answer(answer).await?;
                         }
                     }
@@ -227,7 +224,7 @@ impl Client {
                 let (text,usage)=events.finish_with_usage()?;
                 ensure!(completed, "web synthesis stream incomplete");
                 let answer=crate::web_research::parse_answer(&text,ids.len())?;
-                ensure!(answer["blocks"].as_array().unwrap().starts_with(emitted.as_array().unwrap()),
+                ensure!(crate::web_research::extends_streamed_answer(&emitted, &answer),
                     "web answer stream changed prior content");
                 (text,serde_json::to_value(usage.unwrap_or_default())?,provider,bytes)
             } else {

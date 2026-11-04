@@ -34,6 +34,8 @@ pub(super) struct Request {
     earlier: String,
     #[serde(default)]
     provider: SearchProvider,
+    #[serde(default)]
+    stream_text: bool,
 }
 
 pub(super) async fn research(
@@ -72,7 +74,7 @@ pub(super) async fn research(
     let (sender, receiver) = mpsc::channel::<Value>(8);
     crate::telemetry::spawn(async move {
         let _permit = permit;
-        let work = run(&client, &question, &request.earlier, request.provider, &sender);
+        let work = run(&client, &question, &request.earlier, request.provider, request.stream_text, &sender);
         tokio::select! {
             _ = sender.closed() => {},
             result = tokio::time::timeout(Duration::from_secs(78),work) => {
@@ -130,16 +132,30 @@ mod tests {
         let provider = if std::env::var("ASK_WEB_TEST_PROVIDER").as_deref() == Ok("exa") { SearchProvider::Exa } else { SearchProvider::Combined };
         let mut results = Vec::new();
         for question in questions {
+            let started = Instant::now();
             let (sender, mut receiver) = mpsc::channel(8);
             let work = async {
-                let outcome = tokio::time::timeout(Duration::from_secs(78), run(&client, &question, "", provider, &sender)).await;
+                let outcome = tokio::time::timeout(Duration::from_secs(78), run(&client, &question, "", provider, true, &sender)).await;
                 drop(sender);
                 outcome
             };
             let collect = async {
                 let mut completed = None;
+                let mut first_text_ms = None;
+                let mut first_draft_ms = None;
+                let mut updates = 0;
                 while let Some(event) = receiver.recv().await {
-                    if event["phase"] == "complete" { completed = Some(event["result"].clone()); break; }
+                    if event["phase"] == "answer" {
+                        updates += 1;
+                        first_text_ms.get_or_insert(started.elapsed().as_millis() as u64);
+                        let answer = event.get("answer").unwrap_or(&event["result"]["answer"]);
+                        if answer.get("draft").is_some() { first_draft_ms.get_or_insert(started.elapsed().as_millis() as u64); }
+                    }
+                    if event["phase"] == "complete" {
+                        let mut result = event["result"].clone();
+                        result["streaming_verification"] = json!({"first_text_ms":first_text_ms,"first_draft_ms":first_draft_ms,"complete_ms":started.elapsed().as_millis() as u64,"updates":updates});
+                        completed = Some(result); break;
+                    }
                 }
                 completed
             };
@@ -167,6 +183,7 @@ async fn run(
     question: &str,
     earlier: &str,
     provider: SearchProvider,
+    stream_text: bool,
     sender: &mpsc::Sender<Value>,
 ) -> anyhow::Result<()> {
     phase(sender, "searching", 0).await?;
@@ -241,15 +258,26 @@ async fn run(
         )
     } else {
         phase(sender, "generating", count).await?;
-        let output = client.synthesize_web_streaming(input, |answer| {
-            tracing::info!(operation="web-research-answer-stream",elapsed_ms=start.elapsed().as_millis() as u64,
+        let mut sent_evidence = false;
+        let mut completed_blocks = 0;
+        let output = client.synthesize_web_streaming(input, |mut answer| {
+            let blocks = answer["blocks"].as_array().map_or(0, Vec::len);
+            let skip = !stream_text && blocks <= completed_blocks;
+            completed_blocks = blocks;
+            if !stream_text { answer.as_object_mut().unwrap().remove("draft"); }
+            tracing::debug!(operation="web-research-answer-stream",elapsed_ms=start.elapsed().as_millis() as u64,
                 block_count=answer["blocks"].as_array().map_or(0,Vec::len),source_count=count,"cited paragraphs streamed");
-            let snapshot=json!({"phase":"answer","source_count":count,"result":{"question":question,
+            let snapshot = if stream_text && sent_evidence {
+                // Evidence is immutable. Do not resend all page excerpts on
+                // every token; only the growing answer crosses the wire.
+                json!({"phase":"answer","answer":answer})
+            } else { json!({"phase":"answer","source_count":count,"result":{"question":question,
                 "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
                 "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
                     "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
-                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":null}}}});
-            async move {sender.send(snapshot).await?;Ok(())}
+                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":null}}}}) };
+            if !skip { sent_evidence = true; }
+            async move { if !skip { sender.send(snapshot).await?; } Ok(()) }
         }).await.map_err(|error| {
             tracing::warn!(
                 operation = "web-research-synthesis",
