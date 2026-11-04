@@ -114,6 +114,47 @@ mod tests {
         assert!(serde_json::from_value::<Request>(json!({"question":"Evidence","provider":"unknown"})).is_err());
         assert!(serde_json::from_value::<Request>(json!({"question":"Evidence","api_key":"browser-key"})).is_err());
     }
+
+    /// Explicit operator opt-in. Exercises the actual search, page reader and
+    /// streamed answer path without accounts, purchases or saved task writes.
+    #[tokio::test]
+    #[ignore = "uses configured search/model credentials and public webpages"]
+    async fn live_core_web_research() {
+        dotenvy::dotenv().ok();
+        let questions: Vec<String> = serde_json::from_slice(&std::fs::read(
+            std::env::var("ASK_WEB_TEST_QUESTIONS").expect("explicit questions file required")
+        ).unwrap()).unwrap();
+        let evidence = std::env::var("ASK_WEB_TEST_EVIDENCE").expect("evidence path required");
+        let key = std::env::var("OPENROUTER_API_KEY").or_else(|_|std::env::var("INTENT_API_KEY")).unwrap();
+        let client = crate::ask_v2::Client::new(reqwest::Client::new(), key, crate::ask_v2::DEFAULT_MODEL.into());
+        let provider = if std::env::var("ASK_WEB_TEST_PROVIDER").as_deref() == Ok("exa") { SearchProvider::Exa } else { SearchProvider::Combined };
+        let mut results = Vec::new();
+        for question in questions {
+            let (sender, mut receiver) = mpsc::channel(8);
+            let work = async {
+                let outcome = tokio::time::timeout(Duration::from_secs(78), run(&client, &question, "", provider, &sender)).await;
+                drop(sender);
+                outcome
+            };
+            let collect = async {
+                let mut completed = None;
+                while let Some(event) = receiver.recv().await {
+                    if event["phase"] == "complete" { completed = Some(event["result"].clone()); break; }
+                }
+                completed
+            };
+            let (outcome, completed) = tokio::join!(work, collect);
+            let row = match completed {
+                Some(result) => result,
+                None => json!({"question":question,"error":format!("{outcome:?}")}),
+            };
+            println!("{}: {} sources, {} blocks", question, row["sources"].as_array().map_or(0, Vec::len), row["answer"]["blocks"].as_array().map_or(0, Vec::len));
+            results.push(row);
+            std::fs::write(&evidence, serde_json::to_vec_pretty(&results).unwrap()).unwrap();
+        }
+        assert!(results.iter().all(|result| result["sources"].as_array().is_some_and(|sources| !sources.is_empty())
+            && result["answer"]["blocks"].as_array().is_some_and(|blocks| !blocks.is_empty())), "inspect live research evidence");
+    }
 }
 async fn phase(sender: &mpsc::Sender<Value>, name: &str, count: usize) -> anyhow::Result<()> {
     sender

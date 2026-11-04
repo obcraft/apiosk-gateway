@@ -363,7 +363,7 @@ pub(super) struct ParseRequest {
 
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
-        && slug.len() <= 160
+        && slug.len() <= 200
         && slug.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'.')
 }
 
@@ -605,7 +605,9 @@ fn valid_parsed(parsed: &ParsedRequest) -> bool {
         && parsed.capabilities.len() <= 16
         && parsed.capabilities.iter().all(|c| {
             valid_slug(&c.slug)
-                && slugs.insert((c.slug.as_str(), c.subject_id.as_deref()))
+                // The parser keeps the same check separately for each named
+                // provider. Reject only an exact subject/source duplicate.
+                && slugs.insert((c.slug.as_str(), c.subject_id.as_deref(), c.source_hint.as_deref()))
                 && short(&c.name)
                 && c.description.len() <= 16_000
                 && short(&c.domain)
@@ -736,6 +738,18 @@ pub(crate) fn complete_local_plan(catalog: &crate::catalog::Catalog, question: &
 
 }
 
+fn coinbase_matches(parsed: &ParsedRequest) -> Vec<Match> {
+    // A slug-keyed map loses repeated checks for different subjects/providers.
+    // Keep the parser's order for filtering and input binding by occurrence.
+    parsed.capabilities.iter()
+        .filter(|capability| !capability_intake::answer_instruction(capability))
+        .map(|capability| Match {
+            slug: capability.slug.clone(),
+            query: capability_intake::capability_query(capability, parsed, &crate::state::Task::default()),
+            operations: BTreeSet::new(), apiosk: vec![], coinbase: vec![], coinbase_status: "pending".into(),
+        }).collect()
+}
+
 pub(crate) async fn search_catalog(state: &ServerState, parsed_request: &ParsedRequest, origin: Origin) -> Result<Value, Response> {
     search_catalog_with_matches(state,parsed_request,origin,None).await
 }
@@ -791,18 +805,7 @@ async fn search_catalog_with_options(state: &ServerState, parsed_request: &Parse
         Origin::Coinbase => {
             // Bazaar is searched in English; the query is also what a
             // purchase re-resolves the listing with.
-            let mut matches: Vec<_> =
-                capability_intake::queries(parsed_request, &crate::state::Task::default())
-                    .into_iter()
-                    .map(|(slug, query)| Match {
-                        slug,
-                        query,
-                        operations: BTreeSet::new(),
-                        apiosk: vec![],
-                        coinbase: vec![],
-                        coinbase_status: "pending".into(),
-                    })
-                    .collect();
+            let mut matches = coinbase_matches(parsed_request);
             capability_intake::add_coinbase(
                 state.engine.parser.discovery_http(),
                 &mut matches,
@@ -1399,5 +1402,26 @@ mod tests {
             json!({"parsed_request":parsed,"origin":"https://other.example"})
         )
         .is_err());
+    }
+
+    #[test]
+    fn search_accepts_the_same_check_from_distinct_requested_sources() {
+        let question = "Screen Mollie B.V. with OpenSanctions and CompliancePulse";
+        let raw = json!({"language":"en","subjects":[{"id":"s1","label":"Mollie B.V.","type":"company","identifiers":{"name":"Mollie B.V."}}],
+            "capabilities":[
+                {"slug":"compliance.sanctions.check","name":"Sanctions check","description":"Screen the company against sanctions lists","domain":"compliance","inputs":["name"],"outputs":["sanctions_status"],"subject_id":"s1","source_hint":"OpenSanctions","confidence":0.9},
+                {"slug":"compliance.sanctions.check","name":"Sanctions check","description":"Screen the company against sanctions lists","domain":"compliance","inputs":["name"],"outputs":["sanctions_status"],"subject_id":"s1","source_hint":"CompliancePulse","confidence":0.9}],
+            "deliverable":{"format":"chat","operations":[]}});
+        let mut parsed = capability_intake::normalize(&raw.to_string(), question, "fixture").unwrap();
+        assert_eq!(parsed.capabilities.len(), 2);
+        assert!(valid_parsed(&parsed), "a canonical parse must remain searchable");
+        let matches = coinbase_matches(&parsed);
+        assert_eq!(matches.len(), 2, "both provider lookups must run");
+        assert!(matches[0].query.contains("opensanctions"));
+        assert!(matches[1].query.contains("compliancepulse"));
+        let request = ResearchRequest { request_id: Uuid::new_v4(), question: question.into(), parsed_request: parsed.clone(), search_id: None, discovery_id: None, selection: None };
+        assert!(request.normalized().is_ok(), "the same parse must also remain plannable");
+        parsed.capabilities[1].source_hint = parsed.capabilities[0].source_hint.clone();
+        assert!(!valid_parsed(&parsed), "exact duplicates are still rejected");
     }
 }

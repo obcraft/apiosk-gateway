@@ -112,15 +112,23 @@ enum Operation {
     Reply,
 }
 
+fn web_query_dates_grounded(query: &str, question: &str, earlier: &str, current_date: &str) -> bool {
+    let context = format!("{question} {earlier} {current_date}");
+    query.split(|c: char| !c.is_ascii_digit())
+        .filter(|part| part.len() == 4 && part.parse::<u16>().is_ok_and(|year| (1900..=2100).contains(&year)))
+        .all(|year| context.split(|c: char| !c.is_ascii_digit()).any(|supplied| supplied == year))
+}
+
 impl Client {
     /// Resolve conversational references for retrieval only. The original
     /// question still owns synthesis, and a failure falls back at the caller.
     pub(crate) async fn resolve_web_query(&self, question: &str, earlier: &str) -> Result<(String, Value)> {
         use futures_util::StreamExt;
+        let current_date = chrono::Utc::now().date_naive().to_string();
         let payload = json!({"model":WEB_QUERY_MODEL,"temperature":0,"max_tokens":160,
             "response_format":{"type":"json_object"},
             "messages":[{"role":"system","content":include_str!("../../contracts/web-query-prompt.txt")},
-                {"role":"user","content":json!({"question":question,"earlier_conversation":earlier}).to_string()}]});
+                {"role":"user","content":json!({"question":question,"earlier_conversation":earlier,"current_date":current_date}).to_string()}]});
         let mut call = crate::telemetry::model_call("web-query-resolution",1,WEB_QUERY_MODEL,payload.to_string().len());
         crate::telemetry::record_model_http_request();
         let outcome = async {
@@ -140,6 +148,9 @@ impl Client {
             let parsed: Value=serde_json::from_str(content)?;
             let query=parsed["query"].as_str().map(str::trim).ok_or_else(||anyhow!("missing web query"))?;
             ensure!(!query.is_empty() && query.chars().count()<=300 && !query.chars().any(char::is_control),"invalid web query");
+            // A model's remembered year must not silently turn a current
+            // question into a historical search. The caller keeps the original.
+            ensure!(web_query_dates_grounded(query, question, earlier, &current_date), "ungrounded web query date");
             call.finish(crate::telemetry::Outcome::Ok,"validated");
             Ok((query.to_owned(),body["usage"].clone()))
         };
@@ -751,6 +762,16 @@ mod tests {
     };
     use futures_util::StreamExt;
     use std::convert::Infallible;
+
+    #[test]
+    fn web_query_years_come_from_the_question_context_or_current_date() {
+        let today = "2026-11-04";
+        assert!(!web_query_dates_grounded("latest Nvidia news 2024", "What is the latest news about Nvidia?", "", today));
+        assert!(web_query_dates_grounded("latest Nvidia news November 2026", "What is the latest news about Nvidia?", "", today));
+        assert!(web_query_dates_grounded("Nvidia 2024 earnings", "Show Nvidia earnings for 2024", "", today));
+        assert!(web_query_dates_grounded("Nvidia 2024 earnings", "And Nvidia?", "user: Show 2024 earnings for AMD", today));
+        assert!(web_query_dates_grounded("latest Nvidia news", "What is the latest news about Nvidia?", "", today));
+    }
 
     #[test]
     fn web_stream_wire_budget_keeps_intake_and_answer_text_bounds_separate() {

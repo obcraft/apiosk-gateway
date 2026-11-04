@@ -797,8 +797,8 @@ pub fn listing_text(candidate: &Candidate) -> String {
 
 /// [`filter_coinbase`] with the capabilities in English (`english`, see
 /// `crate::english`) and the English rendering of a listing's text (see
-/// [`listing_text`]). A listing of the source the person named is kept. Any
-/// other must share the capability's topic in either wording, as an Apiosk
+/// [`listing_text`]). A named source narrows discovery; its endpoints must
+/// still share the capability's topic in either wording, as an Apiosk
 /// candidate must (`relevance::Request::mentions`): the Stock Trends portfolio
 /// comparison is no answer to "bankruptcies per sector". A listing that is
 /// not English and has no rendering is kept, as before this check. When the
@@ -812,17 +812,22 @@ pub fn filter_coinbase_in_english(
     matches: &mut [Match],
     rendered: &dyn Fn(&str) -> Option<Arc<str>>,
 ) {
+    let mut occurrences = BTreeMap::<&str, usize>::new();
     for found in matches {
         if found.slug == crate::website_read::CAPABILITY {
             found.coinbase.clear();
             continue;
         }
-        let Some((position, capability)) = parsed
+        let occurrence = occurrences.entry(found.slug.as_str()).or_default();
+        let matched = parsed
             .capabilities
             .iter()
             .enumerate()
-            .find(|(_, capability)| capability.slug == found.slug)
-        else {
+            .filter(|(_, capability)| capability.slug == found.slug)
+            .nth(*occurrence);
+        *occurrence += 1;
+        let Some((position, capability)) = matched else {
+            found.coinbase.clear();
             continue;
         };
         let hint = capability
@@ -844,14 +849,14 @@ pub fn filter_coinbase_in_english(
                 opening_description(english.as_deref().unwrap_or(""))));
             if !floor.profile_scope_matches(&listing) { return false; }
             if let Some(hint) = &hint {
-                return [
+                if ![
                     candidate.name.as_str(),
                     candidate.description.as_str(),
                     candidate.source_slug.as_deref().unwrap_or(""),
                     candidate.url.as_deref().unwrap_or(""),
                 ]
                 .into_iter()
-                .any(|field| identity_matches(hint, field));
+                .any(|field| identity_matches(hint, field)) { return false; }
             }
             if signal.adjustment(&country::listing(&both)).demoted {
                 return false;
@@ -1751,11 +1756,8 @@ mod tests {
             bazaar("Japan company directors"),
         ];
         filter_coinbase(&request, &mut matches);
-        assert_eq!(matches[0].coinbase.len(), 2);
+        assert_eq!(matches[0].coinbase.len(), 1, "a named register does not make ownership data answer a directors request");
         assert!(matches[0].coinbase[0].description.starts_with("Sirenic GB"));
-        assert!(matches[0].coinbase[1]
-            .description
-            .starts_with("eu-verify UK"));
         assert_eq!(matches[0].coinbase_status, "ready");
     }
 
@@ -1859,6 +1861,26 @@ mod tests {
         assert_eq!(matches[1].coinbase.len(), 1);
         assert_eq!(matches[0].apiosk.len(), 1);
         assert!(matches[0].operations.is_empty());
+    }
+
+    #[test]
+    fn repeated_capabilities_keep_each_requested_provider_and_reject_its_unrelated_products() {
+        let mut request = parsed(vec![json!({"slug":"compliance.sanctions.check","name":"Sanctions screening"})]);
+        request.capabilities.push(request.capabilities[0].clone());
+        request.capabilities[0].source_hint = Some("CompliancePulse".into());
+        request.capabilities[1].source_hint = Some("Sirenic".into());
+        let mut matches = search(&request, &catalog(vec![], vec![]));
+        let candidates = vec![bazaar("CompliancePulse sanctions screening against OFAC lists"),
+            bazaar("Sirenic sanctions screening against OFAC lists"),
+            bazaar("CompliancePulse weather forecast and temperature"),
+            bazaar("Sirenic stock price market data")];
+        for found in &mut matches { found.coinbase = candidates.clone(); }
+        filter_coinbase(&request, &mut matches);
+        assert_eq!(matches.len(), 2);
+        assert_eq!(matches[0].coinbase.len(), 1);
+        assert_eq!(matches[1].coinbase.len(), 1);
+        assert!(matches[0].coinbase[0].description.contains("CompliancePulse"));
+        assert!(matches[1].coinbase[0].description.contains("Sirenic"));
     }
 
     fn bankruptcies(language: &str, name: &str, description: &str, outputs: &[&str]) -> ParsedRequest {

@@ -229,7 +229,7 @@ pub(crate) async fn search_query(
     question: &str,
     earlier: &str,
 ) -> SearchQuery {
-    if earlier.trim().is_empty() && question.split_whitespace().count() <= 5 && !question.contains('?') {
+    if earlier.trim().is_empty() && question.split_whitespace().count() <= 5 && !question.contains('?') && question_links(question).is_empty() {
         return SearchQuery {
             query: question.into(),
             elapsed_ms: 0,
@@ -998,7 +998,7 @@ mod tests {
             serde_json::from_str(calls[0]["messages"][1]["content"].as_str().unwrap()).unwrap();
         assert_eq!(
             input,
-            json!({"question":question,"earlier_conversation":earlier})
+            json!({"question":question,"earlier_conversation":earlier,"current_date":chrono::Utc::now().date_naive().to_string()})
         );
         drop(calls);
         let standalone = search_query(&client, "What are the latest AI compliance developments in the Netherlands?", "").await;
