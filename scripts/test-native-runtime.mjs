@@ -2,6 +2,7 @@
 // in-memory PGlite database. No sibling checkout, .env, API key or live provider.
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import './test-rdw-field-migration.mjs';
 
 const cwd = new URL('../', import.meta.url);
 const port = Number(process.env.PGTEST_PORT || '54369');
