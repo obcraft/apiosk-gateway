@@ -13,6 +13,7 @@ use std::{
 use url::Url;
 mod passages;
 mod exa;
+pub(crate) mod streaming;
 
 pub(crate) const TARGET: usize = 10;
 /// A web answer is a short reply, not a report: a direct answer and at most a
@@ -320,7 +321,9 @@ pub(crate) async fn search_query(
     question: &str,
     earlier: &str,
 ) -> SearchQuery {
-    if earlier.trim().is_empty() && question.split_whitespace().count() <= 5 && !question.contains('?') && question_links(question).is_empty() {
+    // A concise standalone question is already a valid search query. Follow-ups
+    // still resolve conversational references; long requests still get compacted.
+    if earlier.trim().is_empty() && question.chars().count() <= 300 {
         return SearchQuery {
             query: question.into(),
             elapsed_ms: 0,
@@ -396,25 +399,6 @@ fn prioritize_links(mut links: Vec<Candidate>, candidates: Vec<Candidate>) -> Ve
     links.truncate(MAX_CANDIDATES);
     for (index, candidate) in links.iter_mut().enumerate() { candidate.rank = index + 1; }
     links
-}
-
-pub(crate) async fn search_for_question(query: &str, question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
-    let links = question_links(question);
-    match search(query).await {
-        Ok((candidates, providers, operation)) => Ok((prioritize_links(links, candidates), providers, operation)),
-        Err(_) if !links.is_empty() => Ok((prioritize_links(links, Vec::new()), json!([]),
-            json!({"status":"unavailable","cost_usd":null,"configured_api_requests":null,"fallback":"question_links"}))),
-        Err(error) => Err(error),
-    }
-}
-
-pub(crate) async fn search_exa_for_question(query: &str, question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
-    let (candidates, providers, operation) = exa::only(query).await?;
-    Ok((prioritize_links(question_links(question), candidates), providers, operation))
-}
-
-pub(crate) async fn search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
-    exa::supplement(question).await
 }
 
 async fn primary_search(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
@@ -573,41 +557,6 @@ fn extract(candidate: &Candidate, final_url: Url, bytes: &[u8], question: &str, 
 /// A good search result is not necessarily readable. Once the configured
 /// results are exhausted, try other public search providers within the same
 /// evidence deadline. Search snippets never substitute for fetched pages.
-pub(crate) async fn read_replacing(candidates: Vec<Candidate>, question: &str, query: &str) -> (Vec<Source>, Vec<Value>, Value) {
-    let deadline = tokio::time::Instant::now() + Duration::from_secs(26);
-    let attempted = candidates.len();
-    let rank = candidates.iter().map(|c| c.rank).max().unwrap_or(0);
-    let mut seen: HashSet<_> = candidates.iter().filter_map(|c| url_key(&c.url)).collect();
-    let first_budget = if attempted >= MAX_CANDIDATES { 26 } else { 16 };
-    let (sources, mut failures) = read_for(candidates, question, Duration::from_secs(first_budget), None).await;
-    let mut operation = json!({"cost_usd":0,"elapsed_ms":0,"attempted":false,"providers":[]});
-    if sources.len() >= TARGET || attempted >= MAX_CANDIDATES { return (sources, failures, operation); }
-    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-    if remaining < Duration::from_secs(2) { return (sources, failures, operation); }
-    let start = Instant::now();
-    operation["attempted"] = json!(true);
-    let backup = crate::web_search::research_candidates(&json!({"query":query}), remaining.min(Duration::from_secs(8))).await;
-    operation["elapsed_ms"] = json!(start.elapsed().as_millis() as u64);
-    let data = match backup {
-        Ok(data) => data,
-        Err(_) => { operation["status"] = json!("unavailable"); return (sources, failures, operation); }
-    };
-    operation["providers"] = data["providers"].clone();
-    seen.extend(sources.iter().filter_map(|source| url_key(&source.final_url)));
-    let replacements = data["results"].as_array().into_iter().flatten().filter_map(|row| {
-        let url = row["url"].as_str()?;
-        if !seen.insert(url_key(url)?) { return None; }
-        Some((url.to_owned(), normalized(row["title"].as_str().unwrap_or(url), 300)))
-    }).take(MAX_CANDIDATES - attempted).enumerate().map(|(index, (url, title))|
-        Candidate { url, title, rank: rank + index + 1 }).collect::<Vec<_>>();
-    operation["candidate_count"] = json!(replacements.len());
-    operation["status"] = json!("complete");
-    let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
-    let (sources, skipped) = read_for_from(replacements, question, remaining, None, sources).await;
-    failures.extend(skipped);
-    (sources, failures, operation)
-}
-
 /// Optional context is bounded separately and never blocks catalog delivery.
 pub(crate) async fn read_context(candidates: Vec<Candidate>, question: &str, subject: &str) -> (Vec<Source>, Vec<Value>) {
     read_for(candidates, question, Duration::from_secs(8), Some(subject)).await
@@ -1093,9 +1042,10 @@ mod tests {
         );
         drop(calls);
         let standalone = search_query(&client, "What are the latest AI compliance developments in the Netherlands?", "").await;
-        assert_eq!(standalone.query, "latest AI compliance developments in the Netherlands");
-        assert_eq!(standalone.method, "question_model");
-        assert_eq!(standalone.usage["cost"], 0.0001);
+        assert_eq!(standalone.query, "What are the latest AI compliance developments in the Netherlands?");
+        assert_eq!(standalone.method, "original");
+        assert!(standalone.usage.is_null());
+        assert_eq!(received.lock().unwrap().len(), 1);
         for original in ["Malformed", "Too long", "Timeout"] {
             let started = Instant::now();
             let fallback = search_query(&client, original, earlier).await;

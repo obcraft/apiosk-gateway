@@ -142,9 +142,15 @@ mod tests {
             let collect = async {
                 let mut completed = None;
                 let mut first_text_ms = None;
+                let mut first_sources_ms = None;
+                let mut source_updates = 0;
                 let mut first_draft_ms = None;
                 let mut updates = 0;
                 while let Some(event) = receiver.recv().await {
+                    if event["phase"] == "sources" {
+                        first_sources_ms.get_or_insert(started.elapsed().as_millis() as u64);
+                        source_updates += 1;
+                    }
                     if event["phase"] == "answer" {
                         updates += 1;
                         first_text_ms.get_or_insert(started.elapsed().as_millis() as u64);
@@ -153,7 +159,7 @@ mod tests {
                     }
                     if event["phase"] == "complete" {
                         let mut result = event["result"].clone();
-                        result["streaming_verification"] = json!({"first_text_ms":first_text_ms,"first_draft_ms":first_draft_ms,"complete_ms":started.elapsed().as_millis() as u64,"updates":updates});
+                        result["streaming_verification"] = json!({"first_sources_ms":first_sources_ms,"source_updates":source_updates,"first_text_ms":first_text_ms,"first_draft_ms":first_draft_ms,"complete_ms":started.elapsed().as_millis() as u64,"updates":updates});
                         completed = Some(result); break;
                     }
                 }
@@ -188,55 +194,17 @@ async fn run(
 ) -> anyhow::Result<()> {
     phase(sender, "searching", 0).await?;
     let query = crate::web_research::search_query(client, question, earlier).await;
-    let start = Instant::now();
-    let (candidates, mut providers, mut search_operation) = tokio::time::timeout(
-        Duration::from_secs(20),
-        async {
-            if provider == SearchProvider::Exa {
-                crate::web_research::search_exa_for_question(&query.query, question).await
-            } else {
-                crate::web_research::search_for_question(&query.query, question).await
-            }
-        },
-    )
-    .await
-    .map_err(|error| {
-        tracing::warn!(
-            operation = "web-research-search",
-            status = "timeout",
-            "research operation"
-        );
-        error
-    })?
-    .map_err(|error| {
-        tracing::warn!(
-            operation = "web-research-search",
-            status = "failed",
-            "research operation"
-        );
-        error
-    })?;
-    let search_ms = start.elapsed().as_millis() as u64;
-    search_operation["elapsed_ms"] = json!(search_ms);
-    tracing::info!(
-        operation = "web-research-search",
-        elapsed_ms = search_ms,
-        count = candidates.len(),
-        cost_usd = ?search_operation["cost_usd"],
-        configured_api_requests = ?search_operation["configured_api_requests"],
-        "research operation"
-    );
-    phase(sender, "reading", candidates.len().min(crate::web_research::TARGET)).await?;
-    let start = Instant::now();
-    let evidence_question = format!("{question}\n{}", query.query);
-    let (sources, failures, replacement_search) = crate::web_research::read_replacing(candidates, &evidence_question, &query.query).await;
-    let replacement_ms = replacement_search["elapsed_ms"].as_u64().unwrap_or(0);
-    let extract_ms = (start.elapsed().as_millis() as u64).saturating_sub(replacement_ms);
-    search_operation["elapsed_ms"] = json!(search_ms + replacement_ms);
-    if let (Some(providers), Some(extra)) = (providers.as_array_mut(), replacement_search["providers"].as_array()) {
-        for provider in extra { if !providers.contains(provider) { providers.push(provider.clone()); } }
-    }
-    search_operation["replacement_search"] = replacement_search;
+    let evidence = crate::web_research::streaming::retrieve(&query.query, question,
+        provider == SearchProvider::Exa, |sources| async move {
+            // Only read, validated evidence is streamed, never search snippets.
+            sender.send(json!({"phase":"sources","question":question,"sources":sources})).await?;
+            Ok(())
+        }).await?;
+    let sources = evidence.sources;
+    let failures = evidence.failures;
+    let providers = evidence.providers;
+    let search_operation = evidence.search;
+    let extract_ms = evidence.elapsed_ms;
     phase(sender, "analyzing", sources.len()).await?;
     let start = Instant::now();
     let count = sources.len();
@@ -274,7 +242,7 @@ async fn run(
             } else { json!({"phase":"answer","source_count":count,"result":{"question":question,
                 "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
                 "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
-                    "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
+                    "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"overlapped_with_search":true,"cost_usd":0},
                     "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":null}}}}) };
             if !skip { sent_evidence = true; }
             async move { if !skip { sender.send(snapshot).await?; } Ok(()) }
@@ -313,7 +281,7 @@ async fn run(
     sender.send(json!({"phase":"complete","result":{"question":question,"answer":answer,"sources":sources,
         "provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
         "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
-            "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"cost_usd":0},
+            "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"overlapped_with_search":true,"cost_usd":0},
             "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":usage}}
     }})).await?;
     Ok(())

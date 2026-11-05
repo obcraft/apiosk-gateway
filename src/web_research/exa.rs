@@ -11,14 +11,42 @@ pub(super) async fn only(question: &str) -> Result<(Vec<Candidate>, Value, Value
     combine(Ok((vec![], json!([]), json!({"cost_usd":0,"configured_api_requests":0}))), Ok(data))
 }
 
-pub(super) async fn supplement(question: &str) -> Result<(Vec<Candidate>, Value, Value)> {
+/// Publish each provider's candidates immediately so page reads can overlap
+/// the other provider's search. Exa still runs even when primary succeeds.
+pub(super) async fn supplement_streaming(question: &str, sender: Option<&tokio::sync::mpsc::Sender<Vec<Candidate>>>) -> Result<(Vec<Candidate>, Value, Value)> {
     let key = std::env::var("EXA_API_KEY")
         .ok()
         .filter(|key| !key.trim().is_empty());
     let Some(key) = key else {
-        return primary_search(question).await;
+        let result = primary_search(question).await;
+        if let (Some(sender), Ok((rows, _, _))) = (sender, &result) {
+            let _ = sender.send(rows.clone()).await;
+        }
+        return result;
     };
-    let (primary, extra) = tokio::join!(primary_search(question), search(question, &key));
+    discover_with(primary_search(question), search(question, &key), sender).await
+}
+
+async fn discover_with<P, E>(primary: P, extra: E, sender: Option<&tokio::sync::mpsc::Sender<Vec<Candidate>>>) -> Result<(Vec<Candidate>, Value, Value)>
+where
+    P: std::future::Future<Output = Result<(Vec<Candidate>, Value, Value)>>,
+    E: std::future::Future<Output = Result<Value>>,
+{
+    let primary = async {
+        let result = primary.await;
+        if let (Some(sender), Ok((rows, _, _))) = (sender, &result) {
+            let _ = sender.send(rows.iter().take(MAX_CANDIDATES - TARGET).cloned().collect()).await;
+        }
+        result
+    };
+    let extra = async {
+        let result = extra.await;
+        if let (Some(sender), Ok(data)) = (sender, &result) {
+            let _ = sender.send(parse(data)).await;
+        }
+        result
+    };
+    let (primary, extra) = tokio::join!(primary, extra);
     combine(primary, extra)
 }
 
@@ -139,6 +167,23 @@ mod tests {
             json!(["SerpApi"]),
             json!({"cost_usd":null,"configured_api_requests":1}),
         ))
+    }
+    #[tokio::test]
+    async fn primary_candidates_arrive_before_exa_but_exa_is_always_included() {
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(4);
+        let (finish_exa, exa_pending) = tokio::sync::oneshot::channel();
+        let task = tokio::spawn(async move {
+            discover_with(async { primary() }, async { exa_pending.await.unwrap() }, Some(&sender)).await
+        });
+        let first = tokio::time::timeout(Duration::from_secs(1), receiver.recv()).await.unwrap().unwrap();
+        assert_eq!(first[0].url, "https://example.org/primary");
+        assert!(!task.is_finished());
+        finish_exa.send(Ok(result("https://example.org/extra"))).unwrap();
+        let extra = receiver.recv().await.unwrap();
+        assert_eq!(extra[0].url, "https://example.org/extra");
+        let (rows, providers, _) = task.await.unwrap().unwrap();
+        assert_eq!(rows.len(), 2);
+        assert_eq!(providers, json!(["SerpApi", "Exa"]));
     }
     #[test]
     fn supplements_even_successful_primary_and_tracks_cost() {
