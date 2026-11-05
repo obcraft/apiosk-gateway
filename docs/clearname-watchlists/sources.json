@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {"code":"EU","name":"EU consolidated financial sanctions list","category":"sanctions"},
+    {"code":"OFAC","name":"United States — OFAC SDN, including aliases","category":"sanctions"},
+    {"code":"UN","name":"UN Security Council consolidated sanctions list","category":"sanctions"},
+    {"code":"UK","name":"UK Sanctions List","category":"sanctions"},
+    {"code":"CA","name":"Canada — consolidated autonomous sanctions list","category":"sanctions"},
+    {"code":"AU","name":"Australia — DFAT consolidated sanctions list","category":"sanctions"},
+    {"code":"CH","name":"Switzerland — SECO consolidated sanctions list","category":"sanctions"},
+    {"code":"NL","name":"Netherlands — national terrorism sanctions list","category":"sanctions"},
+    {"code":"CSL","name":"United States — Consolidated Screening List, excluding SDN","category":"consolidated_screening"},
+    {"code":"WB","name":"World Bank — debarred firms and individuals","category":"debarment"},
+    {"code":"EP","name":"European Parliament — current MEPs","category":"limited_pep"}
+  ],
+  "limitations": [
+    "Snapshot generation time is not the publication or last update time of each underlying list.",
+    "All required sources must contain records; this alone does not prove that each source is complete or up to date.",
+    "Names and aliases belong to source records; the same person or organization can occur on several lists.",
+    "CSL excludes the SDN list already imported through OFAC; overlap across other lists is retained with provenance.",
+    "World Bank debarment is separate from sanctions. Current MEPs provide only limited PEP coverage.",
+    "This artifact is an import, not a screening decision or a finding that an entity is clear."
+  ]
+}
