@@ -1530,6 +1530,12 @@ mod tests {
         assert!(validate_answer(&too_many, 1).is_err());
         let too_long = json!({"blocks":[block("a".repeat(MAX_BLOCK_CHARS + 1))],"limitations":[]});
         assert!(validate_answer(&too_long, 1).is_err());
+        // A streamed paragraph that overruns the ceiling fails the stream
+        // instead of reaching the App as a growing draft.
+        let overrun = format!(r#"{{"blocks":[{{"citations":[1],"heading":null,"text":"{}"}}"#, "a".repeat(MAX_BLOCK_CHARS + 1));
+        assert!(streamed_answer(&overrun, 1).is_err());
+        let within = format!(r#"{{"blocks":[{{"citations":[1],"heading":null,"text":"{}"}}"#, "a".repeat(MAX_BLOCK_CHARS));
+        assert!(streamed_answer(&within, 1).unwrap().is_some());
         let schema = answer_schema(&[1]);
         assert_eq!(schema["properties"]["blocks"]["maxItems"], MAX_ANSWER_BLOCKS);
         assert_eq!(schema["properties"]["blocks"]["items"]["properties"]["text"]["maxLength"], MAX_BLOCK_CHARS);
