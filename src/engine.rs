@@ -556,6 +556,11 @@ impl Engine {
             // its validated discovery; never reuse a price or authorization.
             earlier_intake.clone()
         } else { None };
+        if resuming && task.proposal.is_none() && task.completed.is_empty() && task.active_results.is_empty() {
+            if let Some(intake) = &mut task.capability_intake {
+                crate::ask_v2::wwft::repair_intake(intake, &catalog);
+            }
+        }
         let selected_workflow = req.context_delta.workflow_slug.as_deref();
         let recovering_workflow = selected_workflow.is_some() && recovery.as_ref()
             .is_some_and(|saved| saved.context_delta.workflow_slug.as_deref() == selected_workflow);

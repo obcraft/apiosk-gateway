@@ -39,6 +39,37 @@ fn independent_sources_request_missing_input_even_when_another_call_produces_it(
 }
 
 #[test]
+fn explicit_same_subject_dependencies_work_without_authorizing_extra_lookups() {
+    let (catalog, mut task, intent) = fixture();
+    let question = "Search Supplied company and get its accounts using the returned company ID";
+    let parsed_request = crate::capability_intake::normalize(&json!({"language":"en",
+        "subjects":[{"id":"s1","label":"Supplied company","type":"company","identifiers":{"name":"Supplied company"}}],
+        "capabilities":[
+            {"slug":"company.search","name":"Search","description":"Find the company ID","domain":"company","inputs":["company.name"],"outputs":["company.id"],"subject_id":"s1","confidence":1},
+            {"slug":"company.accounts","name":"Accounts","description":"Fetch the accounts using the found company ID","domain":"company","inputs":["company.id"],"outputs":["company.accounts"],"missing":["company.id"],"subject_id":"s1","confidence":1}],
+        "deliverable":{"format":"chat","operations":[]}}).to_string(), question, "fixture").unwrap();
+    let matches = parsed_request.capabilities.iter().map(|cap| {
+        let service = catalog.services.iter().find(|service| service.contract.capability_slug == cap.slug).unwrap();
+        serde_json::from_value(json!({"slug":cap.slug,"query":cap.name,"operations":[cap.slug],
+            "apiosk":[{"origin":"apiosk","name":service.name,"description":"Fixture source","method":"GET","availability":"supported","capability":cap.slug,"endpoint_id":service.endpoint_id,"source_slug":service.api_slug}],
+            "coinbase":[],"coinbase_status":"ready"})).unwrap()
+    }).collect();
+    task.capability_intake = Some(crate::capability_intake::Intake { parsed_request, matches,
+        selected_capabilities: intent.goals.iter().map(|goal|goal.capability.clone()).collect(),
+        apiosk_sources_searched: 2, catalog_version: catalog.version.clone() });
+    let Resolution::Plan(plan) = resolve(&catalog, &task, &intent) else { panic!("explicit dependency should resolve"); };
+    assert_eq!(plan.steps.len(), 2);
+    assert!(!plan.independent_calls);
+    assert_eq!(plan.steps[0].service.contract.capability_slug, "company.search");
+    let saved = task.capability_intake.clone();
+    task.capability_intake.as_mut().unwrap().parsed_request.capabilities[0].subject_id = Some("another-company".into());
+    assert!(matches!(resolve(&catalog, &task, &intent), Resolution::Missing { .. }), "never borrow another company's identifier");
+    task.capability_intake = saved;
+    task.capability_intake.as_mut().unwrap().parsed_request.capabilities[0].outputs.clear();
+    assert!(matches!(resolve(&catalog, &task, &intent), Resolution::Missing { .. }), "a lookup must explicitly promise the required identifier");
+}
+
+#[test]
 fn independent_sources_quote_only_the_requested_calls_after_all_inputs_exist() {
     let (catalog, mut task, mut intent) = fixture();
     intent.subjects[0].values.insert("company.id".into(), json!("001234"));

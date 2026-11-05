@@ -1,0 +1,695 @@
+{
+  "question": "Doe een Wwft-check op Mollie in Nederland. Zoek eerst het bedrijf op naam in het Handelsregister, vind het KvK-nummer en haal daarmee het bedrijfsprofiel op. Controleer de registratie en rechtsvorm en zoek mogelijke sanctie- en PEP-matches.",
+  "intake": {
+    "matches": [
+      {
+        "slug": "company.nameSearch",
+        "query": "Company name search. Search the Handelsregister for a company by name and retrieve its registration number and profile. company name",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.branch-profile",
+            "description": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Dutch Handelsregister (KVK) coverage: vestigingsprofiel, vestigingsnummer.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://api.sirenic.eu/openapi.json",
+            "name": "Sirenic",
+            "price": "0.003450 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.eu-registry-search",
+            "description": "Search European companies across official registers (unified schema) Preserve provenance states, partial coverage, financial quality flags and nulls; null never means zero.",
+            "endpoint_id": "0e49f48b-ed5f-4f4c-95a3-aa672b875738",
+            "source_slug": "sirenic",
+            "availability": "supported"
+          },
+          {
+            "url": "https://api.sirenic.eu/openapi.json",
+            "name": "Sirenic",
+            "price": "0.011500 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "4e02bf35-6cbd-5231-88f7-1cf9a3893d7d",
+            "source_slug": "sirenic",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.branch-profile",
+          "company.eu-registry-search",
+          "company.registry-profile",
+          "company_registry.lookup",
+          "company_registry.search"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company_registry.search",
+        "query": "KVK Zoeken. Zoek de inschrijving op naam en vind het KvK-nummer. company.name. kvk",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company_registry.search"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company.registry-profile",
+        "query": "KVK Basisprofiel. Controleer de registratie en rechtsvorm. company registry.kvknummer. kvk",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.branch-profile",
+            "description": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Dutch Handelsregister (KVK) coverage: vestigingsprofiel, vestigingsnummer.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.registry-profile"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company.branch-profile",
+        "query": "KVK Vestigingsprofiel. Haal de vestigingsgegevens op met het gevonden vestigingsnummer. Bij meerdere vestigingen is een selectie nodig. company.vestigingsnummer. kvk",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.branch-profile",
+            "description": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Dutch Handelsregister (KVK) coverage: vestigingsprofiel, vestigingsnummer.",
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registered-names",
+            "description": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which brands and trade names sit behind one registration. Dutch Handelsregister (KVK) coverage: naamgeving, statutaire naam, handelsnamen.",
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.branch-profile"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company.registered-names",
+        "query": "KVK Naamgeving. Haal de statutaire naam en geregistreerde handelsnamen op. company registry.kvknummer. kvk",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registered-names",
+            "description": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which brands and trade names sit behind one registration. Dutch Handelsregister (KVK) coverage: naamgeving, statutaire naam, handelsnamen.",
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.076087 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.registry-profile",
+            "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.registered-names"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company.financial-statements",
+        "query": "KVK Jaarrekening. Haal de beschikbare gedeponeerde jaarrekening op. Ontbrekende open data bewijst niet dat er niet is gedeponeerd. company registry.kvknummer. kvk",
+        "apiosk": [
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.021739 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.search",
+            "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.108696 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.financial-statements",
+            "description": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaarrekening, balans, winst- en verliesrekening, deponering), not estimates or modelled revenue. Availability depends on whether the company was required to file a",
+            "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          },
+          {
+            "url": "https://developers.kvk.nl/nl/documentation",
+            "name": "KVK Business Register",
+            "price": "0.108696 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company_registry.lookup",
+            "description": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+            "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+            "source_slug": "kvk-dutch-business-register",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.financial-statements"
+        ],
+        "coinbase_status": "pending"
+      },
+      {
+        "slug": "company.sanctions-screen",
+        "query": "OpenSanctions. Zoek mogelijke sanctie- en PEP-gerelateerde matches. Naamovereenkomsten zijn geen bevestigde identiteit; dit is geen volledige UBO- of persoonscontrole. company.name. opensanctions",
+        "apiosk": [
+          {
+            "url": "https://www.opensanctions.org/docs/api/",
+            "name": "OpenSanctions",
+            "price": "0.108696 USD",
+            "method": "POST",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.sanctions-screen",
+            "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+            "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+            "source_slug": "opensanctions",
+            "availability": "supported"
+          },
+          {
+            "url": "https://www.opensanctions.org/docs/api/",
+            "name": "OpenSanctions",
+            "price": "0.054348 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "operation.opensanctions.get-reconcile-3c473989",
+            "description": "Service manifest for the OpenRefine reconciliation API — the W3C reconciliation protocol description that lets OpenRefine, and any other reconciliation client, screen a whole spreadsheet or column of names against OpenSanctions. Returns the supported protocol versions, the identifier and schema spaces, the batch size, the default entity types and the preview/suggest/extend service URLs. Append the",
+            "endpoint_id": "3c473989-d492-4d6f-93d2-cd713ec34324",
+            "source_slug": "opensanctions",
+            "availability": "supported"
+          },
+          {
+            "url": "https://www.opensanctions.org/docs/api/",
+            "name": "OpenSanctions",
+            "price": "0.065217 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "company.watchlist-statements",
+            "description": "Read source assertions for one OpenSanctions entity.",
+            "endpoint_id": "a20ff748-d3d5-4550-b413-c939929ba07e",
+            "source_slug": "opensanctions",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "company.sanctions-screen"
+        ],
+        "coinbase_status": "pending"
+      }
+    ],
+    "parsed_request": {
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-11-05T12:59:35.869203+00:00",
+        "text_sha256": "220d46a8372cc8e07589e91a6e0e8ddcaad65f1b06f08cb6c73f4d4796fb1d70"
+      },
+      "language": "nl",
+      "subjects": [
+        {
+          "id": "s1",
+          "type": "company",
+          "label": "Mollie",
+          "identifiers": {
+            "country": "Nederland",
+            "company_name": "Mollie"
+          }
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "capabilities": [
+        {
+          "name": "Company name search",
+          "slug": "company.nameSearch",
+          "domain": "company",
+          "inputs": [
+            "company_name"
+          ],
+          "missing": [],
+          "outputs": [
+            "kvk_number",
+            "profile"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Search the Handelsregister for a company by name and retrieve its registration number and profile",
+          "source_hint": null
+        },
+        {
+          "name": "KVK Zoeken",
+          "slug": "company_registry.search",
+          "domain": "company",
+          "inputs": [
+            "company.name"
+          ],
+          "missing": [],
+          "outputs": [
+            "company_registry.kvknummer"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Zoek de inschrijving op naam en vind het KvK-nummer.",
+          "source_hint": "kvk"
+        },
+        {
+          "name": "KVK Basisprofiel",
+          "slug": "company.registry-profile",
+          "domain": "company",
+          "inputs": [
+            "company_registry.kvknummer"
+          ],
+          "missing": [
+            "company_registry.kvknummer"
+          ],
+          "outputs": [
+            "company.profile"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Controleer de registratie en rechtsvorm.",
+          "source_hint": "kvk"
+        },
+        {
+          "name": "KVK Vestigingsprofiel",
+          "slug": "company.branch-profile",
+          "domain": "company",
+          "inputs": [
+            "company.vestigingsnummer"
+          ],
+          "missing": [
+            "company.vestigingsnummer"
+          ],
+          "outputs": [
+            "company.vestigingsnummer"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Haal de vestigingsgegevens op met het gevonden vestigingsnummer. Bij meerdere vestigingen is een selectie nodig.",
+          "source_hint": "kvk"
+        },
+        {
+          "name": "KVK Naamgeving",
+          "slug": "company.registered-names",
+          "domain": "company",
+          "inputs": [
+            "company_registry.kvknummer"
+          ],
+          "missing": [
+            "company_registry.kvknummer"
+          ],
+          "outputs": [
+            "company.statutairenaam",
+            "company.vestigingsnummer"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Haal de statutaire naam en geregistreerde handelsnamen op.",
+          "source_hint": "kvk"
+        },
+        {
+          "name": "KVK Jaarrekening",
+          "slug": "company.financial-statements",
+          "domain": "company",
+          "inputs": [
+            "company_registry.kvknummer"
+          ],
+          "missing": [
+            "company_registry.kvknummer"
+          ],
+          "outputs": [
+            "company.financial_statements"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Haal de beschikbare gedeponeerde jaarrekening op. Ontbrekende open data bewijst niet dat er niet is gedeponeerd.",
+          "source_hint": "kvk"
+        },
+        {
+          "name": "OpenSanctions",
+          "slug": "company.sanctions-screen",
+          "domain": "compliance",
+          "inputs": [
+            "company.name"
+          ],
+          "missing": [],
+          "outputs": [
+            "company.screening_result"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Zoek mogelijke sanctie- en PEP-gerelateerde matches. Naamovereenkomsten zijn geen bevestigde identiteit; dit is geen volledige UBO- of persoonscontrole.",
+          "source_hint": "opensanctions"
+        }
+      ]
+    },
+    "catalog_version": "ac9496e2626129b316ec23f18d8f49eba5795dec2ee8176dbbac9330d95efb42",
+    "selected_capabilities": [
+      "company.branch-profile",
+      "company.eu-registry-search",
+      "company.financial-statements",
+      "company.registered-names",
+      "company.registry-profile",
+      "company.sanctions-screen",
+      "company_registry.lookup",
+      "company_registry.search"
+    ],
+    "apiosk_sources_searched": 46
+  }
+}

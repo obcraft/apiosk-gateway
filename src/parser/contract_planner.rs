@@ -13,7 +13,7 @@ const MAX_CHOICES: usize = 24;
 const MAX_COMBINATIONS: usize = 256;
 
 /// A compiled intent can be a valid missing-input draft. Only a complete,
-/// independently executable plan may skip semantic alternative selection.
+/// executable plan may skip semantic alternative selection.
 pub(crate) fn ready(question: &str, reply: &ChatReply, task: &Task, catalog: &Catalog, intake: &Intake) -> bool {
     let Some(mut intent) = reply.intent.clone().filter(|_| reply.discover) else { return false; };
     let mut preview = task.clone();
@@ -152,7 +152,7 @@ fn compile_request(
         }
         let mut smaller = intent.clone();
         smaller.goals.remove(index);
-        if finalize(question, literals, task, catalog, intake, smaller.clone(), true, explicit).is_some() {
+        if finalize(question, literals, task, catalog, intake, smaller.clone(), true, explicit).is_some_and(|(_, _, ready)| ready) {
             intent = smaller;
         }
     }
@@ -365,7 +365,7 @@ fn selected_services<'a>(
 
 fn bind_inputs(intent: &mut Intent, intake: &Intake, catalog: &Catalog) {
     // Bind only inputs of the selected calls from the supplied subject.
-    // Missing values are collected before approval, never fetched by a chain.
+    // Dependency values remain absent until an approved prerequisite completes.
     for index in 0..intent.subjects.len() {
         let Some(subject) = intake
             .parsed_request

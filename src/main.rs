@@ -115,32 +115,37 @@ async fn run() -> anyhow::Result<()> {
         publishable_key: required("SUPABASE_PUBLISHABLE_KEY")?,
     });
     let store = Store { pool: pool.clone() };
-    let housekeeping = store.clone();
-    tokio::spawn(async move {
-        let mut timer = tokio::time::interval(Duration::from_secs(300));
-        loop {
-            timer.tick().await;
-            if housekeeping.prune().await.is_err() {
-                tracing::warn!("state retention maintenance failed");
-            }
-            match housekeeping.reconcile().await {
-                Ok((closed, held)) => {
-                    if closed > 0 {
-                        tracing::info!(closed, "released abandoned dispatches");
-                    }
-                    // Charged, with no outcome recorded. Nothing here may decide
-                    // that on a timer, so say it every sweep until someone does.
-                    if held > 0 {
-                        tracing::warn!(
-                            held,
-                            "executions hold a ledger charge with no recorded outcome"
-                        );
-                    }
+    // A local foreground server can serve explicitly approved requests without
+    // competing for scheduled production work in the configured database.
+    let background_jobs = env::var("V2_BACKGROUND_JOBS_ENABLED").as_deref() != Ok("0");
+    if background_jobs {
+        let housekeeping = store.clone();
+        tokio::spawn(async move {
+            let mut timer = tokio::time::interval(Duration::from_secs(300));
+            loop {
+                timer.tick().await;
+                if housekeeping.prune().await.is_err() {
+                    tracing::warn!("state retention maintenance failed");
                 }
-                Err(_) => tracing::warn!("execution reconciliation failed"),
+                match housekeeping.reconcile().await {
+                    Ok((closed, held)) => {
+                        if closed > 0 {
+                            tracing::info!(closed, "released abandoned dispatches");
+                        }
+                        // Charged, with no outcome recorded. Nothing here may decide
+                        // that on a timer, so say it every sweep until someone does.
+                        if held > 0 {
+                            tracing::warn!(
+                                held,
+                                "executions hold a ledger charge with no recorded outcome"
+                            );
+                        }
+                    }
+                    Err(_) => tracing::warn!("execution reconciliation failed"),
+                }
             }
-        }
-    });
+        });
+    }
     // Ask capability interpretation has its own pinned model. Planning,
     // source analysis and conversation replies retain their separate models.
     let intent_model = apiosk_gateway_v2::parser::pinned_model("INTENT_MODEL");
@@ -199,9 +204,11 @@ async fn run() -> anyhow::Result<()> {
             tracing::warn!("source branding will refresh on demand");
         }
     });
-    apiosk_gateway_v2::recurring::start(engine.clone());
-    apiosk_gateway_v2::company_checks::start(engine.clone());
-    apiosk_gateway_v2::server::start_dossiers(engine.clone());
+    if background_jobs {
+        apiosk_gateway_v2::recurring::start(engine.clone());
+        apiosk_gateway_v2::company_checks::start(engine.clone());
+        apiosk_gateway_v2::server::start_dossiers(engine.clone());
+    }
     // Commerce initializes once in this process with its existing database
     // role and payment configuration. The public listener serves both routers.
     let commerce_runtime = commerce_runtime::CommerceRuntime::from_env().await?;

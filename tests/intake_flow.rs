@@ -1751,6 +1751,46 @@ async fn intake_failures_save_scoped_recovery_and_replay_without_model_calls() {
     }
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires an isolated support-db (scripts/test-intake-flow.mjs); no live database"]
+async fn saved_plan_resume_route_quotes_in_place_without_authorizing_or_replaying_sources() {
+    let intake = Intake::start().await;
+    let person = Person::new();
+    let question = "Jaarrekening van Coolblue";
+    let delta = recovery_delta(true);
+    let prepared = intake.chat(&person, json!({"request_id":Uuid::new_v4(),"question":question,"state":null,"context_delta":delta})).await;
+    assert_eq!(prepared["status"], "ready", "{prepared}");
+    let id: Uuid = serde_json::from_value(prepared["state"]["state_ref"].clone()).unwrap();
+    // Persist the interrupted-intake shape without depending on which model
+    // stages the compiler can now skip for this simple catalog fixture.
+    let (revision, mut saved, _) = intake.engine.store.load(person.owner, id).await.unwrap();
+    saved.proposal = None; saved.intent = None; saved.actions.clear(); saved.focus.goal_refs.clear();
+    saved.conversation.last_mut().unwrap().reply = None;
+    saved.intake_recovery = Some(apiosk_gateway_v2::state::IntakeRecovery {
+        question: question.into(), context_delta: serde_json::from_value(delta.clone()).unwrap(),
+        stage: apiosk_gateway_v2::state::IntakeStage::Planning, created_at: chrono::Utc::now(),
+    });
+    intake.engine.store.save_intent(person.owner, id, revision, &saved).await.unwrap();
+    let (_, paused) = intake.send(&person.bearer, &format!("/v2/tasks/{id}"), None).await;
+    assert_eq!(paused["status"], "failed");
+    let path = format!("/v2/tasks/{id}/resume-plan");
+    let request = json!({"request_id":Uuid::new_v4(),"question":question,"state":paused["state"],"context_delta":delta});
+    let other = Person::new();
+    let (status, _) = intake.send(&other.bearer, &path, Some(request.clone())).await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    let (status, resumed) = intake.send(&person.bearer, &path, Some(request.clone())).await;
+    assert_eq!(status, StatusCode::OK, "{resumed}");
+    assert_eq!(resumed["status"], "ready", "{resumed}");
+    assert_eq!(resumed["state"]["state_ref"], json!(id));
+    assert!(resumed["context_view"]["intake_recovery"].is_null());
+    assert_eq!(resumed["context_view"]["conversation"].as_array().unwrap().len(), 1);
+    assert_ne!(resumed["proposal"]["quote_ref"], prepared["proposal"]["quote_ref"]);
+    assert_eq!(resumed["billing"]["authorization_active"], false);
+    let (_, replay) = intake.send(&person.bearer, &path, Some(request)).await;
+    assert_eq!(replay, resumed);
+    assert_no_purchase(&intake, &person, id).await;
+}
+
 /// A recent validated object survives a planner outage. Resume skips repeated
 /// extraction/discovery, creates a price, and still needs explicit approval.
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

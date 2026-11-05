@@ -141,6 +141,7 @@ pub fn router(state: ServerState, app_origin: &str) -> anyhow::Result<Router> {
         .route("/v2/tasks/:task/reports/:quote/evidence.zip", get(research_evidence))
         .route("/v2/tasks/:id/authorize", post(authorize))
         .route("/v2/tasks/:id/requote", post(requote))
+        .route("/v2/tasks/:id/resume-plan", post(resume_plan))
         .route("/v2/tasks/:id/analysis-upgrade", post(analysis_upgrade))
         .route("/v2/tasks/:id/source-selection", post(source_selection))
         // The public API: every credential, one execution and billing path.
@@ -623,6 +624,22 @@ async fn discover(
                 "unavailable",
                 "The task could not be saved.",
             )
+        }
+    }
+}
+async fn resume_plan(
+    State(state): State<ServerState>, headers: HeaderMap, Path(id): Path<Uuid>,
+    Json(req): Json<crate::protocol::DiscoverRequest>,
+) -> HttpResponse {
+    let p = match app_person(&state, &headers).await { Ok(p) => p, Err(r) => return r };
+    let Ok(_permit) = state.permits.try_acquire() else {
+        return failure(StatusCode::TOO_MANY_REQUESTS, "busy", "Try again shortly. Your question is saved.");
+    };
+    match state.engine.resume_plan(&p, id, req).await {
+        Ok(response) => Json(response).into_response(),
+        Err(error) => {
+            tracing::warn!(task=%id, error=%error, "saved plan could not resume");
+            failure(StatusCode::CONFLICT, "resume_unavailable", "Reload the saved request before resuming its plan.")
         }
     }
 }

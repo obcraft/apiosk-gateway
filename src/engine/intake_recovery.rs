@@ -12,6 +12,29 @@ pub(super) struct InterruptedIntake<'a> {
 }
 
 impl Engine {
+    /// Resume the exact saved App question. Preparing a fresh quote neither
+    /// inherits an approval nor starts the execution worker.
+    pub async fn resume_plan(&self, p: &Principal, id: Uuid, req: DiscoverRequest) -> anyhow::Result<Response> {
+        anyhow::ensure!(p.is_person(), "Resuming a plan requires a person in the App");
+        let state = req.state.as_ref().ok_or_else(|| anyhow::anyhow!("A saved state is required"))?;
+        anyhow::ensure!(state.state_ref == id, "Resume path must match its saved state");
+        self.signer.verify(p.owner, state, true)?;
+        if let Some(response) = self.request_claim(p, req.request_id, &digest(&("resume-plan", id, &req)), "resume-plan").await? {
+            return Ok(response);
+        }
+        let result = async {
+            let (revision, task, connection) = self.store.load_scoped(p, id).await?;
+            anyhow::ensure!(connection == p.connection, "Resume requires the original App context");
+            if state.revision != revision || state.expires_at <= Utc::now() {
+                return self.view(p, id, req.request_id, Some(Status::StateConflict)).await;
+            }
+            anyhow::ensure!(task.intake_recovery.as_ref().is_some_and(|saved| saved.matches(&req))
+                && task.proposal.is_none(), "Only the paused question can be resumed");
+            self.discover_inner(p, &req, true).await
+        }.await;
+        Ok(self.complete(p, req.request_id, result).await)
+    }
+
     pub(super) async fn pause_intake(
         &self,
         p: &Principal,

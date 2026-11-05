@@ -31,6 +31,18 @@ pub(crate) fn crunchbase_profile_id(field: &str, value: &str) -> Option<Value> {
 }
 
 pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
+    if field == "company.search.country_code" {
+        let supplied: Vec<_> = ["company.search.country_code", "company_search_country_code", "country_code", "country"]
+            .into_iter().filter_map(|key| subject.identifiers.get(key)).collect();
+        if !supplied.is_empty() {
+            let mut codes = std::collections::BTreeSet::new();
+            for value in supplied {
+                let code = crate::ask_v2::search::exact_country(value)?;
+                codes.insert(code);
+            }
+            return (codes.len() == 1).then(|| json!(codes.first().unwrap()));
+        }
+    }
     // Intake canonicalizes identifier names. Match that same complete field
     // identity; a flattened namespace must not become a fuzzy suffix match.
     let canonical_field = field.to_lowercase().split(|ch: char| !ch.is_alphanumeric())

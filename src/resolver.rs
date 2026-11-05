@@ -309,6 +309,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
             match add(
                 catalog,
                 task,
+                intent,
                 service,
                 entity,
                 goal_index,
@@ -367,7 +368,10 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
     }
     let cap_atomic = steps.iter().map(|s| s.service.total()).sum();
     let hash = digest(&steps);
-    Resolution::Plan(Plan { independent_calls: task.independent_sources(), compute: None,
+    let independent_calls = task.independent_sources() && steps.iter().all(|step|
+        step.service.contract.requires.iter().filter(|required| !required.optional)
+            .all(|required| fact_value(&task.facts, step.entity_ref, &required.fact_type).is_ok_and(|value| value.is_some())));
+    Resolution::Plan(Plan { independent_calls, compute: None,
         quote_ref: Uuid::new_v4(),
         steps,
         cap_atomic,
@@ -381,6 +385,7 @@ pub fn resolve(catalog: &Catalog, task: &Task, intent: &Intent) -> Resolution {
 fn add(
     catalog: &Catalog,
     task: &Task,
+    intent: &Intent,
     service: &Service,
     entity: Uuid,
     goal: usize,
@@ -390,7 +395,8 @@ fn add(
     depth: usize,
     expansions: &mut usize,
 ) -> Result<(), String> {
-    if task.independent_sources() {
+    if task.independent_sources() && service.contract.requires.iter().filter(|r| !r.optional)
+        .all(|r| fact_value(&task.facts, entity, &r.fact_type).is_ok_and(|value| value.is_some())) {
         for req in service.contract.requires.iter().filter(|r| !r.optional) {
             match fact_value(&task.facts, entity, &req.fact_type) {
                 Ok(Some(_)) => {},
@@ -432,6 +438,9 @@ fn add(
             .get(&req.fact_type)
             .cloned()
             .unwrap_or_default();
+        if task.independent_sources() {
+            candidates.retain(|index| requested_producer(catalog, task, intent, service, &catalog.services[*index], entity, &req.fact_type).is_some());
+        }
         // A named source's native lookup must not be replaced by a cheaper
         // reseller. Keep this restriction even if the native chain cannot be
         // resolved: another provider is not an automatic fallback. Distinct
@@ -451,6 +460,7 @@ fn add(
         if steps.iter().any(|s| s.entity_ref == entity
             && s.service.contract.output_map.produces.contains_key(&req.fact_type)
             && !s.service.optional_outputs.contains(&req.fact_type)
+            && (!task.independent_sources() || requested_producer(catalog, task, intent, service, &s.service, entity, &req.fact_type).is_some())
             && native_source.is_none_or(|source| matches_source(&s.service, source, catalog))) {
             continue;
         }
@@ -473,9 +483,10 @@ fn add(
             if add(
                 catalog,
                 task,
+                intent,
                 &catalog.services[index],
                 entity,
-                goal,
+                if task.independent_sources() { requested_producer(catalog, task, intent, service, &catalog.services[index], entity, &req.fact_type).unwrap() } else { goal },
                 requested_source,
                 &mut trial,
                 &mut seen,
@@ -504,6 +515,16 @@ fn add(
         browser_fallback: None,
     });
     Ok(())
+}
+
+fn requested_producer(catalog: &Catalog, task: &Task, intent: &Intent, consumer: &Service, producer: &Service, entity: Uuid, field: &str) -> Option<usize> {
+    let intake = task.capability_intake.as_ref()?;
+    intent.goals.iter().enumerate().find_map(|(index, goal)| {
+        let subject = intent.subjects.get(goal.subject)?;
+        (subject.entity_ref == Some(entity) && goal.capability == producer.contract.capability_slug
+            && allows(producer, &goal.constraints, catalog)
+            && crate::parser::plan_coverage::requested_dependency(intake, catalog, &subject.label, consumer, producer, field)).then_some(index)
+    })
 }
 
 /// Presentation only: dependencies come from the quoted contracts, never an LLM guess.

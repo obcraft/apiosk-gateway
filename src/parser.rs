@@ -259,7 +259,10 @@ fn validate_input_literal(question: &str, kind: &str, value: &Value, catalog: &C
     } else {
         question.to_lowercase().contains(&literal.to_lowercase())
     };
-    anyhow::ensure!(!literal.is_empty() && literal_match, "parser invented a value");
+    let country_literal = kind == "company.search.country_code"
+        && crate::ask_v2::search::exact_country(&literal).is_some_and(|country|
+            crate::ask_v2::search::named_countries(question).contains(country.as_str()));
+    anyhow::ensure!(!literal.is_empty() && (literal_match || country_literal), "parser invented a value");
     let fact = catalog.vocabulary.get(kind).ok_or_else(|| anyhow::anyhow!("unknown input type"))?;
     catalog_core::facts::schema::validate(&fact.value_schema, value)?;
     Ok(())

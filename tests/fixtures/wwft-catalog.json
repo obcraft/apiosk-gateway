@@ -1,0 +1,1477 @@
+{
+  "services": [
+    {
+      "description": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers.",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "id": "a4ea2bea-9438-4e8d-9ce5-06a1e4e435d8",
+      "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v2/zoeken",
+      "listing_type": "api",
+      "list_atomic": 18903,
+      "contract": {
+        "capability_slug": "company_registry.search",
+        "version": 5,
+        "cardinality": "many",
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "building.postcode",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject",
+            "optional": true
+          },
+          {
+            "fact_type": "building.huisletter",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "building.huisletter": {
+            "in": "query",
+            "name": "huisletter"
+          },
+          "building.postcode": {
+            "in": "query",
+            "name": "postcode"
+          },
+          "company.name": {
+            "in": "query",
+            "name": "naam"
+          },
+          "company_registry.kvknummer": {
+            "in": "query",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$.resultaten[*]",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "pagina": 1,
+        "resultaten": [
+          {
+            "actief": "Ja",
+            "adres": {
+              "binnenlandsAdres": {
+                "plaats": "Amsterdam",
+                "straatnaam": "Keizersgracht"
+              }
+            },
+            "kvkNummer": "30204462",
+            "naam": "Mollie B.V.",
+            "type": "rechtspersoon"
+          }
+        ],
+        "resultatenPerPagina": 10,
+        "totaal": 2
+      },
+      "jurisdiction": "NL"
+    },
+    {
+      "description": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The authoritative record as filed with the chamber of commerce, as opposed to a scraped or inferred firmographic profile. Dutch Handelsregister (KVK) coverage: basisp",
+      "optional_outputs": [
+        "company.nl.main_establishment_addresses",
+        "company.nl.main_establishment_id",
+        "company.nl.registered_name",
+        "company.nl.rsin",
+        "company.nl.sbi_activities",
+        "company.profile",
+        "web.company_website_query"
+      ],
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "id": "dc655508-e529-4c2f-905e-1b6d69b80e4c",
+      "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/basisprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "contract": {
+        "capability_slug": "company.registry-profile",
+        "version": 9,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.name": {
+              "path": "$.naam"
+            },
+            "company.nl.main_establishment_addresses": {
+              "path": "$._embedded.hoofdvestiging.adressen"
+            },
+            "company.nl.main_establishment_id": {
+              "path": "$._embedded.hoofdvestiging.vestigingsnummer"
+            },
+            "company.nl.registered_name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.nl.rsin": {
+              "path": "$._embedded.eigenaar.rsin"
+            },
+            "company.nl.sbi_activities": {
+              "path": "$.sbiActiviteiten"
+            },
+            "company.profile": {
+              "fields": {
+                "legal_name": {
+                  "path": "$.statutaireNaam"
+                },
+                "sbi_codes": {
+                  "path": "$.sbiActiviteiten[*].sbiCode",
+                  "collect": true
+                },
+                "trade_names": {
+                  "path": "$.handelsnamen[*].naam",
+                  "collect": true
+                }
+              }
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "web.company_website_query": {
+              "adapter": "record.website-query",
+              "key": "{\"name\":\"/naam\",\"identifier\":\"/kvkNummer\",\"registry\":\"KVK\",\"pattern\":\"^[0-9]{8}$\"}"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "_embedded": {
+          "eigenaar": {
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/eigenaar",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              }
+            ],
+            "rechtsvorm": "Besloten Vennootschap",
+            "rsin": "815839091",
+            "uitgebreideRechtsvorm": "Besloten Vennootschap"
+          },
+          "hoofdvestiging": {
+            "adressen": [
+              {
+                "huisnummer": 126,
+                "indAfgeschermd": "Nee",
+                "land": "Nederland",
+                "plaats": "Amsterdam",
+                "postcode": "1015CW",
+                "straatnaam": "Keizersgracht",
+                "type": "bezoekadres",
+                "volledigAdres": "Keizersgracht 126 1015CW Amsterdam"
+              }
+            ],
+            "eersteHandelsnaam": "Mollie B.V.",
+            "indCommercieleVestiging": "Ja",
+            "indHoofdvestiging": "Ja",
+            "kvkNummer": "30204462",
+            "links": [
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/hoofdvestiging",
+                "rel": "self"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+                "rel": "vestigingen"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+                "rel": "basisprofiel"
+              },
+              {
+                "href": "https://api.kvk.nl/api/v1/vestigingsprofielen/000020495188",
+                "rel": "vestigingsprofiel"
+              }
+            ],
+            "materieleRegistratie": {
+              "datumAanvang": "20050421"
+            },
+            "totaalWerkzamePersonen": 110,
+            "vestigingsnummer": "000020495188"
+          }
+        },
+        "handelsnamen": [
+          {
+            "naam": "Mollie B.V.",
+            "volgorde": 0
+          }
+        ],
+        "indNonMailing": "Ja",
+        "kvkNummer": "30204462",
+        "links": [
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462",
+            "rel": "self"
+          },
+          {
+            "href": "https://api.kvk.nl/api/v1/basisprofielen/30204462/vestigingen",
+            "rel": "vestigingen"
+          }
+        ],
+        "materieleRegistratie": {
+          "datumAanvang": "20050421"
+        },
+        "naam": "Mollie B.V.",
+        "sbiActiviteiten": [
+          {
+            "indHoofdactiviteit": "Ja",
+            "sbiCode": "62900",
+            "sbiOmschrijving": "Overige diensten op het gebied van informatietechnologie en computer"
+          },
+          {
+            "indHoofdactiviteit": "Nee",
+            "sbiCode": "62100",
+            "sbiOmschrijving": "Ontwerpen van computerprogramma’s"
+          }
+        ],
+        "statutaireNaam": "Mollie B.V.",
+        "totaalWerkzamePersonen": 110
+      },
+      "jurisdiction": "NL"
+    },
+    {
+      "description": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Dutch Handelsregister (KVK) coverage: vestigingsprofiel, vestigingsnummer.",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "id": "f740178d-fcc9-410b-a84b-44bb97b06c2b",
+      "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/vestigingsprofielen",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "contract": {
+        "capability_slug": "company.branch-profile",
+        "version": 3,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.vestigingsnummer",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company.vestigingsnummer": {
+            "in": "path_append",
+            "name": "vestigingsnummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.eerstehandelsnaam": {
+              "path": "$.eersteHandelsnaam"
+            },
+            "company.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company.name": {
+              "path": "$.eersteHandelsnaam"
+            },
+            "company.totaalwerkzamepersonen": {
+              "path": "$.totaalWerkzamePersonen"
+            },
+            "company.vestigingsnummer": {
+              "path": "$.vestigingsnummer"
+            },
+            "company_registry.eerstehandelsnaam": {
+              "path": "$.eersteHandelsnaam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company_registry.totaalwerkzamepersonen": {
+              "path": "$.totaalWerkzamePersonen"
+            },
+            "company_registry.vestigingsnummer": {
+              "path": "$.vestigingsnummer"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "eersteHandelsnaam": "Mollie",
+        "kvkNummer": "30204462",
+        "totaalWerkzamePersonen": 750,
+        "vestigingsnummer": "000018296932"
+      },
+      "jurisdiction": "NL"
+    },
+    {
+      "description": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which brands and trade names sit behind one registration. Dutch Handelsregister (KVK) coverage: naamgeving, statutaire naam, handelsnamen.",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "id": "faba24c4-e3d6-404c-ab16-f6650755ccdf",
+      "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/naamgevingen/kvknummer",
+      "listing_type": "api",
+      "list_atomic": 66162,
+      "contract": {
+        "capability_slug": "company.registered-names",
+        "version": 5,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.eerstehandelsnaam": {
+              "path": "$.vestigingen[*].eersteHandelsnaam"
+            },
+            "company.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company.name": {
+              "path": "$.statutaireNaam"
+            },
+            "company.statutairenaam": {
+              "path": "$.statutaireNaam"
+            },
+            "company.vestigingsnummer": {
+              "path": "$.vestigingen[*].vestigingsnummer"
+            },
+            "company_registry.eerstehandelsnaam": {
+              "path": "$.vestigingen[*].eersteHandelsnaam"
+            },
+            "company_registry.kvknummer": {
+              "path": "$.kvkNummer"
+            },
+            "company_registry.statutairenaam": {
+              "path": "$.statutaireNaam"
+            },
+            "company_registry.vestigingsnummer": {
+              "path": "$.vestigingen[*].vestigingsnummer"
+            }
+          }
+        },
+        "identifies": "company_registry.kvknummer",
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "kvkNummer": "30204462",
+        "statutaireNaam": "Mollie B.V.",
+        "vestigingen": [
+          {
+            "eersteHandelsnaam": "Mollie",
+            "vestigingsnummer": "000018296932"
+          }
+        ]
+      },
+      "jurisdiction": "NL"
+    },
+    {
+      "description": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaarrekening, balans, winst- en verliesrekening, deponering), not estimates or modelled revenue. Availability depends on whether the company was required to file a",
+      "source_url": "https://developers.kvk.nl/nl/documentation",
+      "id": "0314e4a3-aa1c-4e62-bb82-ef3af5b7b1b7",
+      "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+      "api_slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "method": "GET",
+      "path": "/api/v1/hvds/jaarrekeningen/kvknummer",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "contract": {
+        "capability_slug": "company.financial-statements",
+        "version": 3,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company_registry.kvknummer",
+            "subject_role": "subject",
+            "optional": false
+          }
+        ],
+        "input_map": {
+          "company_registry.kvknummer": {
+            "in": "path_append",
+            "name": "kvkNummer"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.assets": {
+              "adapter": "tree.key-value",
+              "key": "Assets"
+            },
+            "company.equity": {
+              "adapter": "tree.key-value",
+              "key": "Equity"
+            },
+            "company.financial_statements": {
+              "fields": {
+                "equity": {
+                  "adapter": "tree.key-value",
+                  "key": "Equity",
+                  "cast": "number"
+                },
+                "financial_year": {
+                  "adapter": "tree.key-value",
+                  "key": "FinancialYear",
+                  "cast": "number"
+                },
+                "total_assets": {
+                  "adapter": "tree.key-value",
+                  "key": "Assets",
+                  "cast": "number"
+                }
+              }
+            },
+            "company.financialyear": {
+              "adapter": "tree.key-value",
+              "key": "FinancialYear"
+            },
+            "company_registry.assets": {
+              "adapter": "tree.key-value",
+              "key": "Assets"
+            },
+            "company_registry.equity": {
+              "adapter": "tree.key-value",
+              "key": "Equity"
+            },
+            "company_registry.financialyear": {
+              "adapter": "tree.key-value",
+              "key": "FinancialYear"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {},
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": null,
+      "sample_payload": {
+        "opendataFields": [
+          {
+            "key": "FinancialYear",
+            "value": "2024"
+          },
+          {
+            "key": "BalanceSheet",
+            "opendataFields": [
+              {
+                "key": "Assets",
+                "value": "123456"
+              },
+              {
+                "key": "Equity",
+                "value": "65432"
+              }
+            ]
+          }
+        ]
+      },
+      "jurisdiction": "NL"
+    },
+    {
+      "description": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+      "source_url": "https://www.opensanctions.org/docs/api/",
+      "id": "0202e192-7b3f-5074-84a1-4dcfffd28df2",
+      "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+      "api_slug": "opensanctions",
+      "name": "OpenSanctions",
+      "method": "POST",
+      "path": "/match",
+      "listing_type": "api",
+      "list_atomic": 94518,
+      "contract": {
+        "capability_slug": "company.sanctions-screen",
+        "version": 1,
+        "cardinality": "one",
+        "requires": [
+          {
+            "fact_type": "company.name",
+            "subject_role": "subject",
+            "optional": false
+          },
+          {
+            "fact_type": "company.search.country_code",
+            "subject_role": "subject",
+            "optional": true
+          }
+        ],
+        "input_map": {
+          "company.name": {
+            "in": "body",
+            "name": "/queries/q1/properties/name",
+            "wrap": "array"
+          },
+          "company.search.country_code": {
+            "in": "body",
+            "name": "/queries/q1/properties/country",
+            "wrap": "array"
+          }
+        },
+        "output_map": {
+          "base": "$",
+          "produces": {
+            "company.screening_result": {
+              "path": "$.responses.q1"
+            }
+          }
+        },
+        "max_fan_out": 1
+      },
+      "fixed_params": {
+        "dataset": "default",
+        "limit": 10,
+        "queries": {
+          "q1": {
+            "properties": {},
+            "schema": "Company"
+          }
+        }
+      },
+      "preconditions": {},
+      "pagination": {},
+      "freshness_seconds": 3600,
+      "sample_payload": {
+        "limit": 2,
+        "responses": {
+          "q1": {
+            "query": {
+              "id": null,
+              "properties": {
+                "name": [
+                  "Gazprom"
+                ]
+              },
+              "schema": "Company"
+            },
+            "results": [
+              {
+                "caption": "OPEN JOINT STOCK COMPANY GAZPROM",
+                "datasets": [
+                  "us_ofac_cons",
+                  "ca_dfatd_sema_sanctions",
+                  "eu_esma_saris",
+                  "us_sam_exclusions",
+                  "ext_ror",
+                  "permid",
+                  "ir_uani_business_registry",
+                  "ext_gleif",
+                  "ext_us_ofac_press_releases",
+                  "us_trade_csl",
+                  "ext_eu_esma_firds",
+                  "ext_ru_egrul",
+                  "gem_energy_ownership",
+                  "ua_war_sanctions",
+                  "ext_ua_edr",
+                  "ext_gb_fca_firds",
+                  "ext_icij_offshoreleaks",
+                  "au_dfat_sanctions",
+                  "pl_mswia_sanctions",
+                  "nz_russia_sanctions",
+                  "ext_gb_coh_psc"
+                ],
+                "id": "NK-N7dfJjNtqB9hibmDaoviPf",
+                "match": true,
+                "properties": {
+                  "country": [
+                    "ru"
+                  ],
+                  "name": [
+                    "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"ГАЗПРОМ\"",
+                    "Gazprom",
+                    "OAO GAZPROM -",
+                    "ОТКРЫТОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО ГАЗПРОМ",
+                    "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО\"ГАЗПРОМ\"",
+                    "OAO GAZPROM",
+                    "ОАО\"ГАЗПРОМ\"",
+                    "Публичное Акционерное Общество Газпром",
+                    "GAZPROM OAO",
+                    "ПАО «Газпром»",
+                    "НА УЧЕТЕ В МИ МНС РФ ПО КРУПН.N 2",
+                    "Gazprom (Russia)",
+                    "Gazprom PAO",
+                    "Public Joint Stock Company Gazprom",
+                    "PAO Gazprom",
+                    "OPEN JOINT STOCK COMPANY GAZPROM",
+                    "Pjsc Gazprom",
+                    "ПУБЛИЧНОЕ АКЦИОНЕРНОЕ ОБЩЕСТВО \"ГАЗПРОМ\"",
+                    "Gazprom, OAO",
+                    "Gazprom PJSC",
+                    "ГАЗПРОМ ОАО"
+                  ],
+                  "registrationNumber": [
+                    "1027700070518",
+                    "0000000"
+                  ]
+                },
+                "schema": "Company",
+                "score": 1
+              },
+              {
+                "caption": "GAZPROM TELECOM",
+                "datasets": [
+                  "us_ofac_cons",
+                  "permid",
+                  "us_trade_csl",
+                  "ext_ru_egrul",
+                  "us_sam_exclusions"
+                ],
+                "id": "NK-7CA2ijwrW2pE6toLKbgEtx",
+                "match": true,
+                "properties": {
+                  "country": [
+                    "ru"
+                  ],
+                  "name": [
+                    "Gazprom Telekom OOO",
+                    "ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ \"ГАЗПРОМ ТЕЛЕКОМ\"",
+                    "ZAKRYTOE AKTSIONERNOE OBSHCHESTVO GAZTELEKOM",
+                    "GAZPROM TELEKOM, OOO",
+                    "GAZPROM TELECOM",
+                    "OBSHCHESTVO S OGRANICHENNOI OTVETSTVENNOSTYU 'GAZPROM TELEKOM'",
+                    "Gazprom Telekom ZAO",
+                    "Gazprom Telekom, OOO"
+                  ],
+                  "registrationNumber": [
+                    "1137746329962"
+                  ]
+                },
+                "schema": "Company",
+                "score": 0.8333333333333334
+              }
+            ],
+            "status": 200,
+            "total": {
+              "relation": "eq",
+              "value": 17
+            }
+          }
+        }
+      },
+      "jurisdiction": null
+    }
+  ],
+  "vocabulary": [
+    {
+      "slug": "building.huisletter",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "building.postcode",
+      "value_schema": {
+        "pattern": "^[0-9]{4}(\\s?[A-Za-z]{2})?$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.assets",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.eerstehandelsnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.equity",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.financial_statements",
+      "value_schema": {
+        "properties": {
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "document_url": {
+            "type": "string"
+          },
+          "equity": {
+            "type": "number"
+          },
+          "filed_on": {
+            "type": "string"
+          },
+          "financial_year": {
+            "type": "number"
+          },
+          "result_after_tax": {
+            "type": "number"
+          },
+          "revenue": {
+            "type": "number"
+          },
+          "total_assets": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "financial_year"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.financialyear",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.kvknummer",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_addresses",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.nl.main_establishment_id",
+      "value_schema": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.registered_name",
+      "value_schema": {
+        "maxLength": 500,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.rsin",
+      "value_schema": {
+        "pattern": "^[0-9]{9}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.nl.sbi_activities",
+      "value_schema": {
+        "items": {
+          "type": "object"
+        },
+        "type": "array"
+      }
+    },
+    {
+      "slug": "company.profile",
+      "value_schema": {
+        "$comment": "{\"apiosk_output_aliases_v1\":[\"profile\",\"company_profile\",\"registered_details\",\"registered_company_details\"]}",
+        "properties": {
+          "employee_count": {
+            "minimum": 0,
+            "type": "number"
+          },
+          "founded_on": {
+            "type": "string"
+          },
+          "legal_form": {
+            "type": "string"
+          },
+          "legal_name": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "sbi_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trade_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "legal_name"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.screening_result",
+      "value_schema": {
+        "properties": {
+          "results": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              200
+            ],
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "results"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "slug": "company.search.country_code",
+      "value_schema": {
+        "pattern": "^[A-Z]{2}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.statutairenaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company.totaalwerkzamepersonen",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company.vestigingsnummer",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.assets",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.eerstehandelsnaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.equity",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.financialyear",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.kvknummer",
+      "value_schema": {
+        "pattern": "^[0-9]{8}$",
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.statutairenaam",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "company_registry.totaalwerkzamepersonen",
+      "value_schema": {
+        "type": "number"
+      }
+    },
+    {
+      "slug": "company_registry.vestigingsnummer",
+      "value_schema": {
+        "type": "string"
+      }
+    },
+    {
+      "slug": "web.company_website_query",
+      "value_schema": {
+        "maxLength": 1000,
+        "minLength": 1,
+        "type": "string"
+      }
+    }
+  ],
+  "known_sources": [
+    {
+      "slug": "kvk-dutch-business-register",
+      "name": "KVK Business Register",
+      "block_reason": null,
+      "metadata": {
+        "provider_slug": "apiosk-basics",
+        "description": "Official Dutch company register (Handelsregister) from KVK, the Netherlands Chamber of Commerce: search companies by name, resolve a KVK number (kvk-nummer), and look up the basic profile (basisprofiel), branch profile (vestigingsprofiel), registered and trade names (statutaire naam, handelsnamen), filed annual accounts (jaarrekeningen) and open company data — the employee count (how many people work at a company, headcount, staff, werknemers), where the company is based (registered address, office location, vestiging), SBI activities, RSIN, legal form (rechtsvorm) and insolvency status.",
+        "category": "data",
+        "tags": [
+          "address search",
+          "annual accounts",
+          "basisprofiel",
+          "branch profile",
+          "business lookup",
+          "company names",
+          "company profile",
+          "company search",
+          "dutch business register",
+          "establishment",
+          "financial statements",
+          "handelsnamen",
+          "handelsregister",
+          "handelsregister zoeken",
+          "jaarrekening",
+          "kvk",
+          "kvk search",
+          "location data",
+          "naamgeving",
+          "open data",
+          "statutaire naam",
+          "trade names",
+          "vestigingsprofiel",
+          "xbrl"
+        ],
+        "capability_descriptions": {
+          "company.branch-profile": "Retrieve the registration record for one specific establishment, branch or location of a company rather than the company as a whole: what that location does, its official address, how many people work there and which trade names it uses. Du",
+          "company.financial-statements": "Retrieve structured financial data from the annual accounts a company filed with its business register: balance sheet, income statement, cash flow statement, consolidated variants, financial year and filing date. Official filed figures (jaa",
+          "company.registered-names": "Retrieve every name a company is registered under: its statutory or legal name, the names it trades under, alternative names it is also known by, and which names belong to which branch, with their start and end dates. The question of which ",
+          "company.registry-profile": "Retrieve the official registration record for a company from a national business register: statutory and trade names, registered activities (SBI codes), employee counts, legal form, registration date, addresses, website and branches. The au",
+          "company_registry.lookup": "Retrieve the complete official registration record for one company, including names, activities, legal form, addresses and register identifiers.",
+          "company_registry.search": "Search an official business register by company name, trade name, registration number, postcode or address and resolve the registered company identifiers."
+        },
+        "endpoints": [
+          {
+            "endpoint_id": "46e9d53a-1942-442a-a310-5e1a6b7f8297",
+            "description": "Search the Dutch Handelsregister (KVK business register) and resolve identifiers: find a company by name and get its KVK number (kvkNummer), RSIN or branch number (vestigingsnummer). Zoek bedrijven op naam, kvk-nummer, rsin, vestigingsnummer of adres (postcode, huisnummer, straatnaam, plaats). Returns a list of matching registrations with name, address, type (rechtspersoon, hoofdvestiging, nevenvestiging) and active flag. Inactive registrations are excluded unless asked for, result ordering is not guaranteed, so filter on name, address or type when a company name is ambiguous.",
+            "method": "GET",
+            "path": "/api/v2/zoeken",
+            "source_url": "https://developers.kvk.nl/nl/documentation",
+            "registration": {
+              "list_atomic": 18903,
+              "query_params": {
+                "huisletter": {
+                  "description": "House letter, one alphabetic character. Only with a house number.",
+                  "example": "D",
+                  "pattern": "^[a-zA-Z]$",
+                  "required": false,
+                  "type": "string"
+                },
+                "huisnummer": {
+                  "description": "House number. KVK accepts it only together with a postcode.",
+                  "example": 300,
+                  "maximum": 99999,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "inclusiefInactieveRegistraties": {
+                  "description": "Include inactive registrations. Default false.",
+                  "required": false,
+                  "type": "boolean"
+                },
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer), 8 digits.",
+                  "example": "59581883",
+                  "pattern": "^[0-9]{8}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "naam": {
+                  "description": "Company name, trade name (handelsnaam) or statutory name. Matching is full text, not plain substring, so a distinctive word works better than a full legal name.",
+                  "example": "Kamer van Koophandel",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "pagina": {
+                  "default": 1,
+                  "description": "Page number, 1 to 1000.",
+                  "maximum": 1000,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "plaats": {
+                  "description": "City or place.",
+                  "example": "Utrecht",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "postbusnummer": {
+                  "description": "PO box number (postbusnummer). Only with a postcode.",
+                  "example": 9292,
+                  "maximum": 99999,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "postcode": {
+                  "description": "Dutch postal code. KVK accepts it only together with a house number or a PO box number.",
+                  "example": "3511BT",
+                  "pattern": "^[0-9]{4}[a-zA-Z]{2}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "resultatenPerPagina": {
+                  "default": 10,
+                  "description": "Results per page, 1 to 100. Default 10.",
+                  "maximum": 100,
+                  "minimum": 1,
+                  "required": false,
+                  "type": "integer"
+                },
+                "rsin": {
+                  "description": "RSIN, 9 digits.",
+                  "example": "823807071",
+                  "pattern": "^[0-9]{9}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "straatnaam": {
+                  "description": "Street name.",
+                  "example": "St.-Jacobsstraat",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                },
+                "type": {
+                  "description": "Restrict to main branch, secondary branch or legal entity.",
+                  "enum": [
+                    "hoofdvestiging",
+                    "nevenvestiging",
+                    "rechtspersoon"
+                  ],
+                  "required": false,
+                  "type": "string"
+                },
+                "vestigingsnummer": {
+                  "description": "Branch number (vestigingsnummer), 12 digits.",
+                  "example": "000015063097",
+                  "pattern": "^[0-9]{12}$",
+                  "required": false,
+                  "requiredOneOf": "search",
+                  "type": "string"
+                }
+              },
+              "request_body": null,
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "9b397a7f-0c7a-40e9-980c-b4b48f90171a",
+            "description": "Registration record for ONE specific establishment of a Dutch company — the vestigingsprofiel — by 12-digit branch number (vestigingsnummer). What this location does (SBI activities), its official visiting and postal address, the employee count at that office — how many people work there, headcount, staff (voltijd, deeltijd, totaal werkzame personen) — which trade names (handelsnamen) it uses, whether it is the main branch (hoofdvestiging), and its parent KVK number and RSIN. Use this instead of the basic profile when the question is about one office location rather than the company as a whole.",
+            "method": "GET",
+            "path": "/api/v1/vestigingsprofielen",
+            "source_url": "https://developers.kvk.nl/nl/documentation",
+            "registration": {
+              "list_atomic": 66162,
+              "query_params": {
+                "vestigingsnummer": {
+                  "description": "Branch number (vestigingsnummer) of the establishment, 12 digits.",
+                  "pattern": "^[0-9]{12}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "a4d6eb45-a960-4f50-9298-a91b8063e374",
+            "description": "Structured financial data from the annual accounts a Dutch company filed with KVK — the jaarrekening. Balance sheet (balans: assets, equity, provisions, liabilities), income statement (winst- en verliesrekening: gross margin, employee benefits expenses, operating result, result before and after tax), cash flow statement, their consolidated variants, the financial year and the filing/adoption date. Open data under CC BY 4.0. Only adopted (vastgestelde) accounts filed via XBRL are available, not every company is required to file, and which fields are present depends on company size class. Rate-limited hard upstream (1 request/minute per IP), so answers are cached for a day.",
+            "method": "GET",
+            "path": "/api/v1/hvds/jaarrekeningen/kvknummer",
+            "source_url": "https://developers.kvk.nl/nl/documentation",
+            "registration": {
+              "list_atomic": 94518,
+              "query_params": {
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "b050c654-284a-49e8-a7ca-0bfca565816e",
+            "description": "Official registration record for one Dutch company by KVK number — the basisprofiel. Answers most company questions in a single call: the employee count — how many people work at the company, headcount, staff, company size (werknemers: voltijd, deeltijd, totaal) — and where the company is based: its registered visiting and postal address, city, office location and main branch (hoofdvestiging), plus the statutory name (statutaire naam) and trade names (handelsnamen), SBI business activities, RSIN, legal form (rechtsvorm), formal registration date, registered website and the number of branches (vestigingen). Use one call to answer several fields at once rather than one call per field. Needs an 8-digit kvkNummer, a company name is resolved to one automatically via KVK Search.",
+            "method": "GET",
+            "path": "/api/v1/basisprofielen",
+            "source_url": "https://developers.kvk.nl/nl/documentation",
+            "registration": {
+              "list_atomic": 66162,
+              "query_params": {
+                "geoData": {
+                  "description": "Include geodata (GPS latitude/longitude, Rijksdriehoek coordinates, BAG object ids) on addresses. Default false.",
+                  "required": false,
+                  "type": "boolean"
+                },
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          },
+          {
+            "endpoint_id": "d27a4d47-4067-4746-ac52-7ce6c65c13f3",
+            "description": "Every name a Dutch company is registered under — the naamgeving. The statutory name (statutaire naam), the trading name, alternative names it is also known by (ook genoemd), and the trade names (handelsnamen) registered per establishment, with their start and end dates. The call to make when the question is which names, brands or trade names belong to a registration, rather than what the company does.",
+            "method": "GET",
+            "path": "/api/v1/naamgevingen/kvknummer",
+            "source_url": "https://developers.kvk.nl/nl/documentation",
+            "registration": {
+              "list_atomic": 66162,
+              "query_params": {
+                "kvkNummer": {
+                  "description": "KVK number (kvk-nummer) of the company, 8 digits.",
+                  "pattern": "^[0-9]{8}$",
+                  "required": true,
+                  "type": "string",
+                  "x-parameter-location": "path"
+                }
+              },
+              "request_body": null,
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          }
+        ],
+        "identity_documented": true,
+        "endpoint_count": 5,
+        "described": 5,
+        "tagged": 5,
+        "categorized": 5,
+        "documented_inputs": 5,
+        "inferred": 0,
+        "unknown_provenance": 0,
+        "recent_successes": 0,
+        "recent_failures": 0,
+        "recent_unresolved": 0,
+        "coverage_notice": null
+      }
+    },
+    {
+      "slug": "opensanctions",
+      "name": "OpenSanctions",
+      "block_reason": null,
+      "metadata": {
+        "provider_slug": "apiosk-basics",
+        "description": "Sanctions, PEP and watchlist screening for people and companies. Check whether a person or a company is sanctioned (OFAC SDN, EU, UK OFSI, UN and hundreds of other lists), is a politically exposed person (PEP) or a close associate of one, appears on a debarment, wanted or crime-linked list, or is a known owner or officer of an entity that is. Screen a name with fuzzy matching and scored results, search the entity graph as text, pull one entity with its ownership, directorship and family links, or read the underlying source statements. Built on the OpenSanctions consolidated dataset, rebuilt co",
+        "category": "data",
+        "tags": [
+          "aml",
+          "audit trail",
+          "beneficial ownership",
+          "bulk screening",
+          "data freshness",
+          "data lineage",
+          "dataset catalog",
+          "entity lookup",
+          "entity search",
+          "faceted search",
+          "matching algorithms",
+          "name matching",
+          "openrefine",
+          "ownership graph",
+          "pep check",
+          "pep search",
+          "provenance",
+          "reconciliation",
+          "reference data",
+          "sanctions lists",
+          "sanctions record",
+          "sanctions screening",
+          "sanctions search",
+          "scoring",
+          "source data",
+          "spreadsheet",
+          "statements",
+          "threshold tuning",
+          "ubo",
+          "watchlist"
+        ],
+        "capability_descriptions": {
+          "company.sanctions-screen": "Screen a Company against OpenSanctions sanctions, PEP and watchlists; return candidate matches, not a definitive legal verdict.",
+          "company.uk-director-screening-1": "Screen active UK director 1 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-2": "Screen active UK director 2 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-3": "Screen active UK director 3 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-4": "Screen active UK director 4 with OpenSanctions, if present; one separately priced query",
+          "company.uk-director-screening-5": "Screen active UK director 5 with OpenSanctions, if present; one separately priced query",
+          "company.watchlist-entity": "Read a specific OpenSanctions entity and its relationships.",
+          "company.watchlist-search": "Search OpenSanctions watchlists by company name; return candidates with source datasets.",
+          "company.watchlist-statements": "Read source assertions for one OpenSanctions entity.",
+          "operation.opensanctions.get-algorithms-e565e717": "List the entity-matching scoring algorithms the /match endpoint accepts, each with the scoring features it uses, what each feature measures, its coefficient and a link to the implementation. Returns the six available algorithms (logic-v2, o",
+          "operation.opensanctions.get-catalog-0f108ac0": "List the datasets and collections available as query scopes — the values that go in the path of /search/{dataset}, /match/{dataset} and /reconcile/{dataset}. Returns each dataset's name, title, summary and description, its publisher and the",
+          "operation.opensanctions.get-reconcile-3c473989": "Service manifest for the OpenRefine reconciliation API — the W3C reconciliation protocol description that lets OpenRefine, and any other reconciliation client, screen a whole spreadsheet or column of names against OpenSanctions. Returns the"
+        },
+        "endpoints": [
+          {
+            "endpoint_id": "1736cb8a-8611-4ecd-b849-3cdb726e5b3f",
+            "description": "Screen a person or a company against sanctions lists, PEP registers and watchlists by example — the flagship OpenSanctions call and the right one for AML/KYC/KYB onboarding checks. Post one or more example entities (a name, plus any of birth date, nationality, country, address, tax or company registration number) and get back scored candidate matches with a per-feature explanation of why each scored as it did, so false positives can be tuned with a threshold instead of eyeballed. Answers \"is this person sanctioned\", \"is this company on the OFAC SDN list\", \"is this director a politically exposed person\", \"is this counterparty debarred\". Batch several names in one call by giving each its own key; every key comes back under the same name. Scope it by appending the dataset as a path segment: /",
+            "method": "POST",
+            "path": "/match",
+            "source_url": "https://www.opensanctions.org/docs/api/",
+            "registration": {
+              "list_atomic": 94518,
+              "query_params": {
+                "properties": {
+                  "algorithm": {
+                    "default": "best",
+                    "description": "Scoring algorithm. \"best\" is an alias that currently resolves to logic-v2. GET /algorithms lists each one with the features it scores on.",
+                    "enum": [
+                      "best",
+                      "logic-v2",
+                      "ofac",
+                      "name-based",
+                      "name-qualified",
+                      "logic-v1",
+                      "regression-v1"
+                    ],
+                    "type": "string"
+                  },
+                  "changed_since": {
+                    "description": "Only match entities updated since this ISO date/time — for re-screening a book of customers against what changed.",
+                    "pattern": "^\\\\d{4}-\\\\d{2}-\\\\d{2}(T\\\\d{2}(:\\\\d{2}(:\\\\d{2})?)?)?$",
+                    "type": "string"
+                  },
+                  "dataset": {
+                    "default": "default",
+                    "description": "Dataset or collection to screen against, appended as a path segment. Use default (everything), sanctions, peps, debarment, crime, or a single source dataset such as us_ofac_sdn or eu_fsf. List the options with GET /catalog.",
+                    "type": "string",
+                    "x-parameter-location": "path"
+                  },
+                  "exclude_dataset": {
+                    "description": "Remove these datasets from the results.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "exclude_entity_ids": {
+                    "description": "Entity IDs to exclude from matching, e.g. ones already cleared as false positives.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 50,
+                    "type": "array"
+                  },
+                  "exclude_schema": {
+                    "description": "Remove these entity types from the results, e.g. Address.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "include_dataset": {
+                    "description": "Only include results from these datasets (within the scope named in the path).",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "limit": {
+                    "default": 5,
+                    "description": "Number of candidate matches to return per query.",
+                    "maximum": 500,
+                    "type": "integer"
+                  },
+                  "threshold": {
+                    "default": 0.7,
+                    "description": "Score at or above which a candidate is reported as a match rather than merely a near miss. Raise it to cut false positives, lower it to widen the net.",
+                    "type": "number"
+                  },
+                  "topics": {
+                    "description": "Only return results carrying any of these topics, e.g. sanction, role.pep, crime, debarment.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "dataset"
+                ],
+                "type": "object"
+              },
+              "request_body": {
+                "properties": {
+                  "queries": {
+                    "additionalProperties": {
+                      "properties": {
+                        "id": {
+                          "description": "Your own identifier for this query entity, echoed back.",
+                          "type": "string"
+                        },
+                        "properties": {
+                          "additionalProperties": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "description": "FollowTheMoney properties, each an ARRAY of strings even when there is one value. name is the only one that really matters; birthDate, nationality, country, address, idNumber, taxNumber, registrationNumber and innCode all sharpen the score.",
+                          "type": "object"
+                        },
+                        "schema": {
+                          "description": "Entity type from the FollowTheMoney model: Person, Company, Organization, LegalEntity, Vessel, Airplane.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "schema",
+                        "properties"
+                      ],
+                      "type": "object"
+                    },
+                    "description": "Map of your own query key -> entity example. Each key comes back in the response under the same name, so a batch of names can be screened in one call.",
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "queries"
+                ],
+                "type": "object"
+              },
+              "listing_type": "api",
+              "usage_notice": null
+            }
+          }
+        ],
+        "identity_documented": true,
+        "endpoint_count": 7,
+        "described": 7,
+        "tagged": 7,
+        "categorized": 7,
+        "documented_inputs": 7,
+        "inferred": 0,
+        "unknown_provenance": 0,
+        "recent_successes": 0,
+        "recent_failures": 0,
+        "recent_unresolved": 0,
+        "coverage_notice": null
+      }
+    }
+  ]
+}

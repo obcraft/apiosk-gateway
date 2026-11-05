@@ -14,6 +14,7 @@ pub(crate) mod input_values;
 pub(crate) mod source_selection;
 pub(crate) mod follow_up;
 pub(crate) mod prefill;
+pub(crate) mod wwft;
 #[cfg(test)]
 pub(crate) mod test_catalog;
 
@@ -310,6 +311,11 @@ impl Client {
                     }
                     error
                 })?;
+            if parsed_request.capabilities.iter().any(|cap| cap.slug == "compliance.wwft.check") {
+                wwft::expand(&mut parsed_request)?;
+            } else {
+                wwft::named_checks(&mut parsed_request, literals)?;
+            }
             if let Some(catalog) = connected_catalog {
                 let matches = search::search(&parsed_request, catalog);
                 let mut intake = capability_intake::Intake {

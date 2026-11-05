@@ -61,7 +61,8 @@ async fn planning_catalog() -> std::sync::Arc<crate::catalog::Catalog> {
 async fn record_live_planning_catalog() {
     let (_,catalog)=live_context().await;
     let capabilities:Vec<String>=serde_json::from_str(&std::env::var("ASK_PLANNING_CATALOG_CAPABILITIES").expect("explicit capability list required")).unwrap();
-    let services:Vec<_>=catalog.services.iter().filter(|service|capabilities.contains(&service.contract.capability_slug)).cloned().collect();
+    let sources:Vec<String>=std::env::var("ASK_PLANNING_CATALOG_SOURCES").ok().map(|value|serde_json::from_str(&value).unwrap()).unwrap_or_default();
+    let services:Vec<_>=catalog.services.iter().filter(|service|capabilities.contains(&service.contract.capability_slug) || sources.contains(&service.api_slug)).cloned().collect();
     assert!(capabilities.iter().all(|cap|services.iter().any(|service|&service.contract.capability_slug==cap)));
     let fields:std::collections::BTreeSet<_>=services.iter().flat_map(|service|service.contract.requires.iter().map(|required|&required.fact_type)
         .chain(service.contract.output_map.produces.keys())).collect();

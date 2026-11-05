@@ -364,7 +364,7 @@ pub(super) struct ParseRequest {
 fn valid_slug(slug: &str) -> bool {
     !slug.is_empty()
         && slug.len() <= 200
-        && slug.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'.')
+        && slug.bytes().all(|c| c.is_ascii_alphanumeric() || matches!(c, b'.' | b'_' | b'-'))
 }
 
 impl ParseRequest {
@@ -1010,6 +1010,36 @@ fn brand_matches(matches: &mut serde_json::Value, sources: &[crate::sources::Sou
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn wwft_parse_survives_search_and_research_boundaries_with_six_priced_calls() {
+        let question = "Doe een Wwft-check op Mollie in Nederland. Zoek eerst het bedrijf op naam in het Handelsregister, vind het KvK-nummer en haal daarmee het bedrijfsprofiel op. Controleer de registratie en rechtsvorm en zoek mogelijke sanctie- en PEP-matches.";
+        let raw = json!({"language":"nl","subjects":[{"id":"s1","label":"Mollie","type":"company","identifiers":{"name":"Mollie","country":"Nederland"}}],
+            "capabilities":[{"slug":"compliance.wwft.check","name":"Wwft check","description":"Wwft check","domain":"compliance","inputs":["name","country"],"outputs":["wwft_check"],"subject_id":"s1","source_hint":null,"confidence":1}],
+            "deliverable":{"format":"chat","operations":["analyze"]}});
+        let mut parsed = capability_intake::normalize(&raw.to_string(), question, "fixture").unwrap();
+        crate::ask_v2::wwft::expand(&mut parsed).unwrap();
+        // These are the actual parse -> HTTP search -> research gates. The
+        // compiler alone used to pass while the HTTP validator rejected '-'.
+        assert!(valid_parsed(&parsed));
+        let request: ResearchRequest = serde_json::from_value(json!({"request_id":Uuid::new_v4(),"question":question,"parsed_request":parsed})).unwrap();
+        assert_eq!(request.normalized().unwrap().capabilities.len(), 6);
+        let catalog = crate::catalog::Catalog::build(serde_json::from_str(include_str!("../../tests/fixtures/wwft-catalog.json")).unwrap());
+        let mut matches = serde_json::to_value(crate::ask_v2::search::search(&parsed, &catalog)).unwrap();
+        describe_endpoints(&mut matches, &catalog, None);
+        bind_inputs(&mut matches, &parsed);
+        for found in matches.as_array().unwrap() {
+            let canonical = found["apiosk"].as_array().unwrap().iter().find(|source| source["capability"] == found["slug"]).unwrap();
+            assert!(canonical["endpoint"]["price"]["buyer_atomic"].as_str().unwrap().parse::<i64>().unwrap() > 0);
+        }
+        let search = json!({"matches":matches,"catalog_version":catalog.version});
+        assert!(complete_local_plan(&catalog, question, &parsed, &search), "HTTP discovery must expose a complete chained quote");
+        let signer = crate::state::Signer::new(vec![7;32]).unwrap();
+        let person = crate::auth::Principal { owner:Uuid::new_v4(),workspace:None,connection:None };
+        let token = crate::search_snapshot::Snapshot::issue(&signer, &person, &parsed, &search).unwrap();
+        let saved = crate::search_snapshot::Snapshot::open(&signer, &person, &parsed, &token).unwrap();
+        assert!(saved.current(&catalog.version));
+        assert!(complete_local_plan(&catalog, question, &parsed, &saved.search_response()));
+    }
     #[test]
     fn complete_research_preserves_exact_displayed_live_checks_and_stable_metadata() {
         let fixtures:Value=serde_json::from_str(include_str!("../../tests/fixtures/profession-live-planning.json")).unwrap();

@@ -13,6 +13,29 @@ mod uk_registry_profile_metadata_tests;
 mod record_shape_tests;
 use std::collections::BTreeSet;
 
+/// Only explicitly requested retrievals can pass a result to another Ask call.
+/// Both endpoints must match their own requirement for the same subject, and
+/// the missing input must also be a requested output of the producing step.
+pub(crate) fn requested_dependency(intake: &Intake, catalog: &Catalog, label: &str,
+    consumer: &crate::catalog::Service, producer: &crate::catalog::Service, field: &str) -> bool {
+    let Some(subject) = intake.parsed_request.subjects.iter().find(|s| s.label == label) else { return false; };
+    let normal = |value: &str| value.to_lowercase().replace(['.', '-', ' '], "_");
+    let matches = |index, service: &crate::catalog::Service| request_match(intake, index).is_some_and(|found|
+        found.operations.contains(&service.contract.capability_slug) && found.apiosk.iter().any(|candidate|
+            candidate.availability == "supported" && candidate.endpoint_id.as_deref() == Some(&service.endpoint_id.to_string())
+                && candidate.capability.as_deref() == Some(&service.contract.capability_slug)
+                && candidate.source_slug.as_deref() == Some(&service.api_slug)));
+    intake.parsed_request.capabilities.iter().enumerate().any(|(index, cap)|
+        cap.subject_id.as_ref() == Some(&subject.id) && matches(index, consumer) && cap.missing.iter().any(|input| {
+            let mut probe = subject.clone(); probe.label.clear(); probe.identifiers.clear();
+            probe.identifiers.insert(input.clone(), "dependency-proof".into());
+            catalog.vocabulary.get(field).is_some_and(|fact| crate::ask_v2::input_values::documented_literal(field, &fact.value_schema, &probe) == Some(json!("dependency-proof")))
+                && intake.parsed_request.capabilities.iter().enumerate().any(|(other, upstream)| other != index
+                    && upstream.subject_id == cap.subject_id && matches(other, producer)
+                    && upstream.outputs.iter().any(|output| normal(output) == normal(input) || output == field))
+        }))
+}
+
 pub(super) fn prepare(
     intent: &mut Intent,
     intake: &Intake,
@@ -569,6 +592,14 @@ fn input_bindings_preserved(intake:&Intake,catalog:&Catalog,task:&crate::state::
             let name=value.trim().to_lowercase();
             let name=name.strip_prefix("the ").unwrap_or(&name).replace([' ', '-'], "");
             let countries=crate::ask_v2::search::named_countries(&name);
+            let mut without_country = subject.clone(); without_country.identifiers.remove(key);
+            if countries.len() == 1 && bound.iter().any(|(field,schema,bound_value)|
+                mapped(field,schema,subject).as_ref() == Some(bound_value)
+                    && mapped(field,schema,&without_country).as_ref() != Some(bound_value)
+                    && bound_value.as_str().is_some_and(|code|
+                        crate::ask_v2::search::exact_country(code).as_deref() == countries.first().copied())) {
+                identifiers.insert(normal(key)); continue;
+            }
             let selected:Vec<_>=steps.iter().filter(|step|step.entity_ref==entity
                 && intent.goals.iter().any(|goal|goal.capability==step.service.contract.capability_slug)).collect();
             if countries.len()==1 && !selected.is_empty() && selected.iter().all(|step| {

@@ -736,6 +736,20 @@ fn identity_matches(hint: &str, value: &str) -> bool {
     let value = identity(value);
     !hint.is_empty() && (value == hint || (hint.len() >= 3 && value.contains(hint)))
 }
+/// Catalog descriptions can declare the register's local name in their
+/// introductory title, e.g. "Official company register (Local Register): …".
+/// Resolve that declared name to the provider before filtering its endpoints.
+/// Later mentions of another source in the description are not aliases.
+fn documented_source_alias(hint: &str, description: &str) -> bool {
+    let title = opening_description(description).split(':').next().unwrap_or("");
+    let mut rest = title;
+    while let Some((_, after)) = rest.split_once('(') {
+        let Some((alias, after)) = after.split_once(')') else { break; };
+        if !hint.is_empty() && alias.len() <= 100 && identity(alias) == hint { return true; }
+        rest = after;
+    }
+    false
+}
 pub(crate) fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Option<BTreeSet<String>> {
     let hint = identity(capability.source_hint.as_deref()?);
     let mut sources: BTreeSet<_> = catalog
@@ -744,6 +758,7 @@ pub(crate) fn hinted_sources(capability: &Capability, catalog: &Catalog) -> Opti
         .filter(|source| {
             identity_matches(&hint, &source.slug)
                 || identity_matches(&hint, &source.name)
+                || documented_source_alias(&hint, &source.metadata.description)
                 || source
                     .metadata
                     .provider_slug
@@ -1260,10 +1275,26 @@ pub fn search_in_english(parsed: &ParsedRequest, english: &ParsedRequest, catalo
                     apiosk.push(source(candidate));
                 }
             }
+            // Preserve source-qualified, admitted operations beyond the lexical
+            // shortlist, while still displaying ready identifier alternatives.
+            let exact: Vec<_> = index.documents.iter().filter_map(|document| {
+                let Target::Endpoint(position) = document.target else { return None; };
+                let service = &catalog.services[position];
+                (restricted.as_ref().is_some_and(|sources| sources.contains(&service.api_slug))
+                    && service.contract.capability_slug == capability.slug
+                    && !signal.adjustment(&document.coverage).demoted).then(|| endpoint(service))
+            }).collect();
+            let pinned = !exact.is_empty();
+            for candidate in exact {
+                if !apiosk.iter().any(|other| other.endpoint_id == candidate.endpoint_id && other.capability == candidate.capability) {
+                    apiosk.push(candidate);
+                }
+            }
             let operations = apiosk
                 .iter()
                 .filter(|candidate| candidate.availability == "supported" && candidate.endpoint_id.is_some())
                 .filter_map(|candidate| candidate.capability.clone())
+                .filter(|operation| !pinned || operation == &capability.slug)
                 .collect();
             Match {
                 slug: capability.slug.clone(),
@@ -1283,6 +1314,13 @@ mod tests {
     use crate::{catalog::Snapshot, readiness::Metadata};
     use serde_json::json;
     use uuid::Uuid;
+
+    #[test]
+    fn only_declared_introductory_source_aliases_bind() {
+        assert!(documented_source_alias("handelsregister", "Official Dutch company register (Handelsregister) from KVK."));
+        assert!(!documented_source_alias("otherregistry", "Official register: compares against another source (Other Registry)."));
+        assert!(!documented_source_alias("register", "Official register (Handelsregister)."));
+    }
 
     fn company_details_request(source: &str) -> ParsedRequest {
         crate::capability_intake::normalize(&json!({"language":"en",

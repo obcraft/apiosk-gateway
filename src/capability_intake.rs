@@ -560,7 +560,8 @@ pub(crate) fn normalize_with_context(raw: &str, request: &str, literals: &str, m
 
 fn identifier_input(input: &str) -> bool {
     ["_number", "_id", "_code"].iter().any(|suffix| input.ends_with(suffix))
-        || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn"].contains(&input)
+        || ["iban", "postcode", "zip_code", "license_plate", "bsn", "ean", "isbn",
+            "kvknummer", "vestigingsnummer", "company_registry_kvknummer", "company_vestigingsnummer"].contains(&input)
 }
 
 /// Free-text search concepts are the person's own words, which every request
