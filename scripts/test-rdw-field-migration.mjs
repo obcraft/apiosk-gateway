@@ -4,6 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 
 const sql = await fs.readFile(new URL('../supabase/migrations/20261105210918_rdw_registration_field_coverage.sql', import.meta.url), 'utf8');
 const compoundSql = await fs.readFile(new URL('../supabase/migrations/20261105213703_rdw_registration_compound_aliases.sql', import.meta.url), 'utf8');
+const apkSql = await fs.readFile(new URL('../supabase/migrations/20261105232047_accept_rdw_apk_iso_date.sql', import.meta.url), 'utf8');
 const fixture = JSON.parse(await fs.readFile(new URL('../tests/fixtures/rdw-registration-planning.json', import.meta.url), 'utf8'));
 const rdw = fixture.catalog.vocabulary.find(fact => fact.slug === 'vehicle.rdw.technical_page');
 for (const schema of ['public', 'catalog']) {
@@ -23,6 +24,14 @@ for (const schema of ['public', 'catalog']) {
       properties.handelsbenaming.example = 'preserve existing metadata';
     }
     await db.query(`INSERT INTO ${schema}.fact_types VALUES ($1,$2),('unrelated','{"type":"boolean"}')`, [rdw.slug, before]);
+    await db.query(`INSERT INTO ${schema}.fact_types VALUES ('vehicle.apk_expiry',$1)`, [{ type: 'string', pattern: '^[0-9]{8}$', description: 'Keep this metadata' }]);
+    await db.exec(apkSql);
+    const apk = (await db.query(`SELECT value_schema FROM ${schema}.fact_types WHERE slug='vehicle.apk_expiry'`)).rows[0].value_schema;
+    assert.equal(apk.description, 'Keep this metadata');
+    for (const date of ['2027-10-29', '20271029']) assert(new RegExp(apk.pattern).test(date), date);
+    for (const date of ['', '2027', '29-10-2027', '2027-1029', 'unavailable']) assert(!new RegExp(apk.pattern).test(date), date);
+    await db.exec(apkSql);
+    assert.deepEqual((await db.query(`SELECT value_schema FROM ${schema}.fact_types WHERE slug='vehicle.apk_expiry'`)).rows[0].value_schema, apk);
     await db.exec(sql);
     await db.exec(compoundSql);
     const read = async () => (await db.query(`SELECT value_schema FROM ${schema}.fact_types WHERE slug=$1`, [rdw.slug])).rows[0].value_schema;

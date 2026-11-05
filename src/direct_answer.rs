@@ -5,13 +5,15 @@ use serde_json::{json, Value};
 
 mod kvk_profile;
 mod crunchbase_profile;
+mod vehicle;
 
 /// Reviewed answers normally require every source step to have succeeded.
 /// The only exception is a verified KVK profile saved by the old contract,
 /// whose two derived facts could be absent despite a complete raw profile.
 pub(crate) fn reviewed_sources_ready(answer: &Value, task: &crate::state::Task, sources: &[Value]) -> bool {
     task.pending_dispatches.is_empty()
-        && (task.failed_steps.is_empty() || kvk_profile::legacy_contract_gap(answer, task, sources))
+        && (task.failed_steps.is_empty() || kvk_profile::legacy_contract_gap(answer, task, sources)
+            || vehicle::legacy_contract_gap(answer, task, sources))
 }
 
 /// A failed synthesis must not hide a successfully saved registry dossier.
@@ -145,6 +147,9 @@ pub(crate) fn reviewed_compose(question: &str, intent: &Intent, sources: &[Value
 /// continued requests. When supplied, it must not be replaced by a narrower
 /// interpretation of the current sentence.
 pub(crate) fn reviewed_compose_with_intake(question: &str, intent: &Intent, sources: &[Value], intake: Option<&crate::capability_intake::Intake>) -> anyhow::Result<Option<Value>> {
+    if let Some(answer) = vehicle::compose(question, intent, sources)? {
+        return Ok(Some(answer));
+    }
     if let Some(answer) = crunchbase_profile::compose(question, intent, sources, intake)? {
         return Ok(Some(answer));
     }

@@ -94,13 +94,11 @@ fn between<'a>(text: &'a str, prefix: &str, suffix: &str) -> Option<&'a str> {
 
 fn request_text(question: &str) -> &str {
     let text = crate::capability_intake::literal_sentence(question);
-    text
-        .strip_suffix('.')
-        .unwrap_or(text)
-        .trim()
+    text.trim_end_matches(['.', '?']).trim()
 }
 
 const VEHICLE_FORMS: &[(&str, &str, &str)] = &[
+    ("en", "What does the RDW vehicle registration for Dutch plate ", " show: make and model, first registration, APK expiry and recall indicators"),
     ("nl", "Geef RDW-voertuiggegevens voor kenteken ", ", inclusief merk, handelsbenaming, APK-vervaldatum en de indicator voor openstaande terugroepacties"),
     ("en", "Get RDW vehicle data for registration plate ", ", including make, trade name, inspection expiry date and the outstanding recall indicator"),
 ];
