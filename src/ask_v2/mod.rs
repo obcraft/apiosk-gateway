@@ -175,7 +175,7 @@ impl Client {
         use futures_util::StreamExt;
         let model = WEB_SYNTHESIS_MODEL;
         let (input,ids)=crate::web_research::synthesis_input(&input)?;
-        let mut payload = json!({"model":model,"temperature":0.1,"max_tokens":2400,
+        let mut payload = json!({"model":model,"temperature":0.1,"max_tokens":1600,
             "provider":{"require_parameters":true,"sort":"latency"},
             "response_format":{"type":"json_schema","json_schema":{"name":"web_research_answer","strict":true,"schema":crate::web_research::answer_schema(&ids)}},
             "messages":[{"role":"system","content":include_str!("../../contracts/web-research-prompt.txt")},

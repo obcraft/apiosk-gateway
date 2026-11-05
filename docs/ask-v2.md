@@ -168,6 +168,18 @@ complete extraction of every sub-question is guaranteed. Tests cover canonical A
 browser normalization, cancellation and stale responses, origin retries,
 catalog relevance, stream decoding, bounds, and the isolated route contract.
 
+## Web research answers
+
+`/v2/ask-v2/web-research` returns a short cited answer, not a report. The
+synthesis prompt asks for one to three short paragraphs of about 120 words in
+total, leading with the direct answer; only a multi-part question may use one
+short paragraph per part. The JSON schema sent with the model call and
+`validate_answer` enforce the same ceiling, `MAX_ANSWER_BLOCKS` (6) blocks of
+`MAX_BLOCK_CHARS` (600) characters, with `max_tokens` sized for it. The App keeps
+its older, wider validation so chats saved before this ceiling still open.
+Related paid sources are discovered alongside the web answer and shown under it;
+they never gate, delay or change the web answer.
+
 ## Optional supporting news
 
 Completed or partial answers with primary findings can include a saved

@@ -15,6 +15,10 @@ mod passages;
 mod exa;
 
 pub(crate) const TARGET: usize = 10;
+/// A web answer is a short reply, not a report: a direct answer and at most a
+/// few supporting paragraphs. The schema, the validator and the prompt agree.
+pub(crate) const MAX_ANSWER_BLOCKS: usize = 6;
+pub(crate) const MAX_BLOCK_CHARS: usize = 600;
 const READ_CONCURRENCY: usize = 5;
 const MAX_CANDIDATES: usize = 25;
 const TEXT_CHARS: usize = 12_000;
@@ -51,10 +55,10 @@ pub(crate) struct Answer {
 
 pub(crate) fn answer_schema(ids: &[usize]) -> Value {
     json!({"type":"object","additionalProperties":false,"required":["blocks","limitations"],"properties":{
-        "blocks":{"type":"array","maxItems":12,"items":{"type":"object","additionalProperties":false,
+        "blocks":{"type":"array","maxItems":MAX_ANSWER_BLOCKS,"items":{"type":"object","additionalProperties":false,
             "required":["citations","heading","text"],"properties":{
                 "heading":{"type":["string","null"],"maxLength":120},
-                "text":{"type":"string","minLength":1,"maxLength":1000},
+                "text":{"type":"string","minLength":1,"maxLength":MAX_BLOCK_CHARS},
                 "citations":{"type":"array","minItems":1,"maxItems":5,"items":{"type":"integer","enum":ids}}}}},
         "limitations":{"type":"array","maxItems":5,"items":{"type":"string","minLength":1,"maxLength":500}}
     }})
@@ -803,11 +807,11 @@ fn relevant(question: &str, source: &Source) -> bool {
 pub(crate) fn validate_answer(value: &Value, count: usize) -> Result<Answer> {
     let answer: Answer = serde_json::from_value(value.clone())
         .map_err(|_| answer_rejection(value, count, "shape"))?;
-    if answer.blocks.len() > 12 || answer.limitations.len() > 5 {
+    if answer.blocks.len() > MAX_ANSWER_BLOCKS || answer.limitations.len() > 5 {
         return Err(answer_rejection(value, count, "answer_size"));
     }
     for block in &answer.blocks {
-        if block.text.trim().is_empty() || block.text.chars().count() > 1000 {
+        if block.text.trim().is_empty() || block.text.chars().count() > MAX_BLOCK_CHARS {
             return Err(answer_rejection(value, count, "paragraph_text"));
         }
         if block
@@ -1516,6 +1520,19 @@ mod tests {
             format!("<meta name='robots' content='nosnippet'><p>{text}</p>").as_bytes(), "AI compliance", None
         )
         .is_err());
+    }
+    #[test]
+    fn answers_stay_short() {
+        let block = |text: String| json!({"text":text,"citations":[1]});
+        let fits = json!({"blocks":(0..MAX_ANSWER_BLOCKS).map(|_| block("a".repeat(MAX_BLOCK_CHARS))).collect::<Vec<_>>(),"limitations":[]});
+        assert_eq!(validate_answer(&fits, 1).unwrap().blocks.len(), MAX_ANSWER_BLOCKS);
+        let too_many = json!({"blocks":(0..=MAX_ANSWER_BLOCKS).map(|_| block("Claim".into())).collect::<Vec<_>>(),"limitations":[]});
+        assert!(validate_answer(&too_many, 1).is_err());
+        let too_long = json!({"blocks":[block("a".repeat(MAX_BLOCK_CHARS + 1))],"limitations":[]});
+        assert!(validate_answer(&too_long, 1).is_err());
+        let schema = answer_schema(&[1]);
+        assert_eq!(schema["properties"]["blocks"]["maxItems"], MAX_ANSWER_BLOCKS);
+        assert_eq!(schema["properties"]["blocks"]["items"]["properties"]["text"]["maxLength"], MAX_BLOCK_CHARS);
     }
     #[test]
     fn citations_only_reference_read_sources_and_duplicate_urls_collapse() {
