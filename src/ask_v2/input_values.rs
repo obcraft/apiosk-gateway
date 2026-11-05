@@ -67,7 +67,7 @@ pub(crate) fn literal(field: &str, subject: &Subject) -> Option<Value> {
         "web.website_url" => identifier(&["url"]),
         "company_registry.kvknummer" => identifier(&["kvk_number", "kvknummer"]),
         "company.registration.gb.companies_house" => identifier(&["companies_house_number", "company_number", "crn"]),
-        "vehicle.registration.nl.plate" => identifier(&["license_plate", "kenteken"]),
+        "vehicle.registration.nl.plate" => identifier(&["license_plate", "plate_number", "registration_plate", "kenteken"]),
         "domain.name" => identifier(&["domain", "domain_name"]),
         "domain.dns_name" => identifier(&["dns_name", "domain", "domain_name"]),
         "finance_markets.cityfalcon_identifiers" => identifier(&["ticker", "isin"]),

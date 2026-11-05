@@ -393,13 +393,23 @@ pub(super) fn compile(intake:&Intake,catalog:&Catalog,selected:&[&Service])->Vec
                 }
                 name.trim_matches('_').to_owned()
             };
-            let mut fields:Vec<_>=sources.iter().flat_map(|(_,fields)|fields.values()).filter(|field|
+            let matched:Vec<_>=sources.iter().flat_map(|(_,fields)|fields.values()).filter(|field|
                 (!super::plan_coverage::requires_record_shape(output) || record_field(field))
                     && (field.aliases.contains(output) || field.path.rsplit('/').next().is_some_and(|name|!name.is_empty() && normalized(name)==normalized(output))))
-                .map(|field|field.id.clone()).collect();
+                .collect();
+            let mut interpretation=format!("Report the returned {}.",output.replace('_'," "));
+            // Reviewed aliases can have narrower meanings than the user's
+            // wording. Carry the contract's definitions into answer synthesis.
+            let descriptions:BTreeSet<_>=matched.iter().filter_map(|field|field.description.as_deref()).collect();
+            for description in descriptions {
+                if interpretation.chars().count()+description.chars().count()+1<=500 {
+                    interpretation.push(' '); interpretation.push_str(description);
+                }
+            }
+            let mut fields:Vec<_>=matched.iter().map(|field|field.id.clone()).collect();
             fields.sort();fields.dedup();
             if !fields.is_empty() && fields.len()<=12 {bindings.push(Binding {requirement,output:output.clone(),fields,
-                interpretation:format!("Report the returned {}.",output.replace('_'," ")),limitation:None});}
+                interpretation,limitation:None});}
         }
     }
     if validate(&bindings,intake,catalog).is_ok() {bindings} else {vec![]}

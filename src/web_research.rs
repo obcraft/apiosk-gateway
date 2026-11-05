@@ -701,7 +701,24 @@ where
     }
     (sources, failures)
 }
+/// An exact-plate lookup needs evidence about that plate. General API docs
+/// mentioning RDW or APK cannot establish any requested vehicle fields.
+fn requested_plates(question: &str) -> Vec<String> {
+    let words:Vec<_>=question.split_whitespace().collect();
+    words.windows(2).filter_map(|pair| {
+        let marker=pair[0].trim_matches(|c:char|!c.is_alphabetic()).to_lowercase();
+        if !matches!(marker.as_str(),"plate"|"kenteken") {return None;}
+        let plate:String=pair[1].chars().filter(|c|c.is_ascii_alphanumeric()).flat_map(char::to_uppercase).collect();
+        (plate.len()==6 && plate.bytes().any(|c|c.is_ascii_alphabetic()) && plate.bytes().any(|c|c.is_ascii_digit())).then_some(plate)
+    }).collect()
+}
+
 fn relevant(question: &str, source: &Source) -> bool {
+    let plates=requested_plates(question);
+    if !plates.is_empty() && !source.text.split(|c:char|!c.is_ascii_alphanumeric() && c!='-').any(|word| {
+        let compact=word.replace('-',"").to_ascii_uppercase();
+        plates.contains(&compact)
+    }) {return false;}
     let text = format!("{} {}", source.title, source.text).to_lowercase();
     let terms = question
         .split(|c: char| !c.is_alphanumeric())
@@ -931,6 +948,21 @@ fn glob_match(pattern: &str, target: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn exact_vehicle_lookup_rejects_general_docs_and_other_plates() {
+        let question="What does the RDW vehicle registration for Dutch plate RZ874R show: make and model, first registration, APK expiry and recall indicators?";
+        let mut source=Source {id:1,title:"RDW vehicle registration RZ874R".into(),url:"https://example.org/rdw".into(),final_url:"https://example.org/rdw".into(),search_rank:1,retrieved_at:String::new(),text:"Look up vehicle data by licence plate from the RDW open data API. Fields include make, model and APK expiry.".into(),text_sha256:String::new(),trimmed:false};
+        assert!(!relevant(question,&source),"a title and API documentation are not vehicle evidence");
+        source.text="RDW registration GZ805N. Make: VOLKSWAGEN.".into();
+        assert!(!relevant(question,&source));
+        source.text="RDW registration RZ-874-R. Make: VOLKSWAGEN. Handelsbenaming: POLO.".into();
+        assert!(relevant(question,&source));
+        assert!(relevant("Geef voor kenteken rz874r de RDW-gegevens.",&source));
+        assert!(relevant("What vehicle data does the RDW API provide?",&source),"general documentation questions still work");
+        source.text="RDW example XXRZ874RYY".into();
+        assert!(!relevant(question,&source),"match whole identifiers");
+    }
     #[test]
     fn supplied_links_are_prioritized_deduplicated_and_public_only() {
         let links = question_links("Vergelijk [Alliance](https://example.org/about?utm_source=test) met <https://other.org/research>. Ook https://example.org/about en http://127.0.0.1/private en https://user:secret@example.org/");

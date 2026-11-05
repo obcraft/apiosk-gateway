@@ -2,6 +2,41 @@ use super::*;
 use crate::{capability_intake, catalog::Snapshot};
 use uuid::Uuid;
 
+#[tokio::test]
+async fn rdw_registration_fields_compile_without_a_second_model_request() {
+    let fixture: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../tests/fixtures/rdw-registration-planning.json"
+    )).unwrap();
+    let catalog = Catalog::build(serde_json::from_value(fixture["catalog"].clone()).unwrap());
+    assert!(catalog.rejected.is_empty(), "{:?}", catalog.rejected);
+    let mut intake: Intake = serde_json::from_value(fixture["intake"].clone()).unwrap();
+    intake.catalog_version = catalog.version.clone();
+    let question = fixture["question"].as_str().unwrap();
+    let reply = compile(question, question, &Task::default(), &catalog, &intake);
+    assert!(ready(question, &reply, &Task::default(), &catalog, &intake), "{reply:?}");
+    let parser=crate::parser::Parser::new(reqwest::Client::new(),"offline://no-model".into(),String::new(),"fixture".into());
+    let reply=parser.chat_from_capabilities(question,None,&Task::default(),&catalog,&intake).await.unwrap();
+    let model=reply.output_bindings.iter().find(|binding|binding.output=="model").unwrap();
+    assert!(model.interpretation.contains("commercial designation"));
+    let dates=reply.output_bindings.iter().find(|binding|binding.output=="first_registration").unwrap();
+    assert_eq!(dates.fields.len(),2,"first admission and Dutch registration stay distinct");
+    let mut intent=reply.intent.unwrap();
+    let mut task=Task {capability_intake:Some(intake.clone()),output_grounding:source_grounding::Grounding::new(&intake,&catalog,reply.output_bindings),..Default::default()};
+    task.record_turn(question,None);
+    crate::engine::bind_subjects(&mut task,&catalog,&mut intent).unwrap();
+    let crate::resolver::Resolution::Plan(plan)=crate::resolver::resolve(&catalog,&task,&intent) else {panic!("RDW plan must be ready");};
+    assert_eq!(plan.steps.len(),1);
+    assert_eq!(plan.steps[0].service.api_slug,"rdw");
+    assert_eq!(plan.steps[0].service.inputs(&task,plan.steps[0].entity_ref,&catalog.vocabulary).unwrap()["kenteken"],"RZ874R");
+    assert!(plan.cap_atomic>0 && task.completed.is_empty(),"the source still needs price review and approval");
+    for unsupported in ["recall_history","recall_details","owner_identity"] {
+        let mut broader=intake.clone();
+        broader.parsed_request.capabilities[0].outputs.push(unsupported.into());
+        let reply=compile(question,question,&Task::default(),&catalog,&broader);
+        assert!(!ready(question,&reply,&Task::default(),&catalog,&broader),"{unsupported} cannot be covered by an indicator");
+    }
+}
+
 fn fixture(outputs: &[&str]) -> (String, Catalog, Intake) {
     let mut snapshot: Snapshot = serde_json::from_str(include_str!(
         "../../../tests/fixtures/integration-catalog.json"

@@ -1,0 +1,625 @@
+{
+  "question": "What does the RDW vehicle registration for Dutch plate RZ874R show: make and model, first registration, APK expiry and recall indicators?",
+  "catalog": {
+    "services": [
+      {
+        "id": "5ea8987d-bf4d-4029-b4f0-111c8b40cdd8",
+        "name": "RDW Vehicle Technical Data",
+        "path": "/resource/m9d7-ebf2.json",
+        "method": "GET",
+        "api_slug": "rdw",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vehicle.registration.nl.plate",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vehicle.registration.nl.plate": {
+              "in": "query",
+              "name": "kenteken"
+            }
+          },
+          "identifies": null,
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vehicle.rdw.technical_page": {
+                "path": "$"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vehicle.technical-profile"
+        },
+        "pagination": {},
+        "source_url": "https://opendata.rdw.nl/en/en/Vehicles/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+        "unverified": false,
+        "description": "Direct RDW technical profile by plate, excluding fuel/emissions",
+        "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+        "list_atomic": 47259,
+        "fixed_params": {},
+        "jurisdiction": "NL",
+        "listing_type": "api",
+        "usage_notice": null,
+        "preconditions": {},
+        "sample_payload": {
+          "items": [
+            {
+              "merk": "VOLKSWAGEN",
+              "type": "AW",
+              "lengte": "405",
+              "breedte": "175",
+              "variant": "ABCHZJ",
+              "kenteken": "RZ874R",
+              "bruto_bpm": "3328",
+              "wielbasis": "255",
+              "inrichting": "hatchback",
+              "uitvoering": "FM6FM6AJ017N2VR27MM62",
+              "eerste_kleur": "ORANJE",
+              "tweede_kleur": "Niet geregistreerd",
+              "aantal_deuren": "5",
+              "aantal_wielen": "4",
+              "voertuigsoort": "Personenauto",
+              "wam_verzekerd": "Ja",
+              "catalogusprijs": "26536",
+              "cilinderinhoud": "999",
+              "massa_rijklaar": "1155",
+              "taxi_indicator": "Nee",
+              "handelsbenaming": "POLO",
+              "hoogte_voertuig": "143",
+              "vervaldatum_apk": "20271029",
+              "wacht_op_keuren": "Geen verstrekking in Open Data",
+              "aantal_cilinders": "3",
+              "export_indicator": "Nee",
+              "aantal_zitplaatsen": "5",
+              "tellerstandoordeel": "Logisch",
+              "vervaldatum_apk_dt": "2027-10-29T00:00:00.000",
+              "datum_tenaamstelling": "20251101",
+              "massa_ledig_voertuig": "1055",
+              "plaats_chassisnummer": "in motorruimte r.",
+              "datum_eerste_toelating": "20180313",
+              "tenaamstellen_mogelijk": "Ja",
+              "typegoedkeuringsnummer": "e1*2007/46*1783*04",
+              "vermogen_massarijklaar": "0.07",
+              "datum_tenaamstelling_dt": "2025-11-01T00:00:00.000",
+              "zuinigheidsclassificatie": "C",
+              "datum_eerste_toelating_dt": "2018-03-13T00:00:00.000",
+              "europese_voertuigcategorie": "M1",
+              "maximum_massa_samenstelling": "2720",
+              "maximum_trekken_massa_geremd": "1100",
+              "technische_max_massa_voertuig": "1620",
+              "maximum_massa_trekken_ongeremd": "570",
+              "api_gekentekende_voertuigen_assen": "https://opendata.rdw.nl/resource/3huj-srit.json",
+              "toegestane_maximum_massa_voertuig": "1620",
+              "code_toelichting_tellerstandoordeel": "00",
+              "jaar_laatste_registratie_tellerstand": "2026",
+              "openstaande_terugroepactie_indicator": "Nee",
+              "api_gekentekende_voertuigen_brandstof": "https://opendata.rdw.nl/resource/8ys7-d773.json",
+              "api_gekentekende_voertuigen_carrosserie": "https://opendata.rdw.nl/resource/vezc-m2t6.json",
+              "volgnummer_wijziging_eu_typegoedkeuring": "0",
+              "datum_eerste_tenaamstelling_in_nederland": "20180313",
+              "api_gekentekende_voertuigen_voertuigklasse": "https://opendata.rdw.nl/resource/kmfi-hrps.json",
+              "datum_eerste_tenaamstelling_in_nederland_dt": "2018-03-13T00:00:00.000",
+              "api_gekentekende_voertuigen_carrosserie_specifiek": "https://opendata.rdw.nl/resource/jhie-znh9.json"
+            }
+          ],
+          "query": {
+            "kenteken": "RZ874R"
+          },
+          "total": 1,
+          "notice": "Technical register data. No owner identity or fleet ownership. Missing fields remain unknown; fuel/emissions datasets are not included.",
+          "coverage": {
+            "scope": "Exact plate in RDW registered-vehicle dataset",
+            "complete": true
+          },
+          "source_url": "https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=RZ874R&%24limit=2",
+          "requested_plate": "RZ874R"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 3600
+      },
+      {
+        "id": "e8450e16-8582-4f4d-8011-37d983a86498",
+        "name": "Overheid.io Public Data",
+        "path": "/voertuiggegevens",
+        "method": "GET",
+        "api_slug": "overheid-io",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vehicle.registration.nl.plate",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vehicle.registration.nl.plate": {
+              "in": "query",
+              "name": "query"
+            }
+          },
+          "identifies": "vehicle.registration.nl.plate",
+          "output_map": {
+            "base": "$._embedded.kenteken[*]",
+            "produces": {
+              "vehicle.make": {
+                "path": "$.merk"
+              },
+              "vehicle.type": {
+                "path": "$.voertuigsoort"
+              },
+              "vehicle.model": {
+                "path": "$.handelsbenaming"
+              },
+              "vehicle.registration.nl.plate": {
+                "path": "$.kentekenplaat"
+              }
+            }
+          },
+          "cardinality": "many",
+          "max_fan_out": 1,
+          "capability_slug": "vehicle.registry-search"
+        },
+        "pagination": {
+          "kind": "hal",
+          "next": "$._links.next.href"
+        },
+        "source_url": "https://overheid.io/documentatie/",
+        "unverified": false,
+        "description": "Search RDW vehicle-registration data by Dutch licence plate, make or wildcard query and return matching vehicle summaries.",
+        "endpoint_id": "67bf3050-b73c-4a44-af60-e4382a94eb2b",
+        "list_atomic": 50000,
+        "fixed_params": {},
+        "jurisdiction": "NL",
+        "listing_type": "api",
+        "usage_notice": null,
+        "preconditions": {},
+        "sample_payload": {
+          "size": 1,
+          "_embedded": {
+            "kenteken": [
+              {
+                "merk": "VOLKSWAGEN",
+                "kentekenplaat": "RZ-874-R",
+                "voertuigsoort": "Personenauto",
+                "handelsbenaming": "POLO"
+              }
+            ]
+          },
+          "pageCount": 1,
+          "totalItemCount": 1
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 86400
+      },
+      {
+        "id": "ecd6f1d8-24a5-424e-8d74-d27356b2ec55",
+        "name": "Overheid.io Public Data",
+        "path": "/voertuiggegevens/{kenteken}",
+        "method": "GET",
+        "api_slug": "overheid-io",
+        "contract": {
+          "version": 1,
+          "requires": [
+            {
+              "optional": false,
+              "fact_type": "vehicle.registration.nl.plate",
+              "subject_role": "subject"
+            }
+          ],
+          "input_map": {
+            "vehicle.registration.nl.plate": {
+              "in": "path",
+              "name": "kenteken"
+            }
+          },
+          "identifies": "vehicle.registration.nl.plate",
+          "output_map": {
+            "base": "$",
+            "produces": {
+              "vehicle.bpm": {
+                "path": "$.bruto_bpm"
+              },
+              "vehicle.body": {
+                "path": "$.carrosserie[*]",
+                "collect": true
+              },
+              "vehicle.fuel": {
+                "path": "$.brandstof[*]",
+                "collect": true
+              },
+              "vehicle.make": {
+                "path": "$.merk"
+              },
+              "vehicle.type": {
+                "path": "$.voertuigsoort"
+              },
+              "vehicle.axles": {
+                "path": "$.as[*]",
+                "collect": true
+              },
+              "vehicle.color": {
+                "path": "$.eerste_kleur"
+              },
+              "vehicle.model": {
+                "path": "$.handelsbenaming"
+              },
+              "vehicle.apk_expiry": {
+                "path": "$.vervaldatum_apk"
+              },
+              "vehicle.catalogue_price": {
+                "path": "$.catalogusprijs"
+              },
+              "vehicle.registration.nl.plate": {
+                "path": "$.kenteken"
+              }
+            }
+          },
+          "cardinality": "one",
+          "max_fan_out": 1,
+          "capability_slug": "vehicle.registry-lookup"
+        },
+        "pagination": {},
+        "source_url": "https://overheid.io/documentatie/",
+        "unverified": false,
+        "description": "Retrieve the complete RDW record for one Dutch licence plate, including fuel, emissions, axles, body, APK, BPM, mass and dimensions.",
+        "endpoint_id": "4265429e-0332-4397-a6a7-17147b6c9aa0",
+        "list_atomic": 75000,
+        "fixed_params": {},
+        "jurisdiction": "NL",
+        "listing_type": "api",
+        "usage_notice": null,
+        "preconditions": {},
+        "sample_payload": {
+          "merk": "VOLKSWAGEN",
+          "kenteken": "RZ874R",
+          "voertuigsoort": "Personenauto",
+          "handelsbenaming": "POLO"
+        },
+        "optional_outputs": [],
+        "freshness_seconds": 86400
+      }
+    ],
+    "vocabulary": [
+      {
+        "slug": "vehicle.apk_expiry",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[0-9]{8}$"
+        }
+      },
+      {
+        "slug": "vehicle.axles",
+        "value_schema": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      {
+        "slug": "vehicle.body",
+        "value_schema": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      {
+        "slug": "vehicle.bpm",
+        "value_schema": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      {
+        "slug": "vehicle.catalogue_price",
+        "value_schema": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      {
+        "slug": "vehicle.color",
+        "value_schema": {
+          "type": "string",
+          "maxLength": 100,
+          "minLength": 1
+        }
+      },
+      {
+        "slug": "vehicle.fuel",
+        "value_schema": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      {
+        "slug": "vehicle.make",
+        "value_schema": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        }
+      },
+      {
+        "slug": "vehicle.model",
+        "value_schema": {
+          "type": "string",
+          "maxLength": 300,
+          "minLength": 1
+        }
+      },
+      {
+        "slug": "vehicle.rdw.technical_page",
+        "value_schema": {
+          "type": "object",
+          "required": [
+            "items",
+            "coverage",
+            "notice",
+            "source_url"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "merk": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"brand\",\"make\"]}"
+                  },
+                  "lengte": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"length\"]}"
+                  },
+                  "breedte": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"width\"]}"
+                  },
+                  "kenteken": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"license_plate\"]}"
+                  },
+                  "eerste_kleur": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"primary_color\"]}"
+                  },
+                  "tweede_kleur": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"secondary_color\"]}"
+                  },
+                  "voertuigsoort": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"vehicle_type\"]}"
+                  },
+                  "cilinderinhoud": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"engine_displacement\"]}"
+                  },
+                  "massa_rijklaar": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"mass_in_running_order\"]}"
+                  },
+                  "handelsbenaming": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"trade_name\",\"commercial_name\",\"model\"]}",
+                    "description": "RDW commercial designation (handelsbenaming), such as POLO. This does not identify an exact trim or model variant."
+                  },
+                  "hoogte_voertuig": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"height\"]}"
+                  },
+                  "vervaldatum_apk": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"apk_expiry\",\"apk_expiration_date\",\"inspection_expiry\"]}"
+                  },
+                  "aantal_zitplaatsen": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"seat_count\"]}"
+                  },
+                  "tellerstandoordeel": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"odometer_judgement\"]}"
+                  },
+                  "vervaldatum_apk_dt": {
+                    "type": "string"
+                  },
+                  "datum_tenaamstelling": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"current_registration_date\"]}"
+                  },
+                  "massa_ledig_voertuig": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"unladen_mass\"]}"
+                  },
+                  "datum_eerste_toelating": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"first_admission_date\",\"first_registration\",\"first_registration_date\"]}",
+                    "description": "Date of first admission to road use, including admission abroad. Report separately from first Dutch registration."
+                  },
+                  "datum_eerste_toelating_dt": {
+                    "type": "string"
+                  },
+                  "openstaande_terugroepactie_indicator": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"outstanding_recall_indicator\",\"recall_indicator\",\"recall_indicators\"]}",
+                    "description": "Outstanding recall indicator only; does not provide recall details or recall history."
+                  },
+                  "datum_eerste_tenaamstelling_in_nederland": {
+                    "type": "string",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"first_dutch_registration_date\",\"first_registration\",\"first_registration_date\"]}",
+                    "description": "Date of first registration in the Netherlands. Report separately from first admission."
+                  }
+                }
+              }
+            },
+            "total": {
+              "type": "integer"
+            },
+            "notice": {
+              "type": "string"
+            },
+            "coverage": {
+              "type": "object",
+              "required": [
+                "complete",
+                "scope"
+              ],
+              "properties": {
+                "scope": {
+                  "type": "string"
+                },
+                "complete": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "source_url": {
+              "type": "string"
+            },
+            "requested_plate": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "slug": "vehicle.registration.nl.plate",
+        "value_schema": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-]{6,10}$"
+        }
+      },
+      {
+        "slug": "vehicle.type",
+        "value_schema": {
+          "type": "string",
+          "maxLength": 200,
+          "minLength": 1
+        }
+      }
+    ],
+    "known_sources": []
+  },
+  "intake": {
+    "matches": [
+      {
+        "slug": "vehicle.registration.check",
+        "query": "Vehicle registration details. Retrieve make and model, first registration date, APK expiry date, and recall indicators for a Dutch vehicle registration plate. plate number",
+        "apiosk": [
+          {
+            "url": "https://overheid.io/documentatie/",
+            "name": "Overheid.io Public Data",
+            "price": "0.086250 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vehicle.registry-lookup",
+            "description": "Retrieve the complete RDW record for one Dutch licence plate, including fuel, emissions, axles, body, APK, BPM, mass and dimensions.",
+            "endpoint_id": "4265429e-0332-4397-a6a7-17147b6c9aa0",
+            "source_slug": "overheid-io",
+            "availability": "supported"
+          },
+          {
+            "url": "https://overheid.io/documentatie/",
+            "name": "Overheid.io Public Data",
+            "price": "0.057500 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vehicle.registry-search",
+            "description": "Search RDW vehicle-registration data by Dutch licence plate, make or wildcard query and return matching vehicle summaries.",
+            "endpoint_id": "67bf3050-b73c-4a44-af60-e4382a94eb2b",
+            "source_slug": "overheid-io",
+            "availability": "supported"
+          },
+          {
+            "url": "https://opendata.rdw.nl/en/en/Vehicles/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2",
+            "name": "RDW Vehicle Technical Data",
+            "price": "0.054348 USD",
+            "method": "GET",
+            "origin": "apiosk",
+            "network": null,
+            "calls_30d": null,
+            "capability": "vehicle.technical-profile",
+            "description": "Direct RDW technical profile by plate, excluding fuel/emissions",
+            "endpoint_id": "dea42f66-134f-4347-b2ca-f9211bf13b77",
+            "source_slug": "rdw",
+            "availability": "supported"
+          }
+        ],
+        "coinbase": [],
+        "operations": [
+          "vehicle.registry-lookup",
+          "vehicle.registry-search",
+          "vehicle.technical-profile"
+        ],
+        "coinbase_status": "pending"
+      }
+    ],
+    "parsed_request": {
+      "meta": {
+        "model": "openai/gpt-oss-120b",
+        "parsed_at": "2026-11-05T15:56:51.333244226+00:00",
+        "text_sha256": "3652bd4631f3ba62d6d67f2c47f86c4039d06d6aa6b187c3144cccc28dc6cd77"
+      },
+      "language": "en",
+      "subjects": [
+        {
+          "id": "s1",
+          "type": "vehicle",
+          "label": "RZ874R",
+          "identifiers": {
+            "plate_number": "RZ874R"
+          }
+        }
+      ],
+      "deliverable": {
+        "format": "chat",
+        "operations": []
+      },
+      "capabilities": [
+        {
+          "name": "Vehicle registration details",
+          "slug": "vehicle.registration.check",
+          "domain": "vehicle",
+          "inputs": [
+            "plate_number"
+          ],
+          "missing": [],
+          "outputs": [
+            "make",
+            "model",
+            "first_registration",
+            "apk_expiry",
+            "recall_indicators"
+          ],
+          "confidence": 0.9,
+          "subject_id": "s1",
+          "description": "Retrieve make and model, first registration date, APK expiry date, and recall indicators for a Dutch vehicle registration plate.",
+          "source_hint": null
+        }
+      ]
+    },
+    "catalog_version": "0aa7feb9ea4fcae363ec743d8e521d206020880d3e6814327a365c9242e6c281",
+    "selected_capabilities": [
+      "vehicle.registry-lookup",
+      "vehicle.registry-search",
+      "vehicle.technical-profile"
+    ],
+    "apiosk_sources_searched": 46
+  }
+}
