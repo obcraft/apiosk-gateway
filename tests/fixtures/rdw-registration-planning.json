@@ -377,7 +377,7 @@
                 "properties": {
                   "merk": {
                     "type": "string",
-                    "$comment": "{\"apiosk_output_aliases_v1\":[\"brand\",\"make\"]}"
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"brand\",\"make\",\"make_model\"]}"
                   },
                   "lengte": {
                     "type": "string",
@@ -413,7 +413,7 @@
                   },
                   "handelsbenaming": {
                     "type": "string",
-                    "$comment": "{\"apiosk_output_aliases_v1\":[\"trade_name\",\"commercial_name\",\"model\"]}",
+                    "$comment": "{\"apiosk_output_aliases_v1\":[\"trade_name\",\"commercial_name\",\"model\",\"make_model\"]}",
                     "description": "RDW commercial designation (handelsbenaming), such as POLO. This does not identify an exact trim or model variant."
                   },
                   "hoogte_voertuig": {

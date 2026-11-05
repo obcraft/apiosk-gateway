@@ -117,7 +117,7 @@ const migrations=new URL('../supabase/migrations/',import.meta.url);
 for(const name of (await fs.readdir(migrations)).filter(name=>/^\d{14}_.+\.sql$/.test(name)&&name.slice(0,14)>='20260925000000'&&!name.endsWith('_prod_only.sql')&&!name.includes('eurostat_unemployment_by_country')
   // RDW catalog metadata is verified in test-rdw-field-migration.mjs; this
   // runtime-only fixture has neither its fact definition nor provider rows.
-  && !name.endsWith('_rdw_registration_field_coverage.sql')
+  && !/_rdw_registration_(field_coverage|compound_aliases)\.sql$/.test(name)
   // Coinbase Bazaar import/review migrations need its production provider
   // schema; scripts/test-bazaar-source-migration.mjs covers them together.
   &&!/_(coinbase_bazaar_source|fix_bazaar_logo_check|publish_bazaar_on_admin_approval)\.sql$/.test(name)
