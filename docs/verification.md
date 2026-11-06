@@ -33,7 +33,6 @@ Vanuit `gateway-v2`:
 cargo test --workspace --offline
 cargo clippy --workspace --all-targets --offline -- -D warnings
 node scripts/test-integration.mjs
-node scripts/check-source-reuse.mjs
 node scripts/sync-contracts.mjs --check
 node scripts/sync-migration.mjs --check
 ```

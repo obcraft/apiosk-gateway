@@ -1,12 +1,11 @@
 use super::agent_execute::agent_execute_response;
 use super::wallet::{is_idempotent_method, ConnectTokenContext};
 use super::{
-    append_forward_query, build_agent_listing_metadata, build_agent_wallet_internal_tx_hash,
-    build_execute_query, derive_default_operation, find_agent_operation, hash_connect_token,
+    append_forward_query, build_agent_listing_metadata, build_execute_query, derive_default_operation, find_agent_operation, hash_connect_token,
     is_valid_api_slug, join_origin_url, normalize_path, normalize_wallet_like,
     payment_checkout_page, should_charge_credits_after_upstream,
     should_settle_deferred_api_payment, substitute_operation_path, uses_execute_envelope,
-    wallets_match, AgentOperation, AllowedApiPaymentRails, CheckoutBanner, CheckoutBannerTone,
+    AgentOperation, AllowedApiPaymentRails, CheckoutBanner, CheckoutBannerTone,
     PaymentCheckoutOptions,
 };
 use crate::api_management::helpers::validate_upstream_url;
@@ -75,17 +74,6 @@ fn hash_connect_token_is_deterministic() {
     assert_eq!(one.len(), 64);
 }
 
-#[test]
-fn internal_agent_wallet_tx_hash_is_unique() {
-    let wallet_id = Uuid::parse_str("f7f23c1c-5acf-49f4-8d99-2a47032ad66a").unwrap();
-    let one = build_agent_wallet_internal_tx_hash(wallet_id);
-    let two = build_agent_wallet_internal_tx_hash(wallet_id);
-
-    assert!(one.starts_with("aw_internal_"));
-    assert!(one.contains(&wallet_id.simple().to_string()));
-    assert_ne!(one, two);
-}
-
 fn make_token_wallet(address: &str) -> AgentConnectTokenWallet {
     AgentConnectTokenWallet {
         wallet_id: Uuid::new_v4(),
@@ -106,23 +94,6 @@ fn make_token(wallets: Vec<AgentConnectTokenWallet>, _legacy_sepa: bool) -> Agen
         expires_at: None,
         policy_id: None,
     }
-}
-
-#[test]
-fn connect_token_find_wallet_is_case_insensitive() {
-    let token = make_token(
-        vec![make_token_wallet(
-            "0xB581c1F0d12331E3848043760B830695D3480574",
-        )],
-        false,
-    );
-    assert!(token
-        .find_wallet("0xb581c1f0d12331e3848043760b830695d3480574")
-        .is_some());
-    assert!(token
-        .find_wallet("0xB581C1F0D12331E3848043760B830695D3480574")
-        .is_some());
-    assert!(token.find_wallet("0xdead").is_none());
 }
 
 #[test]
@@ -155,18 +126,6 @@ fn connect_token_context_sole_wallet_requires_exactly_one() {
     };
     assert!(multi_wallet_ctx.sole_wallet().is_none());
     assert!(multi_wallet_ctx.has_wallets());
-}
-
-#[test]
-fn wallet_normalization_and_match() {
-    let a = "0xB581c1F0d12331E3848043760B830695D3480574";
-    let b = "0xb581c1f0d12331e3848043760b830695d3480574";
-    assert_eq!(
-        normalize_wallet_like(a).as_deref(),
-        Some("0xb581c1f0d12331e3848043760b830695d3480574")
-    );
-    assert!(wallets_match(a, b));
-    assert!(!wallets_match("0x1234", b));
 }
 
 #[test]

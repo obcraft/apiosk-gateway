@@ -34,7 +34,7 @@ fn screening() -> SavedSource {
 #[test]
 fn unreported_screening_is_retained_with_original_evidence_across_source_failure() {
     let s = screening();
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     let b = report(&[], Some(&a), &BTreeSet::new());
     assert_eq!(b["new_signal_count"], 1);
     assert_eq!(b["new_signals"][0]["signal_id"], a["new_signals"][0]["signal_id"]);
@@ -238,7 +238,7 @@ fn baseline_distinguishes_first_observation_from_change_with_exact_evidence() {
         "kvk-dutch-business-register",
         json!({"kvkNummer":"01234567","naam":"Acme B.V."}),
     );
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     assert_eq!(a["new_signal_count"], 0);
     s.document["data"]["naam"] = json!("Acme Nieuw B.V.");
     let b = report(&[s.clone()], Some(&a), &BTreeSet::new());
@@ -252,7 +252,7 @@ fn baseline_distinguishes_first_observation_from_change_with_exact_evidence() {
 #[test]
 fn reported_signal_survives_receipt_timestamp_score_changes_and_missing_intermediate_result() {
     let mut s = screening();
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     assert_eq!(a["new_signals"][0]["change"], "first_observation");
     let reported = BTreeSet::from([a["new_signals"][0]["signal_id"]
         .as_str()
@@ -269,7 +269,7 @@ fn reported_signal_survives_receipt_timestamp_score_changes_and_missing_intermed
 #[test]
 fn unreported_signals_remain_available_and_matches_are_never_confirmed_identity() {
     let s = screening();
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     let b = report(&[s], Some(&a), &BTreeSet::new());
     assert_eq!(b["new_signal_count"], 1);
     assert_eq!(b["signals"][0]["kind"], "potential_screening_match");
@@ -329,7 +329,7 @@ fn partial_results_keep_positive_evidence_without_claiming_complete_coverage() {
 fn provider_array_order_does_not_reannounce_a_screening_match() {
     let mut s = screening();
     s.document["data"]["responses"]["q1"]["results"][0]["datasets"] = json!(["eu", "ofac"]);
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     s.document["data"]["responses"]["q1"]["results"][0]["datasets"] = json!(["ofac", "eu"]);
     let b = report(&[s], Some(&a), &BTreeSet::new());
     assert_eq!(a["signals"][0]["signal_id"], b["signals"][0]["signal_id"]);
@@ -341,7 +341,7 @@ fn an_undelivered_registry_change_is_retained_on_the_next_equal_check() {
         "kvk-dutch-business-register",
         json!({"kvkNummer":"01234567","naam":"Acme B.V."}),
     );
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     s.document["data"]["naam"] = json!("Acme Nieuw B.V.");
     let b = report(&[s.clone()], Some(&a), &BTreeSet::new());
     let c = report(&[s], Some(&b), &BTreeSet::new());
@@ -470,7 +470,7 @@ fn registry_arrays_are_canonical_and_missing_checks_keep_the_baseline() {
         "kvk-dutch-business-register",
         json!({"kvkNummer":"01234567","naam":"Acme B.V.","handelsnamen":[{"naam":"Acme"},{"naam":"Acme Bikes"}],"totaalWerkzamePersonen":0}),
     );
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     s.document["data"]["handelsnamen"]
         .as_array_mut()
         .unwrap()
@@ -532,7 +532,7 @@ fn shielded_address_data_is_not_promoted_to_a_signal_or_email() {
         "kvk-dutch-business-register",
         json!({"kvkNummer":"01234567","naam":"Acme B.V.","_embedded":{"hoofdvestiging":{"adressen":[{"indAfgeschermd":"Nee","volledigAdres":"Public 1"}]}}}),
     );
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     s.document["data"]["_embedded"]["hoofdvestiging"]["adressen"][0] =
         json!({"indAfgeschermd":"Ja","volledigAdres":"Private 2"});
     let b = report(&[s], Some(&a), &BTreeSet::new());
@@ -575,7 +575,7 @@ fn newly_added_registration_end_compares_against_complete_previous_registration(
         "kvk-dutch-business-register",
         json!({"kvkNummer":"01234567","naam":"Acme B.V.","materieleRegistratie":{"datumAanvang":"20200101"}}),
     );
-    let a = report(&[s.clone()], None, &BTreeSet::new());
+    let a = report(std::slice::from_ref(&s), None, &BTreeSet::new());
     assert_eq!(a["new_signal_count"], 0);
     s.document["data"]["materieleRegistratie"]["datumEinde"] = json!("20261020");
     let b = report(&[s], Some(&a), &BTreeSet::new());

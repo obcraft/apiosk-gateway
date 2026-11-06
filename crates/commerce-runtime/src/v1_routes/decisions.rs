@@ -20,7 +20,7 @@ use std::sync::Arc;
 use axum::{
     body::{Body, Bytes},
     extract::{Path, State},
-    http::{header::RETRY_AFTER, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::Response,
 };
 use serde::Deserialize;
@@ -28,7 +28,8 @@ use serde_json::{json, Value};
 use uuid::Uuid;
 
 use crate::db::{DecisionInsert, OutcomeInsert};
-use crate::rate_limit::{RateLimitDecision, RateLimitPolicy};
+use crate::http::{json as json_response, refusal as error, throttled_by_ip};
+use crate::rate_limit::RateLimitPolicy;
 use crate::AppState;
 
 /// Open and unauthenticated, so cap per-IP submissions to blunt floods. Higher
@@ -98,7 +99,7 @@ pub async fn submit_decision(
         return invalid_json();
     };
 
-    if let Some(limited) = rate_limited(&state, &headers, "decision").await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "decision", DECISION_RATE_LIMIT, "That is a lot of decisions. Please slow down and retry.").await {
         return limited;
     }
 
@@ -208,7 +209,7 @@ pub async fn submit_outcome(
         return invalid_json();
     };
 
-    if let Some(limited) = rate_limited(&state, &headers, "outcome").await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "outcome", DECISION_RATE_LIMIT, "That is a lot of decisions. Please slow down and retry.").await {
         return limited;
     }
 
@@ -297,38 +298,6 @@ fn invalid_json() -> Response<Body> {
     error(StatusCode::BAD_REQUEST, "invalid_json", "Send a JSON body.")
 }
 
-async fn rate_limited(
-    state: &Arc<AppState>,
-    headers: &HeaderMap,
-    scope: &str,
-) -> Option<Response<Body>> {
-    let ip = headers
-        .get("fly-client-ip")
-        .or_else(|| headers.get("x-forwarded-for"))
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    match state
-        .rate_limiter
-        .check(&format!("{scope}:{ip}"), DECISION_RATE_LIMIT)
-        .await
-    {
-        RateLimitDecision::Allowed { .. } => None,
-        RateLimitDecision::Throttled { retry_after } => {
-            let mut response = error(
-                StatusCode::TOO_MANY_REQUESTS,
-                "rate_limited",
-                "That is a lot of decisions. Please slow down and retry.",
-            );
-            if let Ok(value) = HeaderValue::from_str(&retry_after.as_secs().max(1).to_string()) {
-                response.headers_mut().insert(RETRY_AFTER, value);
-            }
-            Some(response)
-        }
-    }
-}
-
 /// Keeps only what the record can use: a bounded array of
 /// `{api_slug, path, reason}`. An agent that sends bare slugs, or a wrapped
 /// object, still gets its rejections recorded rather than dropped.
@@ -392,21 +361,6 @@ fn header_value(headers: &HeaderMap, name: &str, max: usize) -> Option<String> {
 
 fn parse_uuid(value: Option<&str>) -> Option<Uuid> {
     Uuid::parse_str(value?.trim()).ok()
-}
-
-fn json_response(status: StatusCode, body: Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header("Content-Type", "application/json")
-        .body(Body::from(body.to_string()))
-        .unwrap()
-}
-
-fn error(status: StatusCode, code: &str, message: &str) -> Response<Body> {
-    json_response(
-        status,
-        json!({"ok": false, "error": code, "message": message}),
-    )
 }
 
 #[cfg(test)]

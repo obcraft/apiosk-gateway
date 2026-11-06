@@ -204,7 +204,7 @@ pub async fn list_providers(
 ) -> Result<Response, StatusCode> {
     let mut mapped = provider_directory(&state, params.search.as_deref()).await?;
     if params.sort.as_deref() == Some("name") {
-        mapped.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+        mapped.sort_by_key(|a| a.name.to_lowercase());
     }
     let total = mapped.len() as i64;
     let limit = params.limit.clamp(1, 500) as usize;

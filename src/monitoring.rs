@@ -498,7 +498,7 @@ mod tests {
         let baseline = snap(&[source(profile())],None);
         let mut data=profile();data["naam"]=json!("Fixture Nieuw B.V.");
         let changed_source=source(data);
-        let changed = snap(&[changed_source.clone()],Some(&baseline));
+        let changed = snap(std::slice::from_ref(&changed_source),Some(&baseline));
         assert_ne!(comparison_hash(&baseline),comparison_hash(&changed));
         assert_eq!(changed["new_signals"][0]["previous"],"Fixture B.V.");
         assert_eq!(changed["new_signals"][0]["current"],"Fixture Nieuw B.V.");

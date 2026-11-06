@@ -342,12 +342,9 @@ fn accept(question: &str, slug: &str, value: &str, catalogue: &ReaderCatalogue) 
     }
     match &input.pattern {
         None => true,
-        Some(pattern) => {
-            let matches = regex::Regex::new(pattern)
-                .map(|re| re.is_match(value))
-                .unwrap_or(false);
-            matches
-        }
+        Some(pattern) => regex::Regex::new(pattern)
+            .map(|re| re.is_match(value))
+            .unwrap_or(false),
     }
 }
 

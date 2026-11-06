@@ -322,6 +322,7 @@ mod tests {
                 location: Some("body".to_string()),
                 name: "namen".to_string(),
                 wrap: Some("array".to_string()),
+                default: None,
             },
         );
         let bound = bind(&contract, &facts(&[("company.name", json!("Mollie"))])).unwrap();
@@ -337,6 +338,7 @@ mod tests {
                 location: Some("header".to_string()),
                 name: "X-Name".to_string(),
                 wrap: None,
+                default: None,
             },
         );
         assert!(matches!(

@@ -207,6 +207,7 @@ impl Telemetry {
         }
     }
 
+    #[cfg(test)]
     /// Total events dropped due to a full queue (for the realtime "dropped rate"
     /// admin panel and health checks).
     pub fn dropped_count(&self) -> u64 {

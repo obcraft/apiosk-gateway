@@ -54,7 +54,7 @@ use crate::request_context::PresenceSessionContext;
 
 pub use models::{
     AgentConnectToken, AgentConnectTokenLookup, AgentConnectTokenWallet, AgentIntentInsert, Api,
-    ApiDetail, ApiInfo, ApiInfoAdmin, ApiUsage, CreditChargeError, CreditChargeResult, Endpoint,
+    ApiDetail, ApiInfo, ApiUsage, CreditChargeError, CreditChargeResult, Endpoint,
     EndpointDocsBundle, EndpointPricingRule, EndpointSchemas, EndpointWithDocs,
     GatewayRequestLogInsert, NetworkToken, PresenceSessionUpsert, ProviderListingCounts,
     ProviderSummary, WalletUsage,
@@ -178,34 +178,4 @@ impl Database {
         Ok(pool)
     }
 
-    /// Mark a payout wallet as ownership-verified. Called by the gateway's
-    /// signature-gated `POST /v1/payout/link` boundary AFTER it has recovered the
-    /// EIP-191 signer and confirmed it equals the claimed address — that signature
-    /// IS the proof of ownership. The gateway connects with a role that bypasses
-    /// RLS, so this is the trusted server-side authority for the
-    /// `verification_status` go-live gate; browser clients are blocked from writing
-    /// it directly by the `payout_wallets_guard_verification` trigger
-    /// (migration 034).
-    ///
-    /// Idempotent and best-effort: matches by address (case-insensitive) and only
-    /// promotes rows not already verified. Returns the number of rows updated.
-    pub async fn mark_payout_wallet_verified(
-        &self,
-        address: &str,
-        ownership_signature: &str,
-    ) -> Result<u64> {
-        let result = sqlx::query(
-            r#"UPDATE payout_wallets
-               SET verification_status = 'verified',
-                   verified_at = now(),
-                   ownership_signature = $2
-               WHERE lower(address) = lower($1)
-                 AND verification_status <> 'verified'"#,
-        )
-        .bind(address)
-        .bind(ownership_signature)
-        .execute(&self.pool)
-        .await?;
-        Ok(result.rows_affected())
-    }
 }

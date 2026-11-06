@@ -319,17 +319,17 @@ fn record_click(
 ) {
     let pool = state.db.pool.clone();
     let slug = slug.to_string();
-    let target_url = truncate(target_url, MAX_URL_CHARS);
+    let target_url = crate::util::truncate_chars(target_url, MAX_URL_CHARS);
     let target_host = target_host.to_string();
     let ua_class = ua_class.to_string();
     let user_agent = headers
         .get(USER_AGENT)
         .and_then(|value| value.to_str().ok())
-        .map(|value| truncate(value, MAX_USER_AGENT_CHARS));
+        .map(|value| crate::util::truncate_chars(value, MAX_USER_AGENT_CHARS));
     let referer = headers
         .get(REFERER)
         .and_then(|value| value.to_str().ok())
-        .map(|value| truncate(value, MAX_REFERER_CHARS));
+        .map(|value| crate::util::truncate_chars(value, MAX_REFERER_CHARS));
     let ip_hash =
         crate::traffic::client_ip_from_headers(headers).map(|ip| crate::traffic::hash_ip(&ip));
 
@@ -380,10 +380,6 @@ pub fn host_of(url: &str) -> Option<String> {
 
 fn is_http_url(url: &str) -> bool {
     (url.starts_with("https://") || url.starts_with("http://")) && host_of(url).is_some()
-}
-
-fn truncate(value: &str, max_chars: usize) -> String {
-    value.chars().take(max_chars).collect()
 }
 
 #[cfg(test)]

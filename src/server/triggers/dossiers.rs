@@ -80,14 +80,14 @@ fn card(d: &Value, asker: Option<&str>) -> (String, Value) {
     (text, Value::Array(blocks))
 }
 async fn get(pool: &PgPool, owner: Uuid, id: Uuid) -> anyhow::Result<Value> {
-    Ok(sqlx::query_scalar(&format!(
+    sqlx::query_scalar(&format!(
         "SELECT {FIELDS} FROM gateway_v2.slack_dossiers d WHERE d.id=$1 AND d.owner_id=$2"
     ))
     .bind(id)
     .bind(owner)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| anyhow::anyhow!("Dossier unavailable."))?)
+    .ok_or_else(|| anyhow::anyhow!("Dossier unavailable."))
 }
 async fn scoped(s: &ServerState, h: &HeaderMap, id: Uuid) -> Result<(Principal, Value), Response> {
     let p = monitoring::person(s, h).await?;

@@ -210,8 +210,26 @@ fn review_card(message: &str, channel: &str, value: &str) -> (String, Value) {
     ("A Slack message is awaiting your review.".into(), Value::Array(blocks))
 }
 
-async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: String, approver: String,
-    approver_name: Option<String>, signals: bool, test: bool, review: Option<&str>, dossier: Option<(Uuid, &str)>) -> anyhow::Result<Posted> {
+/// One approval request: who reviews what, and where the answer lands.
+struct Approval<'a> {
+    trigger: Uuid,
+    channel: &'a str,
+    company: String,
+    approver: String,
+    approver_name: Option<String>,
+    /// Whether the card lists sample findings (tool tests only).
+    signals: bool,
+    /// A tool test: the notice says so, and nothing is recorded as real.
+    test: bool,
+    /// A human review request carries its message; a tool test builds the
+    /// card from the company name instead.
+    review: Option<&'a str>,
+    /// The dossier the request belongs to, and the thread root it replies in.
+    dossier: Option<(Uuid, &'a str)>,
+}
+
+async fn send_approval(to: Poster<'_>, request: Approval<'_>) -> anyhow::Result<Posted> {
+    let Approval { trigger, channel, company, approver, approver_name, signals, test, review, dossier } = request;
     let line = format!("Requesting approval for *{}* from <@{approver}>. Sending DM…", esc(&company));
     // A new channel message, never a reply in the dossier's thread.
     let notice_ts = to.post(channel, None, &line, &notice(&line, test)).await?;
@@ -251,8 +269,10 @@ async fn send_approval(to: Poster<'_>, channel: &str, trigger: Uuid, company: St
 /// The normal trigger action: an actual human review request, without sample findings.
 pub(super) async fn request_review(pool: &sqlx::PgPool, composio: &Composio, owner: Uuid, bot: &str,
     trigger: Uuid, channel: &str, message: &str, approver: &str, name: &str) {
-    let result = send_approval(Poster { composio, owner, bot }, channel, trigger, "Slack review request".into(),
-        approver.into(), Some(name.into()), false, false, Some(message), None).await;
+    let result = send_approval(Poster { composio, owner, bot }, Approval {
+        trigger, channel, company: "Slack review request".into(), approver: approver.into(), approver_name: Some(name.into()),
+        signals: false, test: false, review: Some(message), dossier: None,
+    }).await;
     match result {
         Ok(posted) => {
             let ts = posted.activity["message_ts"].as_str().unwrap_or_default();
@@ -274,7 +294,10 @@ pub(super) async fn request_dossier_review(pool:&sqlx::PgPool,c:&Composio,owner:
     if exists {c.apiosk_bot_post(owner,bot,channel,None,"This dossier already has a review request. Its decision is recorded in Activity and the dossier.",None).await?;return Ok(())}
     let company=d["company"]["name"].as_str().unwrap_or("Company dossier");
     let message=format!("Review the saved source evidence for {} (KVK {}). This decision records your review; it does not authorize purchases or activate monitoring.\n{}",company,d["company"]["kvk_number"].as_str().unwrap_or_default(),super::dossiers::url(id));
-    let posted=send_approval(Poster{composio:c,owner,bot},channel,trigger,company.into(),approver.into(),Some(name.into()),false,false,Some(&message),Some((id,thread))).await?;
+    let posted=send_approval(Poster{composio:c,owner,bot},Approval{
+        trigger,channel,company:company.into(),approver:approver.into(),approver_name:Some(name.into()),
+        signals:false,test:false,review:Some(&message),dossier:Some((id,thread)),
+    }).await?;
     super::activity::record(pool,trigger,owner,&format!("dossier-review:{id}:{}",Uuid::new_v4()),&posted.text,false,&posted.activity).await?;
     lock.commit().await?;
     if let Some(error)=posted.delivery_error {return Err(error.into())}
@@ -295,7 +318,7 @@ async fn run(to: Poster<'_>, channel: &str, trigger: Uuid, test: ToolTest) -> an
             Ok(posted("screen_company", channel, ts, text, &blocks))
         }
         ToolTest::RequestApproval { company, approver, approver_name, signals } =>
-            send_approval(to, channel, trigger, company, approver, approver_name, signals, true, None, None).await,
+            send_approval(to, Approval { trigger, channel, company, approver, approver_name, signals, test: true, review: None, dossier: None }).await,
         ToolTest::CreateMonitor { company, frequency, negative_news } => {
             let (text, blocks) = monitor(&company, frequency, negative_news);
             let ts = to.post(channel, None, &text, &blocks).await?;

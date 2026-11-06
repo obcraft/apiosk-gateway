@@ -145,32 +145,6 @@ fn context_from_lookup(
     }
 }
 
-/// Authorize the x402 payer against the connect token's wallet allowlist and
-/// enforce that wallet's per-tx + daily USDC caps. Returns the chosen
-/// `AgentWalletSession` so the caller can record settlement against it.
-pub(super) async fn authorize_wallet_payment(
-    state: &Arc<AppState>,
-    ctx: &ConnectTokenContext,
-    payer: &str,
-    call_amount: &BigDecimal,
-) -> Result<AgentWalletSession, Response<Body>> {
-    let Some(wallet) = ctx.token.find_wallet(payer) else {
-        return Err(json_error_response(
-            StatusCode::FORBIDDEN,
-            "agent_wallet_not_authorized",
-            "Payer wallet is not authorized by this connect token.",
-        ));
-    };
-
-    enforce_wallet_caps(state, wallet, call_amount).await?;
-
-    Ok(AgentWalletSession {
-        token_id: ctx.token_id(),
-        wallet_id: wallet.wallet_id,
-        wallet_address: wallet.wallet_address.clone(),
-    })
-}
-
 /// Authorize a prepaid (no-x402-proof) call by walking the connect token's
 /// authorized wallets in order and picking the first one that (a) passes the
 /// per-tx + daily caps, and (b) is currently fundable on-chain.
@@ -371,13 +345,6 @@ pub fn hash_connect_token(token: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.update(token.as_bytes());
     hex::encode(hasher.finalize())
-}
-
-pub(super) fn wallets_match(left: &str, right: &str) -> bool {
-    normalize_wallet_like(left)
-        .zip(normalize_wallet_like(right))
-        .map(|(a, b)| a == b)
-        .unwrap_or(false)
 }
 
 pub(super) fn normalize_wallet_like(wallet: &str) -> Option<String> {

@@ -25,6 +25,8 @@ use tracing::warn;
 use uuid::Uuid;
 
 use crate::{
+    traffic::client_ip_from_headers,
+    util::truncate_chars,
     rate_limit::{RateLimitDecision, RateLimitPolicy},
     request_context::REQUEST_ID_HEADER,
     AppState,
@@ -105,7 +107,7 @@ pub async fn submit_intent(
     }
 
     // Client IP, validated to parse as an IP so the `::inet` insert can't fail.
-    let ip_address = client_ip(&headers);
+    let ip_address = client_ip_from_headers(&headers);
 
     // Per-IP flood guard.
     let rl_key = format!("intent:{}", ip_address.as_deref().unwrap_or("unknown"));
@@ -126,7 +128,7 @@ pub async fn submit_intent(
         return response;
     }
 
-    let intent = truncate(intent, MAX_INTENT_CHARS);
+    let intent = truncate_chars(intent, MAX_INTENT_CHARS);
     let use_case = clean(submission.use_case.as_deref(), MAX_USE_CASE_CHARS);
     let contact = clean(submission.contact.as_deref(), MAX_CONTACT_CHARS);
     let agent = clean(submission.agent.as_deref(), MAX_AGENT_CHARS);
@@ -137,7 +139,7 @@ pub async fn submit_intent(
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(|s| truncate(&s.to_uppercase(), MAX_METHOD_CHARS));
+        .map(|s| truncate_chars(&s.to_uppercase(), MAX_METHOD_CHARS));
 
     // Correlate to the 402: prefer the body's requestId, else the X-Request-Id
     // the traffic middleware stamped on the 402 the caller is answering.
@@ -155,7 +157,7 @@ pub async fn submit_intent(
     let user_agent = headers
         .get(USER_AGENT)
         .and_then(|v| v.to_str().ok())
-        .map(|s| truncate(s, MAX_USER_AGENT_CHARS));
+        .map(|s| truncate_chars(s, MAX_USER_AGENT_CHARS));
 
     let insert = crate::db::AgentIntentInsert {
         request_id,
@@ -269,44 +271,7 @@ fn clean(value: Option<&str>, max: usize) -> Option<String> {
     value
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .map(|s| truncate(s, max))
-}
-
-/// Cap a string to `max` characters (not bytes), preserving valid UTF-8.
-fn truncate(s: &str, max: usize) -> String {
-    if s.chars().count() <= max {
-        s.to_string()
-    } else {
-        s.chars().take(max).collect()
-    }
-}
-
-/// First client IP from the forwarding headers, validated to parse as an IP.
-fn client_ip(headers: &HeaderMap) -> Option<String> {
-    let candidate = headers
-        .get("fly-client-ip")
-        .and_then(|v| v.to_str().ok())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .or_else(|| {
-            headers
-                .get("x-forwarded-for")
-                .and_then(|v| v.to_str().ok())
-                .and_then(|v| v.split(',').next())
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-        })
-        .or_else(|| {
-            headers
-                .get("x-real-ip")
-                .and_then(|v| v.to_str().ok())
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-        })?;
-    candidate
-        .parse::<std::net::IpAddr>()
-        .ok()
-        .map(|ip| ip.to_string())
+        .map(|s| truncate_chars(s, max))
 }
 
 #[cfg(test)]
@@ -347,26 +312,20 @@ mod tests {
     }
 
     #[test]
-    fn truncate_respects_char_boundaries() {
-        assert_eq!(truncate("héllo", 3), "hél");
-        assert_eq!(truncate("abc", 10), "abc");
-    }
-
-    #[test]
     fn client_ip_only_accepts_parseable_ips() {
         let mut headers = HeaderMap::new();
         headers.insert(
             HeaderName::from_static("x-forwarded-for"),
             HeaderValue::from_static("203.0.113.7, 10.0.0.1"),
         );
-        assert_eq!(client_ip(&headers), Some("203.0.113.7".to_string()));
+        assert_eq!(client_ip_from_headers(&headers), Some("203.0.113.7".to_string()));
 
         let mut junk = HeaderMap::new();
         junk.insert(
             HeaderName::from_static("x-forwarded-for"),
             HeaderValue::from_static("not-an-ip"),
         );
-        assert_eq!(client_ip(&junk), None);
+        assert_eq!(client_ip_from_headers(&junk), None);
     }
 
     #[test]
@@ -380,6 +339,6 @@ mod tests {
             HeaderName::from_static("x-forwarded-for"),
             HeaderValue::from_static("198.51.100.4, 10.0.0.1"),
         );
-        assert_eq!(client_ip(&headers), Some("203.0.113.9".to_string()));
+        assert_eq!(client_ip_from_headers(&headers), Some("203.0.113.9".to_string()));
     }
 }

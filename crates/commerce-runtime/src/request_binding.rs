@@ -500,7 +500,7 @@ pub async fn bind(
             // codes by construction: accept a model-authored one only when the
             // same literal occurs in the user's job. A declared resolver may
             // then obtain an unknown id; this model may never manufacture it.
-            if param.pattern.is_some() && !literal_occurs_in(&prompt, &value) {
+            if param.pattern.is_some() && !literal_occurs_in(prompt, &value) {
                 continue;
             }
             apply_value(&mut binding, param, value);

@@ -236,7 +236,7 @@ pub fn header_value(challenge: &Challenge, wallet: &LocalWallet) -> Result<Strin
     // async signer wants a runtime and this runs inside one already.
     let digest = hash_message(message.as_bytes());
     let signature = wallet
-        .sign_hash(H256::from(digest))
+        .sign_hash(digest)
         .context("signing the SIWX challenge")?;
 
     let mut payload = json!({

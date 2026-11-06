@@ -398,33 +398,4 @@ impl Database {
         Ok(())
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub async fn log_developer_revenue(
-        &self,
-        api_id: Uuid,
-        owner_wallet: &str,
-        settlement_tx: &str,
-        gross_amount: BigDecimal,
-        commission_rate: BigDecimal,
-        commission_amount: BigDecimal,
-        developer_amount: BigDecimal,
-    ) -> Result<()> {
-        sqlx::query(
-            r#"INSERT INTO developer_revenue
-               (api_id, owner_wallet, settlement_tx, gross_amount, commission_rate,
-                commission_amount, developer_amount)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)"#,
-        )
-        .bind(api_id)
-        .bind(owner_wallet)
-        .bind(settlement_tx)
-        .bind(&gross_amount)
-        .bind(&commission_rate)
-        .bind(&commission_amount)
-        .bind(&developer_amount)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
 }

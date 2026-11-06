@@ -25,15 +25,15 @@ use std::sync::Arc;
 use axum::{
     body::{Body, Bytes},
     extract::State,
-    http::{header::RETRY_AFTER, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::Response,
 };
 use serde::Deserialize;
-use serde_json::{json, Value};
 
 use crate::auth::extract_credits_user_jwt;
 use crate::portal_auth::{resolve_portal_user_id, PortalAuthError};
-use crate::rate_limit::{RateLimitDecision, RateLimitPolicy};
+use crate::http::{json as json_response, refusal as error, throttled_by_ip};
+use crate::rate_limit::RateLimitPolicy;
 use crate::AppState;
 
 /// Every probe is one outbound request to somebody else's server, fired by a
@@ -69,7 +69,7 @@ pub async fn probe_source(
         return response;
     }
 
-    if let Some(limited) = rate_limited(&state, &headers).await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "discovery-probe", PROBE_RATE_LIMIT, "That is a lot of probing. Each one calls somebody else's server — please slow down.").await {
         return limited;
     }
 
@@ -165,45 +165,3 @@ pub(crate) async fn require_platform_admin(
     }
 }
 
-async fn rate_limited(state: &Arc<AppState>, headers: &HeaderMap) -> Option<Response<Body>> {
-    let ip = headers
-        .get("fly-client-ip")
-        .or_else(|| headers.get("x-forwarded-for"))
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    match state
-        .rate_limiter
-        .check(&format!("discovery-probe:{ip}"), PROBE_RATE_LIMIT)
-        .await
-    {
-        RateLimitDecision::Allowed { .. } => None,
-        RateLimitDecision::Throttled { retry_after } => {
-            let mut response = error(
-                StatusCode::TOO_MANY_REQUESTS,
-                "rate_limited",
-                "That is a lot of probing. Each one calls somebody else's server — please slow down.",
-            );
-            if let Ok(value) = HeaderValue::from_str(&retry_after.as_secs().max(1).to_string()) {
-                response.headers_mut().insert(RETRY_AFTER, value);
-            }
-            Some(response)
-        }
-    }
-}
-
-fn json_response(status: StatusCode, body: Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header("Content-Type", "application/json")
-        .body(Body::from(body.to_string()))
-        .unwrap()
-}
-
-fn error(status: StatusCode, code: &str, message: &str) -> Response<Body> {
-    json_response(
-        status,
-        json!({"ok": false, "error": code, "message": message}),
-    )
-}

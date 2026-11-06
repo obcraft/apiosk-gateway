@@ -612,24 +612,6 @@ impl EndpointCache {
             .map_err(|err| anyhow!("endpoint lookup failed: {err}"))
     }
 
-    /// Get documentation bundle for a resolved endpoint, using cache.
-    /// Mirrors `get_endpoint` but joins `apis` to pull the API-level
-    /// description as a fallback. Returns `Ok(None)` when neither the
-    /// endpoint nor the API can supply documentation.
-    pub async fn get_endpoint_docs(
-        &self,
-        db: &Database,
-        key: &CacheKey,
-    ) -> Result<Option<EndpointDocsBundle>> {
-        self.endpoint_docs_cache
-            .try_get_with(key.clone(), async {
-                db.get_endpoint_docs_bundle(key.api_id, &key.method, &key.path)
-                    .await
-            })
-            .await
-            .map_err(|err| anyhow!("endpoint docs lookup failed: {err}"))
-    }
-
     /// Get the provider directory for an optional search term, using cache.
     pub async fn get_providers(
         &self,
@@ -642,22 +624,6 @@ impl EndpointCache {
             })
             .await
             .map_err(|err| anyhow!("provider directory load failed: {err}"))
-    }
-
-    /// Measured per-listing stats, computed at most once a minute.
-    ///
-    /// Read through `try_get_with` so a burst of searches triggers one query
-    /// rather than one per request.
-    pub async fn get_provider_stats(
-        &self,
-        db: &Database,
-    ) -> Result<std::sync::Arc<HashMap<String, ProviderStats>>> {
-        self.provider_stats_cache
-            .try_get_with((), async {
-                db.provider_latency_stats().await.map(std::sync::Arc::new)
-            })
-            .await
-            .map_err(|err| anyhow!("provider stats load failed: {err}"))
     }
 
     /// De catalogus voor `/v1/ask`, geladen als hij er niet is.
@@ -704,21 +670,6 @@ impl EndpointCache {
         &self,
     ) -> Option<std::sync::Arc<HashMap<String, ProviderStats>>> {
         self.provider_stats_cache.get(&()).await
-    }
-
-    /// Puts a freshly computed set in. Called by the background refresher.
-    pub async fn put_provider_stats(&self, stats: std::sync::Arc<HashMap<String, ProviderStats>>) {
-        self.provider_stats_cache.insert((), stats).await;
-    }
-
-    /// A cached Bazaar search payload, if one is still warm.
-    pub async fn get_bazaar_search(&self, query: &str) -> Option<serde_json::Value> {
-        self.bazaar_cache.get(query).await
-    }
-
-    /// Stores a raw Bazaar search payload. Unfiltered on purpose; see the field.
-    pub async fn put_bazaar_search(&self, query: &str, payload: serde_json::Value) {
-        self.bazaar_cache.insert(query.to_string(), payload).await;
     }
 
     /// One external-source document, fetched at most once per key at a time.
@@ -774,12 +725,6 @@ impl EndpointCache {
     /// outage is retried, not remembered.
     pub async fn put_source_provider_curation(&self, map: std::sync::Arc<crate::db::CurationMap>) {
         self.source_provider_curation_cache.insert((), map).await;
-    }
-
-    /// Drops the seller curation map, so an admin's edit through the gateway
-    /// is live on the next sweep rather than after the TTL.
-    pub async fn invalidate_source_provider_curation(&self) {
-        self.source_provider_curation_cache.invalidate_all();
     }
 
     /// Who this session token belongs to, verifying only if we must.

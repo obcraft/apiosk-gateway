@@ -113,18 +113,6 @@ pub(super) fn internal_revenue_receipt_id(
     ))
 }
 
-pub(super) fn build_agent_wallet_internal_tx_hash(wallet_id: Uuid) -> String {
-    format!(
-        "aw_internal_{}_{}",
-        wallet_id.simple(),
-        Uuid::new_v4().simple()
-    )
-}
-
-pub(super) fn is_internal_agent_wallet_tx_hash(tx_hash: &str) -> bool {
-    tx_hash.starts_with("aw_internal_")
-}
-
 pub(super) fn connector_from_listing_metadata(
     api_id: Uuid,
     metadata: &serde_json::Value,
@@ -182,7 +170,7 @@ pub(super) async fn record_paid_execution(
     // endpoint's own network, i.e. legacy single-network behaviour) and the
     // provider's payout wallet on that chain.
     settled_network_token_id: Option<Uuid>,
-    settled_payout_wallet: Option<&str>,
+    _settled_payout_wallet: Option<&str>,
     resell: Option<&crate::proxy::resell::ResellOutcome>,
 ) {
     // The hybrid fee model (`crate::fees`) is the single source of the split.
@@ -384,16 +372,6 @@ fn settlement_amounts(quote: &crate::fees::FeeQuote) -> SettlementAmounts {
         developer_amount,
         commission_rate,
     }
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    use sha2::{Digest, Sha256};
-    let digest = Sha256::digest(bytes);
-    let mut out = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        out.push_str(&format!("{:02x}", byte));
-    }
-    out
 }
 
 /// Pay a hosted x402 offer from treasury, using its provider payout destination.

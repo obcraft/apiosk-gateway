@@ -212,7 +212,7 @@ impl TrackingContext {
     /// The normalised buyer markup (1500 or 2000 bps) every quote on this
     /// request's paid path — price check, receipt, settlement — must use.
     fn buyer_markup_bps(&self) -> i128 {
-        crate::fees::allowed_buyer_markup_bps(self.buyer_markup_bps)
+        crate::fees::allowed_markup(self.buyer_markup_bps)
     }
 
     fn from_request(context: Option<&RequestContext>) -> Self {

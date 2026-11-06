@@ -81,7 +81,7 @@ pub async fn federated_inspect(
     }
     if let RateLimitDecision::Throttled { .. } = state
         .rate_limiter
-        .check(&rl_key("fed_inspect", &headers), INSPECT_POLICY)
+        .check(&format!("fed_inspect:{}", crate::http::client_ip(&headers)), INSPECT_POLICY)
         .await
     {
         return page(render_step1(
@@ -113,7 +113,7 @@ pub async fn federated_submit(
     }
     if let RateLimitDecision::Throttled { .. } = state
         .rate_limiter
-        .check(&rl_key("fed_submit", &headers), SUBMIT_POLICY)
+        .check(&format!("fed_submit:{}", crate::http::client_ip(&headers)), SUBMIT_POLICY)
         .await
     {
         return page(render_step1(
@@ -1225,24 +1225,6 @@ fn render_confirmation(v: &FormValues, updated: bool) -> String {
 // ---------------------------------------------------------------------------
 // Small helpers
 // ---------------------------------------------------------------------------
-
-/// Client IP for rate-limit keying (Fly's trusted header first, then XFF).
-fn rl_key(prefix: &str, headers: &HeaderMap) -> String {
-    let ip = headers
-        .get("fly-client-ip")
-        .and_then(|v| v.to_str().ok())
-        .map(str::to_string)
-        .or_else(|| {
-            headers
-                .get("x-forwarded-for")
-                .and_then(|v| v.to_str().ok())
-                .and_then(|v| v.split(',').next())
-                .map(|s| s.trim().to_string())
-        })
-        .filter(|s| s.parse::<std::net::IpAddr>().is_ok())
-        .unwrap_or_else(|| "unknown".to_string());
-    format!("{prefix}:{ip}")
-}
 
 /// Escape a full HTML document for embedding in an `srcdoc="…"` attribute. Only
 /// `&` and `"` need escaping in a double-quoted attribute; the browser then

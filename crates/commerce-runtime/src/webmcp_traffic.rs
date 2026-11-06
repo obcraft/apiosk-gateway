@@ -17,56 +17,40 @@
 //!   * **how much** — `webmcp_injections_daily`, per listing, site and outcome.
 //!   * **by whom**  — `webmcp_sites`, one row per (listing, site origin).
 //!
-//! Same shape and the same guarantees as [`crate::discovery_traffic`]: counters
+//! Same core as [`crate::discovery_traffic`] ([`crate::counters`]): counters
 //! are buffered in-process and flushed on a timer, every buffer is bounded, and
 //! nothing here may delay, alter or fail a response. Only browsers that expose
 //! a `modelContext` report, so this counts agent-capable page loads — never
 //! page views at large, and never anything about the visitor.
 
-use std::{
-    collections::HashMap,
-    sync::{
-        atomic::{AtomicBool, AtomicU32, Ordering},
-        Arc, Mutex,
-    },
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     body::{Body, Bytes},
     extract::State,
     http::{
-        header::{CONTENT_TYPE, ORIGIN, REFERER, RETRY_AFTER, USER_AGENT},
-        HeaderMap, HeaderValue, StatusCode,
+        header::{ORIGIN, REFERER, USER_AGENT},
+        HeaderMap, StatusCode,
     },
     response::Response,
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::Deserialize;
-use sha2::{Digest, Sha256};
 use sqlx::PgPool;
-use tracing::{info, warn};
 
 use crate::{
-    rate_limit::{RateLimitDecision, RateLimitPolicy},
+    counters::{report, CounterBuffer, Spec, Tracker},
+    http::{json, throttled_by_ip},
+    rate_limit::RateLimitPolicy,
+    util::{sha256_hex, truncate_chars},
     AppState,
 };
-
-/// How often buffered counters are written. A busy provider site injecting on
-/// every page load is counted the same whether we flush at 10s or 60s, so this
-/// is chosen for bounded memory and few round-trips, not for freshness.
-const DEFAULT_FLUSH_INTERVAL: Duration = Duration::from_secs(15);
 
 /// Buffer caps. Both key spaces are bounded in practice (slugs by the catalog,
 /// origins by the set of sites that embedded the shim), so hitting these means
 /// something pathological — count it, log it, and keep serving.
 const MAX_INJECTION_KEYS: usize = 20_000;
 const MAX_SITE_KEYS: usize = 20_000;
-
-/// Consecutive failed flushes after which the tracker stops recording. Three
-/// covers a transient database blip; a persistent failure means migration 074
-/// has not been applied, and retrying every interval only spams the log.
-const MAX_CONSECUTIVE_FLUSH_FAILURES: u32 = 3;
 
 /// Open, unauthenticated endpoint called from provider pages: cap per-IP
 /// reports. A real browser reports once per page load, but the browsers that
@@ -87,6 +71,13 @@ const MAX_TOOLS: i64 = 1_000;
 /// Reserved slug for catalog mode (`data-apiosk-catalog="1"`), which registers
 /// the gateway's own search/lookup tools rather than one listing's endpoints.
 pub const CATALOG_SLUG: &str = "_catalog";
+
+static SPEC: Spec = Spec {
+    name: "webmcp injection",
+    enabled_var: "WEBMCP_TRACKING_ENABLED",
+    interval_var: "WEBMCP_FLUSH_INTERVAL_MS",
+    migration: "074_webmcp_injections",
+};
 
 /// What the shim reports. Every field is optional at the serde layer and
 /// validated in the handler: a malformed beacon is dropped, never fatal.
@@ -121,7 +112,7 @@ fn mode_label(raw: Option<&str>) -> &'static str {
     }
 }
 
-/// One validated shim run, as handed to [`WebmcpTracker::record`].
+/// One validated shim run, as handed to [`WebmcpTracker::record_injection`].
 #[derive(Clone, Copy)]
 struct Injection<'a> {
     api_slug: &'a str,
@@ -166,86 +157,41 @@ struct SiteStat {
 }
 
 #[derive(Default)]
-struct Buffer {
+pub(crate) struct Buffer {
     injections: HashMap<InjectionKey, InjectionCount>,
     sites: HashMap<String, SiteStat>,
     /// Counters dropped because a buffer was full, reported once per flush.
     dropped: u64,
 }
 
-impl Buffer {
+impl CounterBuffer for Buffer {
     fn is_empty(&self) -> bool {
         self.injections.is_empty() && self.sites.is_empty()
     }
 
-    fn take(&mut self) -> Buffer {
-        std::mem::take(self)
+    fn dropped(&self) -> u64 {
+        self.dropped
+    }
+
+    /// Each statement is independent: a failure in one aggregate is logged and
+    /// does not discard the other.
+    async fn flush(&self, pool: &PgPool) -> bool {
+        flush_injections(self, pool).await & flush_sites(self, pool).await
     }
 }
 
 /// Handle stored on `AppState`. Cloning is cheap; every method is non-blocking.
-#[derive(Clone)]
-pub struct WebmcpTracker {
-    inner: Option<Arc<Inner>>,
-}
-
-struct Inner {
-    buffer: Mutex<Buffer>,
-    pool: PgPool,
-    /// Cleared after [`MAX_CONSECUTIVE_FLUSH_FAILURES`] failed flushes, which in
-    /// practice means migration 074 has not been applied on this database yet.
-    live: AtomicBool,
-    consecutive_failures: AtomicU32,
-}
+pub(crate) type WebmcpTracker = Tracker<Buffer>;
 
 impl WebmcpTracker {
-    /// A tracker that records nothing. Used when tracking is switched off
-    /// (`WEBMCP_TRACKING_ENABLED=false`) and in tests.
-    pub fn disabled() -> Self {
-        Self { inner: None }
-    }
-
-    /// Start the tracker and its flush loop.
+    /// Start the tracker and its flush loop (`WEBMCP_TRACKING_ENABLED=false`
+    /// turns it off).
     pub fn start(pool: PgPool, tasks: &crate::background::BackgroundTasks) -> Self {
-        if !env_bool("WEBMCP_TRACKING_ENABLED", true) {
-            info!("webmcp injection tracking disabled (WEBMCP_TRACKING_ENABLED=false)");
-            return Self::disabled();
-        }
-
-        let inner = Arc::new(Inner {
-            buffer: Mutex::new(Buffer::default()),
-            pool,
-            live: AtomicBool::new(true),
-            consecutive_failures: AtomicU32::new(0),
-        });
-        let interval = std::env::var("WEBMCP_FLUSH_INTERVAL_MS")
-            .ok()
-            .and_then(|raw| raw.trim().parse::<u64>().ok())
-            .map(Duration::from_millis)
-            .unwrap_or(DEFAULT_FLUSH_INTERVAL);
-
-        let flusher = inner.clone();
-        tasks.spawn(async move {
-            let mut ticker = tokio::time::interval(interval);
-            ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-            loop {
-                ticker.tick().await;
-                if !flusher.live.load(Ordering::Relaxed) {
-                    break;
-                }
-                flusher.flush().await;
-            }
-        });
-
-        info!(
-            "webmcp injection tracking enabled (flush every {}ms)",
-            interval.as_millis()
-        );
-        Self { inner: Some(inner) }
+        Tracker::launch(pool, tasks, &SPEC)
     }
 
     /// Record one shim run.
-    fn record(&self, run: &Injection<'_>) {
+    fn record_injection(&self, run: &Injection<'_>) {
         let Injection {
             api_slug,
             origin,
@@ -256,46 +202,31 @@ impl WebmcpTracker {
             user_agent,
         } = *run;
 
-        let Some(inner) = self.inner.as_ref() else {
-            return;
-        };
-        if !inner.live.load(Ordering::Relaxed) {
-            return;
-        }
-        let now = Utc::now();
+        self.record(|buffer, now| {
+            let key = InjectionKey {
+                day: now.date_naive(),
+                api_slug: api_slug.to_string(),
+                origin: origin.to_string(),
+                outcome,
+                mode,
+                ua_class,
+            };
+            if let Some(entry) = buffer.injections.get_mut(&key) {
+                entry.injections += 1;
+                entry.tools += tools;
+            } else if buffer.injections.len() < MAX_INJECTION_KEYS {
+                buffer.injections.insert(key, InjectionCount { injections: 1, tools });
+            } else {
+                buffer.dropped += 1;
+            }
 
-        let Ok(mut guard) = inner.buffer.lock() else {
-            return; // Poisoned by a panicking writer: drop the sample, never panic.
-        };
-        let buffer = &mut *guard;
-
-        let key = InjectionKey {
-            day: now.date_naive(),
-            api_slug: api_slug.to_string(),
-            origin: origin.to_string(),
-            outcome,
-            mode,
-            ua_class,
-        };
-        if let Some(entry) = buffer.injections.get_mut(&key) {
-            entry.injections += 1;
-            entry.tools += tools;
-        } else if buffer.injections.len() < MAX_INJECTION_KEYS {
-            buffer.injections.insert(
-                key,
-                InjectionCount {
-                    injections: 1,
-                    tools,
-                },
-            );
-        } else {
-            buffer.dropped += 1;
-        }
-
-        // One row per (listing, site): which provider pages carry the shim.
-        let site_key = sha256_hex(&format!("{api_slug}|{origin}"));
-        let known = buffer.sites.contains_key(&site_key);
-        if known || buffer.sites.len() < MAX_SITE_KEYS {
+            // One row per (listing, site): which provider pages carry the shim.
+            let site_key = sha256_hex(&format!("{api_slug}|{origin}"));
+            let known = buffer.sites.contains_key(&site_key);
+            if !known && buffer.sites.len() >= MAX_SITE_KEYS {
+                buffer.dropped += 1;
+                return;
+            }
             let entry = buffer.sites.entry(site_key).or_insert(SiteStat {
                 api_slug: api_slug.to_string(),
                 origin: origin.to_string(),
@@ -314,11 +245,9 @@ impl WebmcpTracker {
                 entry.last_tools = Some(tools.clamp(0, MAX_TOOLS) as i32);
             }
             if let Some(user_agent) = user_agent {
-                entry.last_user_agent = Some(truncate(user_agent, MAX_USER_AGENT_CHARS));
+                entry.last_user_agent = Some(truncate_chars(user_agent, MAX_USER_AGENT_CHARS));
             }
-        } else {
-            buffer.dropped += 1;
-        }
+        });
     }
 }
 
@@ -337,7 +266,7 @@ pub async fn report_injection(
     let report: InjectionReport = match serde_json::from_slice(&body) {
         Ok(parsed) => parsed,
         Err(_) => {
-            return json_response(
+            return json(
                 StatusCode::BAD_REQUEST,
                 serde_json::json!({
                     "ok": false,
@@ -349,7 +278,7 @@ pub async fn report_injection(
     };
 
     let Some(outcome) = outcome_label(report.outcome.as_deref()) else {
-        return json_response(
+        return json(
             StatusCode::BAD_REQUEST,
             serde_json::json!({
                 "ok": false,
@@ -364,7 +293,7 @@ pub async fn report_injection(
     let slug = match report.slug.as_deref().map(str::trim).unwrap_or("") {
         "" if mode == "catalog" => CATALOG_SLUG.to_string(),
         "" => {
-            return json_response(
+            return json(
                 StatusCode::BAD_REQUEST,
                 serde_json::json!({
                     "ok": false,
@@ -373,25 +302,21 @@ pub async fn report_injection(
                 }),
             );
         }
-        raw => truncate(&raw.to_lowercase(), MAX_SLUG_CHARS),
+        raw => truncate_chars(&raw.to_lowercase(), MAX_SLUG_CHARS),
     };
 
     // Per-IP flood guard. Keyed on the IP alone: a page that reloads in a loop
     // is the case this exists for.
-    let ip = client_ip(&headers).unwrap_or_else(|| "unknown".to_string());
-    if let RateLimitDecision::Throttled { retry_after } = state
-        .rate_limiter
-        .check(&format!("webmcp:{ip}"), REPORT_RATE_LIMIT)
-        .await
+    if let Some(throttled) = throttled_by_ip(
+        &state,
+        &headers,
+        "webmcp",
+        REPORT_RATE_LIMIT,
+        "Too many reports from this address. Try again shortly.",
+    )
+    .await
     {
-        let mut response = json_response(
-            StatusCode::TOO_MANY_REQUESTS,
-            serde_json::json!({ "ok": false, "error": "rate_limited" }),
-        );
-        if let Ok(value) = HeaderValue::from_str(&retry_after.as_secs().max(1).to_string()) {
-            response.headers_mut().insert(RETRY_AFTER, value);
-        }
-        return response;
+        return throttled;
     }
 
     // Tools only mean something on a successful registration.
@@ -409,7 +334,7 @@ pub async fn report_injection(
         .map(str::trim)
         .filter(|v| !v.is_empty());
 
-    state.webmcp.record(&Injection {
+    state.webmcp.record_injection(&Injection {
         api_slug: &slug,
         origin: &origin,
         outcome,
@@ -448,224 +373,117 @@ fn page_origin(headers: &HeaderMap) -> Option<String> {
             }
             Some(format!("{scheme}://{host}"))
         })?;
-    Some(truncate(&raw.to_lowercase(), MAX_ORIGIN_CHARS))
+    Some(truncate_chars(&raw.to_lowercase(), MAX_ORIGIN_CHARS))
 }
 
-/// Client IP for the rate-limit key, same precedence as the intent survey.
-fn client_ip(headers: &HeaderMap) -> Option<String> {
-    headers
-        .get("fly-client-ip")
-        .and_then(|v| v.to_str().ok())
-        .map(str::trim)
-        .filter(|s| !s.is_empty())
-        .or_else(|| {
-            headers
-                .get("x-forwarded-for")
-                .and_then(|v| v.to_str().ok())
-                .and_then(|v| v.split(',').next())
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-        })
-        .or_else(|| {
-            headers
-                .get("x-real-ip")
-                .and_then(|v| v.to_str().ok())
-                .map(str::trim)
-                .filter(|s| !s.is_empty())
-        })
-        .map(str::to_string)
-}
-
-impl Inner {
-    /// Write the buffered counters. Each statement is independent: a failure in
-    /// one aggregate is logged and does not discard the other.
-    async fn flush(&self) {
-        let batch = {
-            let Ok(mut buffer) = self.buffer.lock() else {
-                return;
-            };
-            if buffer.is_empty() {
-                return;
-            }
-            buffer.take()
-        };
-
-        if batch.dropped > 0 {
-            warn!(
-                "webmcp tracking dropped {} counter updates (buffer caps hit)",
-                batch.dropped
-            );
-        }
-
-        let ok = self.flush_injections(&batch).await & self.flush_sites(&batch).await;
-
-        if ok {
-            self.consecutive_failures.store(0, Ordering::Relaxed);
-            return;
-        }
-        let failures = self.consecutive_failures.fetch_add(1, Ordering::Relaxed) + 1;
-        if failures >= MAX_CONSECUTIVE_FLUSH_FAILURES {
-            self.live.store(false, Ordering::Relaxed);
-            warn!(
-                "webmcp tracking stopped after {failures} failed flushes — most likely \
-                 migration 074_webmcp_injections has not been applied. Apply it and restart \
-                 the gateway to resume counting."
-            );
-        }
+/// `true` when there was nothing to write or the write succeeded.
+async fn flush_injections(batch: &Buffer, pool: &PgPool) -> bool {
+    if batch.injections.is_empty() {
+        return true;
+    }
+    let mut days = Vec::new();
+    let mut slugs = Vec::new();
+    let mut origins = Vec::new();
+    let mut outcomes = Vec::new();
+    let mut modes = Vec::new();
+    let mut ua_classes = Vec::new();
+    let mut injections = Vec::new();
+    let mut tools = Vec::new();
+    for (key, count) in &batch.injections {
+        days.push(key.day);
+        slugs.push(key.api_slug.clone());
+        origins.push(key.origin.clone());
+        outcomes.push(key.outcome.to_string());
+        modes.push(key.mode.to_string());
+        ua_classes.push(key.ua_class.to_string());
+        injections.push(count.injections);
+        tools.push(count.tools);
     }
 
-    /// `true` when there was nothing to write or the write succeeded.
-    async fn flush_injections(&self, batch: &Buffer) -> bool {
-        if batch.injections.is_empty() {
-            return true;
-        }
-        let mut days = Vec::new();
-        let mut slugs = Vec::new();
-        let mut origins = Vec::new();
-        let mut outcomes = Vec::new();
-        let mut modes = Vec::new();
-        let mut ua_classes = Vec::new();
-        let mut injections = Vec::new();
-        let mut tools = Vec::new();
-        for (key, count) in &batch.injections {
-            days.push(key.day);
-            slugs.push(key.api_slug.clone());
-            origins.push(key.origin.clone());
-            outcomes.push(key.outcome.to_string());
-            modes.push(key.mode.to_string());
-            ua_classes.push(key.ua_class.to_string());
-            injections.push(count.injections);
-            tools.push(count.tools);
-        }
+    let result = sqlx::query(
+        r#"INSERT INTO webmcp_injections_daily (day, api_slug, origin, outcome, mode, ua_class, injections, tools)
+           SELECT * FROM unnest($1::date[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::bigint[], $8::bigint[])
+           ON CONFLICT (day, api_slug, origin, outcome, mode, ua_class)
+           DO UPDATE SET injections = webmcp_injections_daily.injections + excluded.injections,
+                         tools = webmcp_injections_daily.tools + excluded.tools,
+                         updated_at = now()"#,
+    )
+    .bind(&days)
+    .bind(&slugs)
+    .bind(&origins)
+    .bind(&outcomes)
+    .bind(&modes)
+    .bind(&ua_classes)
+    .bind(&injections)
+    .bind(&tools)
+    .execute(pool)
+    .await;
+    report("webmcp injections", days.len(), result)
+}
 
-        let result = sqlx::query(
-            r#"INSERT INTO webmcp_injections_daily (day, api_slug, origin, outcome, mode, ua_class, injections, tools)
-               SELECT * FROM unnest($1::date[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[], $7::bigint[], $8::bigint[])
-               ON CONFLICT (day, api_slug, origin, outcome, mode, ua_class)
-               DO UPDATE SET injections = webmcp_injections_daily.injections + excluded.injections,
-                             tools = webmcp_injections_daily.tools + excluded.tools,
-                             updated_at = now()"#,
-        )
-        .bind(&days)
-        .bind(&slugs)
-        .bind(&origins)
-        .bind(&outcomes)
-        .bind(&modes)
-        .bind(&ua_classes)
-        .bind(&injections)
-        .bind(&tools)
-        .execute(&self.pool)
-        .await;
-        match result {
-            Ok(_) => true,
-            Err(err) => {
-                warn!(
-                    "webmcp injections flush failed ({} keys): {err}",
-                    days.len()
-                );
-                false
-            }
-        }
+/// `true` when there was nothing to write or the write succeeded.
+async fn flush_sites(batch: &Buffer, pool: &PgPool) -> bool {
+    if batch.sites.is_empty() {
+        return true;
+    }
+    let mut keys = Vec::new();
+    let mut slugs = Vec::new();
+    let mut origins = Vec::new();
+    let mut modes = Vec::new();
+    let mut injections = Vec::new();
+    let mut last_tools: Vec<Option<i32>> = Vec::new();
+    let mut last_outcomes = Vec::new();
+    let mut last_user_agents: Vec<Option<String>> = Vec::new();
+    let mut last_seen = Vec::new();
+    for (key, stat) in &batch.sites {
+        keys.push(key.clone());
+        slugs.push(stat.api_slug.clone());
+        origins.push(stat.origin.clone());
+        modes.push(stat.mode.to_string());
+        injections.push(stat.injections);
+        last_tools.push(stat.last_tools);
+        last_outcomes.push(stat.last_outcome.to_string());
+        last_user_agents.push(stat.last_user_agent.clone());
+        last_seen.push(stat.last_seen);
     }
 
-    /// `true` when there was nothing to write or the write succeeded.
-    async fn flush_sites(&self, batch: &Buffer) -> bool {
-        if batch.sites.is_empty() {
-            return true;
-        }
-        let mut keys = Vec::new();
-        let mut slugs = Vec::new();
-        let mut origins = Vec::new();
-        let mut modes = Vec::new();
-        let mut injections = Vec::new();
-        let mut last_tools: Vec<Option<i32>> = Vec::new();
-        let mut last_outcomes = Vec::new();
-        let mut last_user_agents: Vec<Option<String>> = Vec::new();
-        let mut last_seen = Vec::new();
-        for (key, stat) in &batch.sites {
-            keys.push(key.clone());
-            slugs.push(stat.api_slug.clone());
-            origins.push(stat.origin.clone());
-            modes.push(stat.mode.to_string());
-            injections.push(stat.injections);
-            last_tools.push(stat.last_tools);
-            last_outcomes.push(stat.last_outcome.to_string());
-            last_user_agents.push(stat.last_user_agent.clone());
-            last_seen.push(stat.last_seen);
-        }
-
-        // first_seen_at is only ever set on insert: the point of the column is
-        // "since when has this site carried the shim". last_tools keeps its
-        // previous value when the newest run registered nothing.
-        let result = sqlx::query(
-            r#"INSERT INTO webmcp_sites (
-                   site_key, api_slug, origin, mode, injections,
-                   last_tools, last_outcome, last_user_agent, first_seen_at, last_seen_at)
-               SELECT k, slug, orig, m, n, tools, outcome, ua, seen, seen
-                 FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::bigint[],
-                             $6::int[], $7::text[], $8::text[], $9::timestamptz[])
-                   AS t(k, slug, orig, m, n, tools, outcome, ua, seen)
-               ON CONFLICT (site_key) DO UPDATE SET
-                   injections = webmcp_sites.injections + excluded.injections,
-                   last_tools = coalesce(excluded.last_tools, webmcp_sites.last_tools),
-                   last_outcome = excluded.last_outcome,
-                   last_user_agent = coalesce(excluded.last_user_agent, webmcp_sites.last_user_agent),
-                   last_seen_at = greatest(webmcp_sites.last_seen_at, excluded.last_seen_at),
-                   mode = excluded.mode"#,
-        )
-        .bind(&keys)
-        .bind(&slugs)
-        .bind(&origins)
-        .bind(&modes)
-        .bind(&injections)
-        .bind(&last_tools)
-        .bind(&last_outcomes)
-        .bind(&last_user_agents)
-        .bind(&last_seen)
-        .execute(&self.pool)
-        .await;
-        match result {
-            Ok(_) => true,
-            Err(err) => {
-                warn!("webmcp sites flush failed ({} keys): {err}", keys.len());
-                false
-            }
-        }
-    }
-}
-
-fn json_response(status: StatusCode, body: serde_json::Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header(CONTENT_TYPE, "application/json")
-        .body(Body::from(body.to_string()))
-        .unwrap_or_else(|_| Response::new(Body::empty()))
-}
-
-fn truncate(value: &str, max_chars: usize) -> String {
-    value.chars().take(max_chars).collect()
-}
-
-fn sha256_hex(value: &str) -> String {
-    let mut digest = Sha256::new();
-    digest.update(value.as_bytes());
-    hex::encode(digest.finalize())
-}
-
-fn env_bool(name: &str, default: bool) -> bool {
-    match std::env::var(name) {
-        Ok(raw) => matches!(
-            raw.trim().to_ascii_lowercase().as_str(),
-            "1" | "true" | "yes" | "on"
-        ),
-        Err(_) => default,
-    }
+    // first_seen_at is only ever set on insert: the point of the column is
+    // "since when has this site carried the shim". last_tools keeps its
+    // previous value when the newest run registered nothing.
+    let result = sqlx::query(
+        r#"INSERT INTO webmcp_sites (
+               site_key, api_slug, origin, mode, injections,
+               last_tools, last_outcome, last_user_agent, first_seen_at, last_seen_at)
+           SELECT k, slug, orig, m, n, tools, outcome, ua, seen, seen
+             FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::bigint[],
+                         $6::int[], $7::text[], $8::text[], $9::timestamptz[])
+               AS t(k, slug, orig, m, n, tools, outcome, ua, seen)
+           ON CONFLICT (site_key) DO UPDATE SET
+               injections = webmcp_sites.injections + excluded.injections,
+               last_tools = coalesce(excluded.last_tools, webmcp_sites.last_tools),
+               last_outcome = excluded.last_outcome,
+               last_user_agent = coalesce(excluded.last_user_agent, webmcp_sites.last_user_agent),
+               last_seen_at = greatest(webmcp_sites.last_seen_at, excluded.last_seen_at),
+               mode = excluded.mode"#,
+    )
+    .bind(&keys)
+    .bind(&slugs)
+    .bind(&origins)
+    .bind(&modes)
+    .bind(&injections)
+    .bind(&last_tools)
+    .bind(&last_outcomes)
+    .bind(&last_user_agents)
+    .bind(&last_seen)
+    .execute(pool)
+    .await;
+    report("webmcp sites", keys.len(), result)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::http::{HeaderName, HeaderValue};
+    use axum::http::HeaderValue;
 
     #[test]
     fn outcomes_collapse_to_a_bounded_vocabulary() {
@@ -707,20 +525,6 @@ mod tests {
         assert_eq!(page_origin(&HeaderMap::new()), None);
     }
 
-    #[test]
-    fn client_ip_prefers_the_fly_proxy_header() {
-        let mut headers = HeaderMap::new();
-        headers.insert(
-            HeaderName::from_static("fly-client-ip"),
-            HeaderValue::from_static("203.0.113.9"),
-        );
-        headers.insert(
-            HeaderName::from_static("x-forwarded-for"),
-            HeaderValue::from_static("198.51.100.4, 10.0.0.1"),
-        );
-        assert_eq!(client_ip(&headers), Some("203.0.113.9".to_string()));
-    }
-
     /// A run of the shim, for the tests below.
     fn run(outcome: &'static str, tools: i64) -> Injection<'static> {
         Injection {
@@ -736,45 +540,35 @@ mod tests {
 
     #[test]
     fn a_disabled_tracker_records_nothing_and_never_panics() {
-        WebmcpTracker::disabled().record(&run("registered", 7));
+        WebmcpTracker::disabled().record_injection(&run("registered", 7));
     }
 
-    // A lazy pool handle needs a Tokio context to be constructed, even though
-    // nothing here ever connects: flush() is the only thing that touches it.
     #[tokio::test]
     async fn tools_accumulate_per_key_and_sites_keep_the_last_successful_count() {
-        let tracker = WebmcpTracker {
-            inner: Some(Arc::new(Inner {
-                buffer: Mutex::new(Buffer::default()),
-                // A pool handle is only touched by flush(), which this test
-                // never calls.
-                pool: PgPool::connect_lazy("postgres://localhost/postgres").unwrap(),
-                live: AtomicBool::new(true),
-                consecutive_failures: AtomicU32::new(0),
-            })),
-        };
-
-        tracker.record(&run("registered", 7));
-        tracker.record(&run("registered", 7));
+        let tracker = WebmcpTracker::in_memory(&SPEC);
+        tracker.record_injection(&run("registered", 7));
+        tracker.record_injection(&run("registered", 7));
         // A later failure must not erase the tool count we last saw work.
-        tracker.record(&run("failed", 0));
+        tracker.record_injection(&run("failed", 0));
 
-        let inner = tracker.inner.as_ref().unwrap();
-        let buffer = inner.buffer.lock().unwrap();
-        let registered = buffer
-            .injections
-            .iter()
-            .find(|(k, _)| k.outcome == "registered")
-            .map(|(_, v)| v.clone())
+        tracker
+            .peek(|buffer| {
+                let registered = buffer
+                    .injections
+                    .iter()
+                    .find(|(k, _)| k.outcome == "registered")
+                    .map(|(_, v)| v.clone())
+                    .unwrap();
+                assert_eq!(registered.injections, 2);
+                assert_eq!(registered.tools, 14);
+
+                // One site row for all three runs, and it counts every run.
+                assert_eq!(buffer.sites.len(), 1);
+                let site = buffer.sites.values().next().unwrap();
+                assert_eq!(site.injections, 3);
+                assert_eq!(site.last_outcome, "failed");
+                assert_eq!(site.last_tools, Some(7));
+            })
             .unwrap();
-        assert_eq!(registered.injections, 2);
-        assert_eq!(registered.tools, 14);
-
-        // One site row for all three runs, and it counts every run.
-        assert_eq!(buffer.sites.len(), 1);
-        let site = buffer.sites.values().next().unwrap();
-        assert_eq!(site.injections, 3);
-        assert_eq!(site.last_outcome, "failed");
-        assert_eq!(site.last_tools, Some(7));
     }
 }

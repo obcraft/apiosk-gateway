@@ -656,6 +656,7 @@ dependencies = [
  "bigdecimal",
  "brightdata-linkedin",
  "bytes",
+ "catalog-core",
  "chrono",
  "dotenvy",
  "ethers-core",

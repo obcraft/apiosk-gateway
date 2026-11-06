@@ -9,6 +9,9 @@ autobins = false
 path = "src/lib.rs"
 
 [dependencies]
+# The catalog vocabulary (`facts`) and the integer fee split (`fees`) are the
+# same code the v2 gateway prices with. One copy, one set of tests.
+catalog-core = { path = "../catalog-core" }
 nl-benefits = { path = "../nl-benefits" }
 brightdata-linkedin = { path = "../brightdata-linkedin" }
 kvk-accounts = { path = "../kvk-accounts" }

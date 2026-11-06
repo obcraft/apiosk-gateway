@@ -669,15 +669,10 @@ impl<'a> Compiler<'a> {
     }
 }
 
+#[cfg(test)]
 /// Convenience for callers that only have the default limits and no FX rate.
 pub fn compile_default(intent: &Intent, candidates: &[Candidate]) -> Result<Plan, PlanError> {
     compile(intent, candidates, Limits::default(), None)
-}
-
-/// The format a plan was compiled for, echoed for callers that only hold a
-/// plan.
-pub fn format_of(plan: &Plan) -> OutputFormat {
-    plan.format
 }
 
 #[cfg(test)]
@@ -1079,6 +1074,7 @@ mod tests {
                 location: None,
                 name: "profile".to_string(),
                 wrap: None,
+                default: None,
             },
         )]
         .into_iter()

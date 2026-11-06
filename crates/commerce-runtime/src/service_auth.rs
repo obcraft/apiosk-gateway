@@ -59,14 +59,14 @@ pub fn key_matches(expected: &str, presented: &str) -> bool {
 }
 
 /// The markup the request asks for, parsed and normalised through
-/// [`crate::fees::allowed_buyer_markup_bps`]. **Untrusted**: says nothing about
+/// [`crate::fees::allowed_markup`]. **Untrusted**: says nothing about
 /// who asked — use [`buyer_markup_bps`] for anything that prices money.
 fn requested_buyer_markup_bps(headers: &HeaderMap) -> i128 {
     headers
         .get(HEADER_BUYER_MARKUP_BPS)
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.trim().parse::<i128>().ok())
-        .map(crate::fees::allowed_buyer_markup_bps)
+        .map(crate::fees::allowed_markup)
         .unwrap_or(crate::fees::BUYER_MARKUP_BPS)
 }
 
@@ -178,7 +178,7 @@ impl Credential {
             Self::ConnectToken(_) => crate::fees::BUYER_MARKUP_BPS,
             Self::ServiceKey {
                 buyer_markup_bps, ..
-            } => crate::fees::allowed_buyer_markup_bps(*buyer_markup_bps),
+            } => crate::fees::allowed_markup(*buyer_markup_bps),
         }
     }
 

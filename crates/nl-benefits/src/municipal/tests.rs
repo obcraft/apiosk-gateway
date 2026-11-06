@@ -2,6 +2,12 @@ use super::*;
 
 #[tokio::test]
 async fn bounded_pdf_extractor_receives_eof_and_returns_text() {
+    // The extractor shells out to poppler. A machine without it is not a
+    // regression in this crate, so the check is skipped there, out loud.
+    if std::process::Command::new("pdftotext").arg("-v").output().is_err() {
+        eprintln!("skipping: pdftotext is not installed");
+        return;
+    }
     let content = "BT /F1 14 Tf 40 200 Td (Municipal benefit application conditions) Tj ET";
     let objects=[
         "<< /Type /Catalog /Pages 2 0 R >>".to_owned(),

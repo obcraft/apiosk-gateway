@@ -841,7 +841,7 @@ pub async fn do_job(
     // asked of the database and the chain a second time.
     let mut first_funding_json: Option<Value> = None;
     for (score, candidate_json, offer) in ranked.iter().take(MAX_FUNDING_CHECKED).cloned() {
-        let (funding, funding_json) = funding_for_offer(&state, &credential, &token, &offer).await;
+        let (funding, funding_json) = funding_for_offer(&state, &credential, &token, offer).await;
         if first_funding_json.is_none() {
             first_funding_json = Some(funding_json.clone());
         }
@@ -866,7 +866,7 @@ pub async fn do_job(
         if let Some((score, candidate_json, offer)) = ranked.first().cloned() {
             let funding_json = match first_funding_json.take() {
                 Some(report) => report,
-                None => funding_for_offer(&state, &credential, &token, &offer).await.1,
+                None => funding_for_offer(&state, &credential, &token, offer).await.1,
             };
             selection = Some((score, candidate_json, offer, funding_json));
         }

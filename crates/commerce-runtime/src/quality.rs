@@ -42,9 +42,6 @@
 
 use crate::db::QUARANTINE_FLOOR;
 
-/// The most stars a card can wear.
-pub const MAX_STARS: u8 = 3;
-
 /// Measured recent success at or above this keeps a card at full stars.
 const RELIABLE: f64 = 0.9;
 

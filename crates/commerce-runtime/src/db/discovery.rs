@@ -972,53 +972,6 @@ impl Database {
         Ok((apis, counts))
     }
 
-    pub async fn list_all_apis_for_admin(&self) -> Result<Vec<ApiInfoAdmin>> {
-        let apis = sqlx::query_as::<_, ApiInfoAdmin>(
-            r#"SELECT
-                 a.id,
-                 a.slug,
-                 COALESCE(a.name, INITCAP(REPLACE(a.slug, '-', ' '))) as name,
-                 COALESCE(a.description, 'API endpoint for ' || a.slug) as description,
-                 a.origin_url,
-                 a.status,
-                 COALESCE(a.is_verified, FALSE) as is_verified,
-                 a.verified_at,
-                 a.created_at,
-                 a.owner_id,
-                 u.email as owner_email
-               FROM apis a
-               LEFT JOIN auth.users u ON u.id = a.owner_id
-               ORDER BY a.created_at DESC"#,
-        )
-        .fetch_all(&self.pool)
-        .await?;
-
-        Ok(apis)
-    }
-
-    pub async fn verify_api(&self, api_id: Uuid, verified_by: Uuid) -> Result<()> {
-        sqlx::query(
-            "UPDATE apis SET is_verified = TRUE, verified_at = NOW(), verified_by = $1 WHERE id = $2"
-        )
-        .bind(verified_by)
-        .bind(api_id)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    pub async fn unverify_api(&self, api_id: Uuid) -> Result<()> {
-        sqlx::query(
-            "UPDATE apis SET is_verified = FALSE, verified_at = NULL, verified_by = NULL WHERE id = $1"
-        )
-        .bind(api_id)
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
     pub async fn get_wallet_usage(
         &self,
         wallet_address: &str,

@@ -24,12 +24,13 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{header::RETRY_AFTER, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::Response,
 };
 use serde_json::{json, Value};
 
-use crate::rate_limit::{RateLimitDecision, RateLimitPolicy};
+use crate::http::{json as json_response, refusal as error, throttled_by_ip};
+use crate::rate_limit::RateLimitPolicy;
 use crate::AppState;
 
 use super::discovery_sources::require_platform_admin;
@@ -52,7 +53,7 @@ pub async fn refresh_source_providers(
     if let Err(response) = require_platform_admin(&state, &headers).await {
         return response;
     }
-    if let Some(limited) = rate_limited(&state, &headers).await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "source-providers-refresh", REFRESH_RATE_LIMIT, "Refreshed very recently. The snapshot only changes when a crawl does — give it a moment.").await {
         return limited;
     }
 
@@ -142,48 +143,3 @@ pub async fn refresh_source_providers(
     )
 }
 
-async fn rate_limited(state: &Arc<AppState>, headers: &HeaderMap) -> Option<Response<Body>> {
-    let ip = headers
-        .get("fly-client-ip")
-        .or_else(|| headers.get("x-forwarded-for"))
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    match state
-        .rate_limiter
-        .check(
-            &format!("source-providers-refresh:{ip}"),
-            REFRESH_RATE_LIMIT,
-        )
-        .await
-    {
-        RateLimitDecision::Allowed { .. } => None,
-        RateLimitDecision::Throttled { retry_after } => {
-            let mut response = error(
-                StatusCode::TOO_MANY_REQUESTS,
-                "rate_limited",
-                "Refreshed very recently. The snapshot only changes when a crawl does — give it a moment.",
-            );
-            if let Ok(value) = HeaderValue::from_str(&retry_after.as_secs().max(1).to_string()) {
-                response.headers_mut().insert(RETRY_AFTER, value);
-            }
-            Some(response)
-        }
-    }
-}
-
-fn json_response(status: StatusCode, body: Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header("Content-Type", "application/json")
-        .body(Body::from(body.to_string()))
-        .unwrap()
-}
-
-fn error(status: StatusCode, code: &str, message: &str) -> Response<Body> {
-    json_response(
-        status,
-        json!({"ok": false, "error": code, "message": message}),
-    )
-}

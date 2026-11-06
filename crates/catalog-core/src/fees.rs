@@ -14,6 +14,11 @@
 //! provider leg depends on how much of the commercial infrastructure Apiosk
 //! operates for that listing.
 //!
+//! One exception, on the buyer side only: an Apiosk **workflow run** is priced
+//! at list + 20% ([`WORKFLOW_MARKUP_BPS`], via [`quote_with_markup`]),
+//! and only when the App's authenticated service asks for it. The provider
+//! legs above are unchanged; the extra 5% is Apiosk's take.
+//!
 //! # Why this module exists
 //!
 //! The previous model took a flat 2% *out of* the list price, so a single
@@ -48,6 +53,29 @@ pub const BPS_DENOMINATOR: i128 = 10_000;
 /// Invariant across both provider classes — this is the number a buyer can
 /// reason about without knowing how the endpoint is sourced.
 pub const BUYER_MARKUP_BPS: i128 = 1_500; // 15%
+
+/// The buyer markup on an Apiosk **workflow run** (first: the supplier payment
+/// check), in basis points. The App's buyer ledger reserves and settles these
+/// runs at list + 20% and tells this executor so on the one authenticated
+/// surface that may (`X-Apiosk-Buyer-Markup-Bps` beside a valid
+/// `X-Apiosk-Service-Key`, read by the commerce runtime's service auth).
+///
+/// The extra 5% is Apiosk's: provider legs are computed from the list price
+/// alone and do not move with the markup.
+pub const WORKFLOW_MARKUP_BPS: i128 = 2_000; // 20%
+
+/// Normalise a requested buyer markup to one this module prices at.
+///
+/// Exactly two markups exist — [`BUYER_MARKUP_BPS`] and
+/// [`WORKFLOW_MARKUP_BPS`]. Anything else (0, 1999, 10 000, a negative
+/// number) is not a tariff anyone agreed to and falls back to the default
+/// 15%, so a malformed or hostile value can never under- or over-charge.
+pub fn allowed_markup(requested_bps: i128) -> i128 {
+    match requested_bps {
+        WORKFLOW_MARKUP_BPS => WORKFLOW_MARKUP_BPS,
+        _ => BUYER_MARKUP_BPS,
+    }
+}
 
 /// What a **managed** provider pays for onboarding, publishing, Bazaar seeding,
 /// gateway execution, payment collection, payouts and distribution.
@@ -123,6 +151,19 @@ pub struct FeeQuote {
     pub apiosk_take_atomic: i128,
     /// Which class produced this quote.
     pub class: ProviderClass,
+}
+
+/// Keep the existing buyer tariff; a reviewed open-data listing has no
+/// provider payout. All collected revenue belongs to Apiosk.
+///
+/// The tariff is whatever `quote` was taken at: pass a
+/// [`quote_with_markup`] at 2000 bps and the buyer total is list + 20%, all
+/// of it Apiosk's take.
+pub fn platform_revenue_quote(mut quote: FeeQuote) -> FeeQuote {
+    quote.provider_fee_atomic = 0;
+    quote.provider_payout_atomic = 0;
+    quote.apiosk_take_atomic = quote.buyer_total_atomic;
+    quote
 }
 
 impl FeeQuote {
@@ -214,24 +255,25 @@ pub fn quote(list_atomic: i128, class: ProviderClass) -> FeeQuote {
     quote_with_markup(list_atomic, class, BUYER_MARKUP_BPS)
 }
 
-/// The buyer markup for runs of an Apiosk workflow (e.g. the supplier payment
-/// check): list + 20%. The provider leg is unchanged; the extra goes to Apiosk.
-pub const WORKFLOW_MARKUP_BPS: i128 = 2_000;
-
-/// Only the standard and the workflow markup exist; anything else is standard.
-pub fn allowed_markup(markup_bps: i128) -> i128 {
-    if markup_bps == WORKFLOW_MARKUP_BPS { WORKFLOW_MARKUP_BPS } else { BUYER_MARKUP_BPS }
-}
-
-/// [`quote`] with an allowed buyer markup ([`allowed_markup`]).
-pub fn quote_with_markup(list_atomic: i128, class: ProviderClass, markup_bps: i128) -> FeeQuote {
+/// [`quote`] at an explicit buyer markup, in basis points.
+///
+/// `buyer_markup_bps` is normalised through [`allowed_markup`]: only
+/// 1500 and 2000 are honoured, anything else prices at the default 15%. The
+/// markup changes the buyer total and Apiosk's take only — the provider fee
+/// and payout are functions of the list price and class, identical at every
+/// markup — and the legs still re-sum to the buyer total exactly.
+pub fn quote_with_markup(
+    list_atomic: i128,
+    class: ProviderClass,
+    buyer_markup_bps: i128,
+) -> FeeQuote {
     let list_atomic = list_atomic.max(0);
-    let markup_bps = allowed_markup(markup_bps);
+    let buyer_markup_bps = allowed_markup(buyer_markup_bps);
 
     // The markup rounds up and the provider fee rounds down: the platform
     // never earns less than the rule says, and the provider is never paid a
     // fraction of a unit less than theirs.
-    let buyer_markup_atomic = markup_atomic(list_atomic, markup_bps);
+    let buyer_markup_atomic = markup_atomic(list_atomic, buyer_markup_bps);
     let provider_fee_atomic = list_atomic * class.provider_fee_bps() / BPS_DENOMINATOR;
 
     let buyer_total_atomic = list_atomic + buyer_markup_atomic;
@@ -316,6 +358,21 @@ pub fn federated_bridge_quote(quoted_atomic: i128, fee_atomic: i128) -> FeeQuote
     }
 }
 
+/// The settlement quote for a **resold** call: the bridge wallet already paid
+/// the provider `upstream_atomic` inline, and the buyer was charged
+/// `list_quote.buyer_total_atomic` (at whatever markup `list_quote` was taken).
+///
+/// The bridge is reimbursed exactly what it fronted, capped at the buyer total
+/// so the platform never owes out more than it took in, and every remaining
+/// unit — the standard markup and, on a 20% workflow run, the extra 5% — is
+/// Apiosk's take. This is the arithmetic `proxy::settlement` books; it lives
+/// here so it is priced (and tested) beside every other split.
+pub fn resell_bridge_quote(list_quote: FeeQuote, upstream_atomic: i128) -> FeeQuote {
+    let buyer_total = list_quote.buyer_total_atomic.max(0);
+    let upstream = upstream_atomic.clamp(0, buyer_total);
+    federated_bridge_quote(upstream, buyer_total - upstream)
+}
+
 /// Price one call from a `BigDecimal` list price (the shape the `endpoints`
 /// table and the x402 requirement builders use).
 /// The buyer total for one call, as a plain USD float.
@@ -325,17 +382,36 @@ pub fn federated_bridge_quote(quoted_atomic: i128, fee_atomic: i128) -> FeeQuote
 /// atomic unit. Floats are the wire shape of `price_usd` throughout discovery
 /// — the money itself is always summed in atomic units.
 pub fn buyer_total_usd(price_usd: f64, hosted_externally: bool) -> f64 {
+    buyer_total_usd_with_markup(price_usd, hosted_externally, BUYER_MARKUP_BPS)
+}
+
+/// [`buyer_total_usd`] at an explicit (normalised) buyer markup.
+pub fn buyer_total_usd_with_markup(
+    price_usd: f64,
+    hosted_externally: bool,
+    buyer_markup_bps: i128,
+) -> f64 {
     let list = bigdecimal::BigDecimal::try_from(price_usd).unwrap_or_default();
     let class = ProviderClass::from_listing_type(Some(if hosted_externally {
         "federated"
     } else {
         "managed"
     }));
-    quote_usdc(&list, class).buyer_total_atomic as f64 / USDC_SCALE as f64
+    quote_usdc_with_markup(&list, class, buyer_markup_bps).buyer_total_atomic as f64
+        / USDC_SCALE as f64
 }
 
 pub fn quote_usdc(list: &BigDecimal, class: ProviderClass) -> FeeQuote {
     quote(usdc_to_atomic(list), class)
+}
+
+/// [`quote_usdc`] at an explicit (normalised) buyer markup, in basis points.
+pub fn quote_usdc_with_markup(
+    list: &BigDecimal,
+    class: ProviderClass,
+    buyer_markup_bps: i128,
+) -> FeeQuote {
+    quote_with_markup(usdc_to_atomic(list), class, buyer_markup_bps)
 }
 
 /// The value `apis.commission_rate` should carry for a listing of this class,
@@ -374,6 +450,19 @@ pub fn atomic_to_usdc(atomic: i128) -> BigDecimal {
 mod tests {
     use super::*;
     use std::str::FromStr;
+
+    #[test]
+    fn public_source_revenue_preserves_buyer_tariff_without_provider_payout() {
+        for list in [0, 1, 17_391, 47_259, 100_000] {
+            let original = quote(list, ProviderClass::Managed);
+            let revenue = platform_revenue_quote(original);
+            assert_eq!(revenue.buyer_total_atomic, original.buyer_total_atomic);
+            assert_eq!(revenue.buyer_markup_atomic, original.buyer_markup_atomic);
+            assert_eq!(revenue.list_atomic, original.list_atomic);
+            assert_eq!(revenue.provider_payout_atomic, 0);
+            assert_eq!(revenue.apiosk_take_atomic, original.buyer_total_atomic);
+        }
+    }
 
     /// The worked example from the fee model note: a $0.10 federated API.
     #[test]
@@ -671,6 +760,228 @@ mod tests {
         assert!(
             !serialized.contains("provider") && !serialized.contains("payout"),
             "buyer disclosure must not leak the provider leg: {serialized}"
+        );
+    }
+    // ── Per-request buyer markup (workflow runs at list + 20%) ─────────────
+
+    #[test]
+    fn only_the_two_tariffs_are_honoured() {
+        assert_eq!(allowed_markup(1_500), 1_500);
+        assert_eq!(allowed_markup(2_000), 2_000);
+        for other in [0i128, -2_000, 1, 1_499, 1_501, 1_999, 2_001, 2_500, 10_000] {
+            assert_eq!(
+                allowed_markup(other),
+                BUYER_MARKUP_BPS,
+                "{other} bps is not a tariff and must price at 15%"
+            );
+        }
+        // An unrecognised markup prices exactly like the default quote.
+        for list in [1i128, 99, 100_000, 1_234_567] {
+            for class in [ProviderClass::Federated, ProviderClass::Managed] {
+                assert_eq!(quote_with_markup(list, class, 1_750), quote(list, class));
+                assert_eq!(quote_with_markup(list, class, 1_500), quote(list, class));
+            }
+        }
+    }
+
+    /// $0.10 federated at 20%: buyer pays $0.12, provider keeps $0.10, the
+    /// extra 5% is Apiosk's.
+    #[test]
+    fn federated_ten_cent_example_at_twenty_percent() {
+        let q = quote_with_markup(100_000, ProviderClass::Federated, WORKFLOW_MARKUP_BPS);
+        assert_eq!(q.buyer_markup_atomic, 20_000);
+        assert_eq!(q.buyer_total_atomic, 120_000, "buyer pays $0.12");
+        assert_eq!(q.provider_payout_atomic, 100_000, "provider keeps $0.10");
+        assert_eq!(q.provider_fee_atomic, 0);
+        assert_eq!(q.apiosk_take_atomic, 20_000, "Apiosk earns $0.02");
+    }
+
+    /// $0.10 managed at 20%: buyer pays $0.12, provider keeps $0.09 as at 15%,
+    /// Apiosk earns 30% of list.
+    #[test]
+    fn managed_ten_cent_example_at_twenty_percent() {
+        let q = quote_with_markup(100_000, ProviderClass::Managed, WORKFLOW_MARKUP_BPS);
+        assert_eq!(q.buyer_total_atomic, 120_000, "buyer pays $0.12");
+        assert_eq!(q.provider_fee_atomic, 10_000);
+        assert_eq!(q.provider_payout_atomic, 90_000, "provider keeps $0.09");
+        assert_eq!(q.apiosk_take_atomic, 30_000, "Apiosk earns $0.03");
+    }
+
+    /// The markup moves the buyer total and Apiosk's take, never a provider
+    /// leg; the difference between the tariffs is entirely Apiosk's; and the
+    /// legs re-sum at every price, with the markup still rounding up.
+    #[test]
+    fn twenty_percent_leaves_provider_legs_unchanged_and_resums() {
+        for list in [
+            0i128,
+            1,
+            2,
+            3,
+            5,
+            7,
+            9,
+            15,
+            99,
+            100,
+            4_999,
+            18_903,
+            100_000,
+            100_001,
+            999_999,
+            1_000_000,
+            1_234_567,
+            123_456_789,
+        ] {
+            for class in [ProviderClass::Federated, ProviderClass::Managed] {
+                let std = quote(list, class);
+                let wf = quote_with_markup(list, class, WORKFLOW_MARKUP_BPS);
+                assert_eq!(wf.list_atomic, std.list_atomic);
+                assert_eq!(
+                    wf.provider_fee_atomic, std.provider_fee_atomic,
+                    "{list} {class:?}"
+                );
+                assert_eq!(
+                    wf.provider_payout_atomic, std.provider_payout_atomic,
+                    "{list} {class:?}"
+                );
+                assert_eq!(wf.class, std.class);
+                assert_eq!(
+                    wf.provider_payout_atomic + wf.apiosk_take_atomic,
+                    wf.buyer_total_atomic,
+                    "legs must re-sum for {list} {class:?}"
+                );
+                assert_eq!(
+                    wf.buyer_markup_atomic,
+                    markup_atomic(list, WORKFLOW_MARKUP_BPS),
+                    "20% markup rounds up for {list}"
+                );
+                assert!(wf.buyer_total_atomic >= std.buyer_total_atomic);
+                assert_eq!(
+                    wf.apiosk_take_atomic - std.apiosk_take_atomic,
+                    wf.buyer_total_atomic - std.buyer_total_atomic,
+                    "the extra markup is all Apiosk's for {list} {class:?}"
+                );
+            }
+        }
+        // Sub-cent: 20% of 3 units is 0.6, which rounds up to a full unit.
+        let dust = quote_with_markup(3, ProviderClass::Managed, WORKFLOW_MARKUP_BPS);
+        assert_eq!(dust.buyer_markup_atomic, 1);
+        assert_eq!(dust.provider_payout_atomic, 3);
+        // 20% of 7 units is 1.4 → 2.
+        assert_eq!(
+            quote_with_markup(7, ProviderClass::Federated, WORKFLOW_MARKUP_BPS)
+                .buyer_markup_atomic,
+            2
+        );
+    }
+
+    #[test]
+    fn platform_revenue_at_twenty_percent_books_everything_to_apiosk() {
+        for list in [0i128, 1, 17_391, 47_259, 100_000] {
+            let wf = quote_with_markup(list, ProviderClass::Managed, WORKFLOW_MARKUP_BPS);
+            let revenue = platform_revenue_quote(wf);
+            assert_eq!(
+                revenue.buyer_total_atomic,
+                list + markup_atomic(list, WORKFLOW_MARKUP_BPS),
+                "buyer total is list + 20%"
+            );
+            assert_eq!(revenue.provider_payout_atomic, 0);
+            assert_eq!(revenue.apiosk_take_atomic, revenue.buyer_total_atomic);
+            assert_eq!(
+                revenue.buyer_total_atomic
+                    - platform_revenue_quote(quote(list, ProviderClass::Managed))
+                        .buyer_total_atomic,
+                markup_atomic(list, WORKFLOW_MARKUP_BPS)
+                    - markup_atomic(list, BUYER_MARKUP_BPS)
+            );
+        }
+        let q = platform_revenue_quote(quote_with_markup(100_000, ProviderClass::Managed, 2_000));
+        assert_eq!(q.buyer_total_atomic, 120_000);
+        assert_eq!(q.apiosk_take_atomic, 120_000);
+    }
+
+    /// A resold call reimburses the bridge exactly what it fronted at either
+    /// tariff; at 20% the extra 5% lands in Apiosk's take.
+    #[test]
+    fn resell_bridge_at_twenty_percent_reimburses_exactly_and_banks_the_extra() {
+        let std = resell_bridge_quote(quote(100_000, ProviderClass::Federated), 100_000);
+        assert_eq!(std.buyer_total_atomic, 115_000);
+        assert_eq!(std.provider_payout_atomic, 100_000);
+        assert_eq!(std.apiosk_take_atomic, 15_000);
+
+        let wf = resell_bridge_quote(
+            quote_with_markup(100_000, ProviderClass::Federated, WORKFLOW_MARKUP_BPS),
+            100_000,
+        );
+        assert_eq!(wf.buyer_total_atomic, 120_000, "buyer paid list + 20%");
+        assert_eq!(
+            wf.provider_payout_atomic, 100_000,
+            "bridge made whole exactly"
+        );
+        assert_eq!(
+            wf.apiosk_take_atomic, 20_000,
+            "15% + the extra 5% to Apiosk"
+        );
+
+        for (list, upstream) in [
+            (100_000i128, 95_000i128),
+            (7, 7),
+            (1_234_567, 1_000_000),
+            (5, 0),
+        ] {
+            for bps in [BUYER_MARKUP_BPS, WORKFLOW_MARKUP_BPS] {
+                let q = resell_bridge_quote(
+                    quote_with_markup(list, ProviderClass::Managed, bps),
+                    upstream,
+                );
+                assert_eq!(q.provider_payout_atomic, upstream, "bridge leg is upstream");
+                assert_eq!(
+                    q.provider_payout_atomic + q.apiosk_take_atomic,
+                    q.buyer_total_atomic
+                );
+            }
+        }
+        // An upstream above what the buyer paid is capped, never negative.
+        let capped = resell_bridge_quote(quote(100, ProviderClass::Federated), 1_000);
+        assert_eq!(capped.provider_payout_atomic, 115);
+        assert_eq!(capped.apiosk_take_atomic, 0);
+    }
+
+    /// The resell helper is exactly the arithmetic settlement booked inline
+    /// before it moved here.
+    #[test]
+    fn resell_bridge_quote_matches_the_previous_inline_booking() {
+        for list in [10_000i128, 100_000, 5, 15, 1_234_567] {
+            for upstream in [0i128, 1, list, list + 1] {
+                let list_quote = quote(list, ProviderClass::Federated);
+                let buyer_total = list_quote.buyer_total_atomic;
+                let up = upstream.min(buyer_total);
+                assert_eq!(
+                    resell_bridge_quote(list_quote, upstream),
+                    federated_bridge_quote(up, buyer_total - up)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn usdc_and_usd_helpers_honour_the_markup() {
+        let list = BigDecimal::from_str("0.10").unwrap();
+        let q = quote_usdc_with_markup(&list, ProviderClass::Managed, WORKFLOW_MARKUP_BPS);
+        assert_eq!(q.buyer_total_usdc(), BigDecimal::from_str("0.12").unwrap());
+        assert_eq!(
+            q.provider_payout_usdc(),
+            BigDecimal::from_str("0.09").unwrap()
+        );
+        assert_eq!(
+            quote_usdc_with_markup(&list, ProviderClass::Managed, 42),
+            quote_usdc(&list, ProviderClass::Managed)
+        );
+        assert!((buyer_total_usd_with_markup(0.10, false, 2_000) - 0.12).abs() < 1e-9);
+        assert!((buyer_total_usd_with_markup(0.10, true, 9_999) - 0.115).abs() < 1e-9);
+        assert_eq!(
+            buyer_total_usd(0.10, false),
+            buyer_total_usd_with_markup(0.10, false, 1_500)
         );
     }
 }

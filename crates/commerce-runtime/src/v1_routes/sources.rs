@@ -39,14 +39,15 @@ use std::sync::Arc;
 use axum::{
     body::Body,
     extract::{Path, Query, State},
-    http::{header::RETRY_AFTER, HeaderMap, HeaderValue, StatusCode},
+    http::{HeaderMap, StatusCode},
     response::Response,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
 
 use crate::bazaar::ExternalOffer;
-use crate::rate_limit::{RateLimitDecision, RateLimitPolicy};
+use crate::http::{json, json_cached, refusal as error, throttled_by_ip};
+use crate::rate_limit::RateLimitPolicy;
 use crate::sources::{self, BrowseError, Browsed};
 use crate::AppState;
 
@@ -94,7 +95,7 @@ pub async fn list_sources(State(state): State<Arc<AppState>>) -> Response<Body> 
     let sources = sources::active_sources(&state).await;
     let browsable = sources.iter().filter(|s| s.is_browsable()).count();
 
-    json_response(
+    json_cached(
         StatusCode::OK,
         json!({
             "sources": sources.iter().map(sources::source_summary_json).collect::<Vec<_>>(),
@@ -114,8 +115,7 @@ pub async fn list_sources(State(state): State<Arc<AppState>>) -> Response<Body> 
                 "queried_sources": "Sources with requires_query=true only answer questions: add ?q=<what you need>.",
                 "search_everything": "/v1/discover?q=<the job, in words> — all indexes at once, ranked",
             },
-        }),
-    )
+        }), "public, max-age=60")
 }
 
 /// `GET /v1/sources/apis` — every provider, across every index, as one shelf.
@@ -153,7 +153,7 @@ pub async fn list_all_source_apis(
     Query(params): Query<BrowseParams>,
     headers: HeaderMap,
 ) -> Response<Body> {
-    if let Some(limited) = rate_limited(&state, &headers).await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "sources-browse", BROWSE_RATE_LIMIT, "Slow down — each miss costs an external index a request.").await {
         return limited;
     }
 
@@ -321,7 +321,7 @@ pub async fn list_all_source_apis(
             .collect()
     };
 
-    json_response(
+    json_cached(
         StatusCode::OK,
         json!({
             "query": query,
@@ -340,8 +340,7 @@ pub async fn list_all_source_apis(
             // failed read, and the reader cannot tell the difference.
             "read": read,
             "note": "Providers across every external index the gateway sweeps, merged on the host. Unreviewed: Apiosk has not checked these endpoints. The reviewed catalogue is separate, at GET /v1/apis.",
-        }),
-    )
+        }), "public, max-age=60")
 }
 
 /// `GET /v1/sources/{id}/apis` — the providers one index publishes.
@@ -351,7 +350,7 @@ pub async fn list_source_apis(
     Query(params): Query<BrowseParams>,
     headers: HeaderMap,
 ) -> Response<Body> {
-    if let Some(limited) = rate_limited(&state, &headers).await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "sources-browse", BROWSE_RATE_LIMIT, "Slow down — each miss costs an external index a request.").await {
         return limited;
     }
 
@@ -379,7 +378,7 @@ pub async fn list_source_apis(
         .map(|(host, endpoints)| api_summary_json(&id, &host, &endpoints))
         .collect();
 
-    json_response(
+    json_cached(
         StatusCode::OK,
         json!({
             "source": sources::source_summary_json(&source),
@@ -392,8 +391,7 @@ pub async fn list_source_apis(
                 "endpoints": read.matched,
             },
             "coverage": coverage_json(&source, &read),
-        }),
-    )
+        }), "public, max-age=60")
 }
 
 /// How much of the index this actually is.
@@ -466,7 +464,7 @@ pub async fn get_source_api(
     Query(params): Query<BrowseParams>,
     headers: HeaderMap,
 ) -> Response<Body> {
-    if let Some(limited) = rate_limited(&state, &headers).await {
+    if let Some(limited) = throttled_by_ip(&state, &headers, "sources-browse", BROWSE_RATE_LIMIT, "Slow down — each miss costs an external index a request.").await {
         return limited;
     }
 
@@ -497,7 +495,7 @@ pub async fn get_source_api(
     let endpoints = sources::settled_json(&state, &mine).await;
     let refs: Vec<&ExternalOffer> = mine.iter().collect();
 
-    json_response(
+    json_cached(
         StatusCode::OK,
         json!({
             "source": sources::source_summary_json(&source),
@@ -506,8 +504,7 @@ pub async fn get_source_api(
             "meta": { "endpoints": mine.len() },
             "coverage": coverage,
             "unreviewed": "Everything here is the index's own claim. Apiosk has not called these endpoints, has not measured them, and does not vouch for the input or output description. Each endpoint says whether the gateway can settle it for you.",
-        }),
-    )
+        }), "public, max-age=60")
 }
 
 /// Resolve the source and read it, or the response explaining why not.
@@ -526,7 +523,7 @@ async fn load(
 
     match sources::browse(state, &source, query).await {
         Ok(read) => Ok((source, read)),
-        Err(BrowseError::QueryRequired) => Err(json_response(
+        Err(BrowseError::QueryRequired) => Err(json(
             StatusCode::BAD_REQUEST,
             json!({
                 "ok": false,
@@ -537,7 +534,7 @@ async fn load(
                 "source": sources::source_summary_json(&source),
             }),
         )),
-        Err(BrowseError::SourceUnavailable) => Err(json_response(
+        Err(BrowseError::SourceUnavailable) => Err(json(
             StatusCode::BAD_GATEWAY,
             json!({
                 "ok": false,
@@ -704,50 +701,6 @@ fn page(params: &BrowseParams) -> (usize, usize) {
     (
         params.limit.unwrap_or(DEFAULT_LIMIT).clamp(1, MAX_LIMIT),
         params.offset.unwrap_or(0),
-    )
-}
-
-async fn rate_limited(state: &Arc<AppState>, headers: &HeaderMap) -> Option<Response<Body>> {
-    let ip = headers
-        .get("fly-client-ip")
-        .or_else(|| headers.get("x-forwarded-for"))
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.split(',').next().unwrap_or(v).trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    match state
-        .rate_limiter
-        .check(&format!("sources-browse:{ip}"), BROWSE_RATE_LIMIT)
-        .await
-    {
-        RateLimitDecision::Allowed { .. } => None,
-        RateLimitDecision::Throttled { retry_after } => {
-            let mut response = error(
-                StatusCode::TOO_MANY_REQUESTS,
-                "rate_limited",
-                "Slow down — each miss costs an external index a request.",
-            );
-            if let Ok(value) = HeaderValue::from_str(&retry_after.as_secs().max(1).to_string()) {
-                response.headers_mut().insert(RETRY_AFTER, value);
-            }
-            Some(response)
-        }
-    }
-}
-
-fn json_response(status: StatusCode, body: Value) -> Response<Body> {
-    Response::builder()
-        .status(status)
-        .header("Content-Type", "application/json")
-        .header("Cache-Control", "public, max-age=60")
-        .body(Body::from(body.to_string()))
-        .unwrap()
-}
-
-fn error(status: StatusCode, code: &str, message: &str) -> Response<Body> {
-    json_response(
-        status,
-        json!({"ok": false, "error": code, "message": message}),
     )
 }
 

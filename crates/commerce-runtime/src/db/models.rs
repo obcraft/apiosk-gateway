@@ -194,15 +194,6 @@ pub struct AgentConnectTokenWallet {
 }
 
 impl AgentConnectToken {
-    /// The policy to evaluate against, connection first.
-    ///
-    /// A connection's own policy wins over its wallet's. The wallet's is the
-    /// fallback for a connection nobody gave one to, not something that stacks
-    /// on top — two policies both applying would be two answers to the same
-    /// question, and no way to say which one refused a purchase.
-    pub fn policy_id(&self) -> Option<Uuid> {
-        self.policy_id
-    }
 }
 
 /// Connect token + the rails it authorizes. A token may authorize 0..N wallets
@@ -233,11 +224,6 @@ pub struct AgentConnectToken {
 }
 
 impl AgentConnectToken {
-    pub fn find_wallet(&self, wallet_address: &str) -> Option<&AgentConnectTokenWallet> {
-        self.wallets
-            .iter()
-            .find(|wallet| wallet.wallet_address.eq_ignore_ascii_case(wallet_address))
-    }
 }
 
 /// Outcome of looking up a connect token by hash. Distinguishes the three
@@ -379,21 +365,6 @@ pub struct ProviderListingCounts {
     pub services: i64,
     pub federated: i64,
     pub managed: i64,
-}
-
-#[derive(Debug, Clone, FromRow, serde::Serialize)]
-pub struct ApiInfoAdmin {
-    pub id: Uuid,
-    pub slug: String,
-    pub name: String,
-    pub description: String,
-    pub origin_url: String,
-    pub status: String,
-    pub is_verified: bool,
-    pub verified_at: Option<chrono::DateTime<Utc>>,
-    pub created_at: chrono::DateTime<Utc>,
-    pub owner_id: Uuid,
-    pub owner_email: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
