@@ -309,6 +309,7 @@ pub(crate) fn extends_streamed_answer(previous: &Value, next: &Value) -> bool {
 
 pub(crate) struct SearchQuery {
     pub query: String,
+    pub subject: Option<String>,
     pub elapsed_ms: u64,
     pub method: &'static str,
     pub usage: Value,
@@ -316,35 +317,50 @@ pub(crate) struct SearchQuery {
 
 /// Compact conversational questions for search and resolve follow-ups without
 /// rewriting the question synthesis answers. Outages preserve the original.
+pub(crate) fn compliance_question(question: &str) -> bool {
+    let lower = question.to_lowercase();
+    lower.split(|c: char| !c.is_alphanumeric()).any(|word| matches!(word,
+        "wwft" | "ubo" | "ubos" | "pep" | "peps" | "sanctions" | "sanction" | "sancties" | "sanctie"))
+        || ["due diligence", "adverse media", "negatieve berichtgeving"].iter().any(|term| lower.contains(term))
+}
+
 pub(crate) async fn search_query(
     client: &crate::ask_v2::Client,
     question: &str,
     earlier: &str,
 ) -> SearchQuery {
-    // A concise standalone question is already a valid search query. Follow-ups
-    // still resolve conversational references; long requests still get compacted.
-    if earlier.trim().is_empty() && question.chars().count() <= 300 {
+    // Short compliance requests also need entity-focused search terms: the
+    // procedural wording otherwise retrieves guides instead of company evidence.
+    let compliance = compliance_question(question);
+    if earlier.trim().is_empty() && question.chars().count() <= 300 && !compliance {
         return SearchQuery {
             query: question.into(),
+            subject: None,
             elapsed_ms: 0,
             method: "original",
             usage: Value::Null,
         };
     }
     let started = Instant::now();
-    let (query, usage, method) = match client.resolve_web_query(question, earlier).await {
-        Ok((query, usage)) => (query, usage, if earlier.trim().is_empty() { "question_model" } else { "context_model" }),
+    let (mut query, subject, usage, method) = match client.resolve_web_query(question, earlier).await {
+        Ok((query, subject, usage)) => (query, subject.filter(|_| compliance), usage, if earlier.trim().is_empty() { "question_model" } else { "context_model" }),
         Err(_) => {
             tracing::warn!(
                 operation = "web-query-resolution",
                 status = "fallback",
                 "research operation"
             );
-            (question.into(), Value::Null, "fallback")
+            (question.into(), None, Value::Null, "fallback")
         }
     };
+    // Keep the literal company in every search, even if the rewritten query
+    // forgot quotation marks. Scope evidence by the same grounded name.
+    if let Some(subject) = &subject {
+        if !query.contains(&format!("\"{subject}\"")) { query = format!("\"{subject}\" {query}"); }
+    }
     SearchQuery {
         query,
+        subject,
         usage,
         method,
         elapsed_ms: started.elapsed().as_millis() as u64,
@@ -1035,6 +1051,7 @@ mod tests {
                 if input["question"]=="Timeout" {tokio::time::sleep(Duration::from_secs(5)).await;}
                 let content=if input["question"]=="Malformed" {"not JSON".into()}
                     else if input["question"]=="Too long" {json!({"query":"a".repeat(301)}).to_string()}
+                    else if input["question"].as_str().is_some_and(|q| q.contains("Mollie")) {json!({"query":"sancties PEP UBO negatieve berichtgeving","subject":"Mollie"}).to_string()}
                     else {json!({"query":"latest AI compliance developments in the Netherlands"}).to_string()};
                 Json(json!({"choices":[{"message":{"content":content}}],"usage":{"prompt_tokens":50,"completion_tokens":12,"cost":0.0001}}))
             }
@@ -1078,6 +1095,11 @@ mod tests {
         assert_eq!(standalone.method, "original");
         assert!(standalone.usage.is_null());
         assert_eq!(received.lock().unwrap().len(), 1);
+        let compliance = search_query(&client, "Doe een Wwft-check op Mollie B.V.: sancties, PEP, UBO en negatieve berichtgeving.", "").await;
+        assert_eq!(compliance.query, "\"Mollie\" sancties PEP UBO negatieve berichtgeving");
+        assert_eq!(compliance.subject.as_deref(), Some("Mollie"));
+        assert_eq!(compliance.method, "question_model");
+        assert_eq!(received.lock().unwrap().len(), 2);
         for original in ["Malformed", "Too long", "Timeout"] {
             let started = Instant::now();
             let fallback = search_query(&client, original, earlier).await;

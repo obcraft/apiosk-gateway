@@ -13,7 +13,7 @@ pub(crate) struct Evidence {
     pub elapsed_ms: u64,
 }
 
-pub(crate) async fn retrieve<P, PF>(query: &str, question: &str, exa_only: bool, publish: P) -> Result<Evidence>
+pub(crate) async fn retrieve<P, PF>(query: &str, question: &str, subject: Option<&str>, exa_only: bool, publish: P) -> Result<Evidence>
 where
     P: Fn(Vec<Source>) -> PF,
     PF: std::future::Future<Output = Result<()>>,
@@ -39,7 +39,7 @@ where
     };
     let evidence_question = format!("{question}\n{query}");
     let reads = read(ReceiverStream::new(receiver).flat_map(stream::iter), &evidence_question,
-        deadline, Vec::new(), &publish, |candidate| fetch(candidate, &evidence_question));
+        deadline, Vec::new(), &publish, |candidate| fetch(candidate, &evidence_question, subject));
     let (discovery, reads) = tokio::join!(discovery, reads);
     let (mut sources, mut failures, mut attempted) = reads?;
     let (_, mut providers, mut search) = match discovery {
@@ -61,7 +61,7 @@ where
                 Some(Candidate { url: url.into(), title: normalized(row["title"].as_str().unwrap_or(url), 300), rank: 0 })
             }).take(MAX_CANDIDATES - offset).collect::<Vec<_>>();
             let (updated, skipped, _) = read(stream::iter(replacements), &evidence_question, deadline, sources,
-                &publish, |candidate| fetch(candidate, &evidence_question)).await?;
+                &publish, |candidate| fetch(candidate, &evidence_question, subject)).await?;
             sources = updated;
             failures.extend(skipped);
             search["replacement_search"] = json!({"attempted":true,"providers":backup["providers"]});
@@ -72,9 +72,17 @@ where
     Ok(Evidence { sources, failures, providers, search, elapsed_ms })
 }
 
-async fn fetch(candidate: Candidate, question: &str) -> Result<Source> {
+async fn fetch(candidate: Candidate, question: &str, subject: Option<&str>) -> Result<Source> {
     let (url, bytes) = crate::link_preview::Service::shared().research_html(&candidate.url).await?;
-    extract(&candidate, url, &bytes, question, None)
+    let source = extract(&candidate, url, &bytes, question, None)?;
+    ensure!(subject.is_none_or(|name| mentions_subject(&source.text, name)), "page does not identify requested company");
+    Ok(source)
+}
+
+fn mentions_subject(text: &str, subject: &str) -> bool {
+    let words = |text: &str| text.split(|c: char| !c.is_alphanumeric()).filter(|w| !w.is_empty()).map(str::to_lowercase).collect::<Vec<_>>();
+    let name = words(subject);
+    !name.is_empty() && words(text).windows(name.len()).any(|window| window == name)
 }
 
 async fn read<S, P, PF, F, FF>(candidates: S, question: &str, deadline: tokio::time::Instant,
@@ -129,6 +137,14 @@ where
 mod tests {
     use super::*;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn compliance_evidence_requires_the_named_company_in_the_page() {
+        assert!(!mentions_subject("Wwft guidance covers sanctions, PEPs and UBO checks.", "Mollie"));
+        assert!(!mentions_subject("Mollies unrelated business", "Mollie"));
+        assert!(mentions_subject("Registered company: MOLLIE B.V. in Amsterdam", "Mollie"));
+        assert!(mentions_subject("Example-Pay B.V. registration", "Example Pay"));
+    }
 
     #[tokio::test]
     async fn fast_pages_stream_while_a_provider_and_an_earlier_page_are_pending() {

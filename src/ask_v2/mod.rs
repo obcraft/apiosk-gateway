@@ -36,6 +36,9 @@ pub const FALLBACK_MODEL: &str = "qwen/qwen3-30b-a3b-instruct-2507";
 /// Web research needs faithful evidence synthesis, including declining facts
 /// that the retrieved pages do not establish. Other analysis flows are separate.
 pub(crate) const WEB_SYNTHESIS_MODEL: &str = "openai/gpt-4.1-mini";
+pub(crate) fn web_synthesis_model(input: &Value) -> &'static str {
+    if input["question"].as_str().is_some_and(crate::web_research::compliance_question) { "openai/gpt-4.1" } else { WEB_SYNTHESIS_MODEL }
+}
 pub(crate) const WEB_QUERY_MODEL: &str = WEB_SYNTHESIS_MODEL;
 const ENDPOINT: &str = "https://openrouter.ai/api/v1/chat/completions";
 const PROMPT: &str = include_str!("../../contracts/ask-v2-webgpu-prompt.txt");
@@ -123,7 +126,7 @@ fn web_query_dates_grounded(query: &str, question: &str, earlier: &str, current_
 impl Client {
     /// Resolve conversational references for retrieval only. The original
     /// question still owns synthesis, and a failure falls back at the caller.
-    pub(crate) async fn resolve_web_query(&self, question: &str, earlier: &str) -> Result<(String, Value)> {
+    pub(crate) async fn resolve_web_query(&self, question: &str, earlier: &str) -> Result<(String, Option<String>, Value)> {
         use futures_util::StreamExt;
         let current_date = chrono::Utc::now().date_naive().to_string();
         let payload = json!({"model":WEB_QUERY_MODEL,"temperature":0,"max_tokens":160,
@@ -152,8 +155,11 @@ impl Client {
             // A model's remembered year must not silently turn a current
             // question into a historical search. The caller keeps the original.
             ensure!(web_query_dates_grounded(query, question, earlier, &current_date), "ungrounded web query date");
+            let subject = parsed["subject"].as_str().map(str::trim).filter(|s| s.chars().count() >= 2 && s.chars().count() <= 120
+                && !s.chars().any(|c| c.is_control() || c == '"')
+                && format!("{question} {earlier}").to_lowercase().contains(&s.to_lowercase())).map(str::to_owned);
             call.finish(crate::telemetry::Outcome::Ok,"validated");
-            Ok((query.to_owned(),body["usage"].clone()))
+            Ok((query.to_owned(),subject,body["usage"].clone()))
         };
         tokio::time::timeout(Duration::from_secs(4),outcome).await?
     }
@@ -174,7 +180,7 @@ impl Client {
     async fn synthesize_web_with<F, Fut>(&self, input: Value, streaming: bool, mut on_answer: F) -> Result<Value>
     where F: FnMut(Value) -> Fut + Send, Fut: std::future::Future<Output=Result<()>> + Send {
         use futures_util::StreamExt;
-        let model = WEB_SYNTHESIS_MODEL;
+        let model = web_synthesis_model(&input);
         let (input,ids)=crate::web_research::synthesis_input(&input)?;
         let mut payload = json!({"model":model,"temperature":0.1,"max_tokens":1600,
             "provider":{"require_parameters":true,"sort":"latency"},

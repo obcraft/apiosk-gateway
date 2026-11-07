@@ -194,7 +194,7 @@ async fn run(
 ) -> anyhow::Result<()> {
     phase(sender, "searching", 0).await?;
     let query = crate::web_research::search_query(client, question, earlier).await;
-    let evidence = crate::web_research::streaming::retrieve(&query.query, question,
+    let evidence = crate::web_research::streaming::retrieve(&query.query, question, query.subject.as_deref(),
         provider == SearchProvider::Exa, |sources| async move {
             // Only read, validated evidence is streamed, never search snippets.
             sender.send(json!({"phase":"sources","question":question,"sources":sources})).await?;
@@ -212,7 +212,8 @@ async fn run(
     if count < crate::web_research::TARGET {
         limitations.push(format!("Only {count} of {} requested sources were successfully read and analyzed. Other results were unavailable, blocked, duplicate or irrelevant.", crate::web_research::TARGET));
     }
-    let input = json!({"question":question,"search_query":query.query,"earlier_conversation_context_only":earlier,"current_date":chrono::Utc::now().date_naive(),"sources":sources});
+    let input = json!({"question":question,"search_query":query.query,"compliance_subject":query.subject,"earlier_conversation_context_only":earlier,"current_date":chrono::Utc::now().date_naive(),"sources":sources});
+    let synthesis_model = crate::ask_v2::web_synthesis_model(&input);
     let process_ms = start.elapsed().as_millis() as u64;
     let start = Instant::now();
     let (answer, usage) = if count == 0 {
@@ -243,7 +244,7 @@ async fn run(
                 "answer":answer,"sources":sources,"provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
                 "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
                     "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"overlapped_with_search":true,"cost_usd":0},
-                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":null}}}}) };
+                    "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":start.elapsed().as_millis() as u64,"model":synthesis_model,"usage":null}}}}) };
             if !skip { sent_evidence = true; }
             async move { if !skip { sender.send(snapshot).await?; } Ok(()) }
         }).await.map_err(|error| {
@@ -282,7 +283,7 @@ async fn run(
         "provenance":{"query":query.query,"search_providers":providers,"skipped":failures},
         "operations":{"query_resolution":{"elapsed_ms":query.elapsed_ms,"method":query.method,"model":crate::ask_v2::WEB_QUERY_MODEL,"usage":query.usage},
             "search":search_operation,"extraction":{"elapsed_ms":extract_ms,"overlapped_with_search":true,"cost_usd":0},
-            "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":crate::ask_v2::WEB_SYNTHESIS_MODEL,"usage":usage}}
+            "processing":{"elapsed_ms":process_ms},"synthesis":{"elapsed_ms":synthesis_ms,"model":synthesis_model,"usage":usage}}
     }})).await?;
     Ok(())
 }
